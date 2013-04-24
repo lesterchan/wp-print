@@ -1,10 +1,10 @@
 # WP-Print
-Contributors: GamerZ, aaroncampbell
-Donate link: http://lesterchan.net/site/donation/
-Tags: print, printer, wp-print
-Requires at least: 2.8
-Tested up to: 3.5.1
-Stable tag: trunk
+Contributors: GamerZ, aaroncampbell  
+Donate link: http://lesterchan.net/site/donation/  
+Tags: print, printer, wp-print  
+Requires at least: 2.8  
+Tested up to: 3.5  
+Stable tag: trunk  
 
 Displays a printable version of your WordPress blog's post/page.
 
