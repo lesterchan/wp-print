@@ -1,0 +1,73 @@
+/*
+ * WordPress Plugin: WP-Print
+ * Copyright (c) 2012 Lester "GaMerZ" Chan
+ *
+ * File Written By:
+ * - Lester "GaMerZ" Chan
+ * - http://lesterchan.net
+ *
+ * File Information:
+ * - CSS Style For Printer Friendly Page
+ * - wp-content/plugins/wp-print/print-css.css
+ */
+
+
+Body {
+	font-family: Verdana, Arial, Tahoma;
+	font-size: 12px;
+	color: #000000;
+}
+.Center {
+	margin: 0px auto 0px auto;
+}
+#Outline {
+	width: 90%;
+	margin-left: auto; 
+	margin-right: auto;
+	padding: 10px;
+	border: 1px solid #000000;
+}
+#BlogTitle {
+	font-weight: bold;
+	font-size: 16px;
+	margin-bottom: 5px;
+}
+#BlogDate {
+	margin-top: 5px;
+	margin-bottom: 10px;	
+}
+#BlogContent {
+	padding: 10px;
+	margin-top: 10px;
+}
+HR.Divider {
+	width: 80%; 
+	height: 1px; 
+	color: #000000;
+}
+#CommentTitle {
+	font-weight: bold;
+	font-size: 16px;
+	padding-bottom: 10px;
+}
+.CommentDate {
+	margin-top: 5px;
+	margin-bottom: 10px;
+}
+.CommentContent {
+	padding: 2px 10px 10px 10px;
+}
+@media print {
+    #comments_controls,
+    #print-link {
+        display: none;
+    }
+}
+.alignleft, div.alignleft {
+	float: left;
+	margin: 10px 10px 5px 0;
+}
+.alignright, div.alignright {
+	float: right;
+	margin: 10px 0 5px 10px;
+}

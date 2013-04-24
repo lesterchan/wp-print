@@ -1,0 +1,20 @@
+/*
+ * WordPress Plugin: WP-Print
+ * Copyright (c) 2012 Lester "GaMerZ" Chan
+ *
+ * File Written By:
+ * - Lester "GaMerZ" Chan
+ * - http://lesterchan.net
+ *
+ * File Information:
+ * - CSS Style For Printer Friendly Page (RTL)
+ * - wp-content/plugins/wp-print/print-css-rtl.css
+ */
+
+Body {
+	font-family: Tahoma, Arial, Sans-Serif;
+}
+
+pre {
+  direction: ltr;
+}
