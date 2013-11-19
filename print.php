@@ -27,9 +27,8 @@ add_filter('comments_template', 'print_template_comments');
 $print_options = get_option('print_options');
 
 ### Load Print Post/Page Template
-if(file_exists(TEMPLATEPATH.'/print-posts.php')) {
-	include(TEMPLATEPATH.'/print-posts.php');
+if(file_exists(get_stylesheet_directory().'/print-posts.php')) {
+	include(get_stylesheet_directory().'/print-posts.php');
 } else {
 	include(WP_PLUGIN_DIR.'/wp-print/print-posts.php');
 }
-?>

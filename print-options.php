@@ -16,8 +16,7 @@
 ### Variables Variables Variables
 $base_name = plugin_basename('wp-print/print-options.php');
 $base_page = 'admin.php?page='.$base_name;
-$id = intval($_GET['id']);
-$mode = trim($_GET['mode']);
+$mode = isset($_GET['mode']) ? trim($_GET['mode']) : '';
 $print_settings = array('print_options');
 
 
@@ -287,4 +286,3 @@ switch($mode) {
 </form>
 <?php
 } // End switch($mode)
-?>

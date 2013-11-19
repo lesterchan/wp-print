@@ -3,7 +3,7 @@
 Plugin Name: WP-Print
 Plugin URI: http://lesterchan.net/portfolio/programming/php/
 Description: Displays a printable version of your WordPress blog's post/page.
-Version: 2.52
+Version: 2.53
 Author: Lester 'GaMerZ' Chan
 Author URI: http://lesterchan.net
 Text Domain: wp-print
@@ -99,7 +99,7 @@ function print_variables($public_query_vars) {
 
 ### Function: Display Print Link
 function print_link($print_post_text = '', $print_page_text = '', $echo = true) {
-	global $id;
+	$polyglot_append = '';
 	if (function_exists('polyglot_get_lang')){
 	    global $polyglot_settings;
 	    $polyglot_append = $polyglot_settings['uri_helpers']['lang_view'].'/'.polyglot_get_lang().'/';
@@ -386,9 +386,9 @@ function wp_print() {
 
 
 ### Function: Add Print Comments Template
-function print_template_comments($file = '') {
-	if(file_exists(TEMPLATEPATH.'/print-comments.php')) {
-		$file = TEMPLATEPATH.'/print-comments.php';
+function print_template_comments() {
+	if(file_exists(get_stylesheet_directory().'/print-comments.php')) {
+		$file = get_stylesheet_directory().'/print-comments.php';
 	} else {
 		$file = WP_PLUGIN_DIR.'/wp-print/print-comments.php';
 	}
@@ -453,4 +453,3 @@ function print_init() {
 	$print_options['disclaimer'] = sprintf(__('Copyright &copy; %s %s. All rights reserved.', 'wp-print'), date('Y'), get_option('blogname'));
 	add_option('print_options', $print_options, 'Print Options');
 }
-?>

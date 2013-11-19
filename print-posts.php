@@ -11,22 +11,22 @@
  * - Printer Friendly Post/Page Template
  * - wp-content/plugins/wp-print/print-posts.php
  */
-?>
 
-<?php global $text_direction; ?>
+global $text_direction;
+?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" <?php language_attributes(); ?>>
 <head>
 	<title><?php bloginfo('name'); ?> <?php wp_title(); ?></title>
 	<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />
 	<meta name="Robots" content="noindex, nofollow" />
-	<?php if(@file_exists(TEMPLATEPATH.'/print-css.css')): ?>
+	<?php if(@file_exists(get_stylesheet_directory().'/print-css.css')): ?>
 		<link rel="stylesheet" href="<?php echo get_stylesheet_directory_uri(); ?>/print-css.css" type="text/css" media="screen, print" />
 	<?php else: ?>
 		<link rel="stylesheet" href="<?php echo plugins_url('wp-print/print-css.css'); ?>" type="text/css" media="screen, print" />
 	<?php endif; ?>
 	<?php if('rtl' == $text_direction): ?>
-		<?php if(@file_exists(TEMPLATEPATH.'/print-css-rtl.css')): ?>
+		<?php if(@file_exists(get_stylesheet_directory().'/print-css-rtl.css')): ?>
 			<link rel="stylesheet" href="<?php echo get_stylesheet_directory_uri(); ?>/print-css-rtl.css" type="text/css" media="screen, print" />
 		<?php else: ?>
 			<link rel="stylesheet" href="<?php echo plugins_url('wp-print/print-css-rtl.css'); ?>" type="text/css" media="screen, print" />
