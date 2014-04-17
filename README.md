@@ -4,7 +4,7 @@ Donate link: http://lesterchan.net/site/donation/
 Tags: print, printer, wp-print  
 Requires at least: 2.8  
 Tested up to: 3.9  
-Stable tag: 2.52  
+Stable tag: 2.53  
 
 Displays a printable version of your WordPress blog's post/page.
 
