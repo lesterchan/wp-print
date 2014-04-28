@@ -4,7 +4,7 @@ Donate link: http://lesterchan.net/site/donation/
 Tags: print, printer, wp-print  
 Requires at least: 2.8  
 Tested up to: 3.9  
-Stable tag: 2.53  
+Stable tag: 2.54  
 
 Displays a printable version of your WordPress blog's post/page.
 
@@ -92,6 +92,10 @@ if(function_exists('wp_print')) {
 
 
 ## Changelog
+
+### 2.54
+* NEW: Allow Multisite Network Activate
+* NEW: Uses WordPress uninstall.php file to uninstall the plugin
 
 ### 2.53
 * FIXED: Use get_stylesheet_directory() instead of TEMPLATEPATH
