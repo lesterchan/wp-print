@@ -44,7 +44,13 @@ function print_menu() {
 
 
 ### Function: Print htaccess ReWrite Rules
-add_filter('generate_rewrite_rules', 'print_rewrite');
+add_action( 'init', 'wp_print_endpoint' );
+function wp_print_endpoint() {
+	add_rewrite_endpoint( 'print', EP_PERMALINK | EP_PAGES );
+}
+
+### Note to Lester: using the endpoint, you don't need these rules
+// add_filter('generate_rewrite_rules', 'print_rewrite');
 function print_rewrite($wp_rewrite) {
 	// Print Rules For Posts
 	$r_rule = '';
@@ -90,7 +96,7 @@ function print_rewrite($wp_rewrite) {
 add_filter('query_vars', 'print_variables');
 function print_variables($public_query_vars) {
 	$public_query_vars[] = 'print';
-	$public_query_vars[] = 'printpage';
+	// $public_query_vars[] = 'printpage';
 	return $public_query_vars;
 }
 
@@ -130,9 +136,9 @@ function print_link($print_post_text = '', $print_page_text = '', $echo = true) 
 			} else {
 				$print_text = $print_page_text;
 			}
-			$print_link = $print_link.'printpage/'.$polyglot_append;
+			$print_link = $print_link.'print/1'.$polyglot_append;
 		} else {
-			$print_link = $print_link.'print/'.$polyglot_append;
+			$print_link = $print_link.'print/1'.$polyglot_append;
 		}
 	} else {
 		if(is_page()) {
