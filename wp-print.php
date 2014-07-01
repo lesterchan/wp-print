@@ -43,46 +43,10 @@ function print_menu() {
 }
 
 
-### Function: Print htaccess ReWrite Rules
-add_filter('generate_rewrite_rules', 'print_rewrite');
-function print_rewrite($wp_rewrite) {
-	// Print Rules For Posts
-	$r_rule = '';
-	$r_link = '';
-	$print_link = get_permalink();
-	if(substr($print_link, -1, 1) != '/' && substr($wp_rewrite->permalink_structure, -1, 1) != '/') {
-		$print_link_text = '/print';
-	} else {
-		$print_link_text = 'print';
-	}
-	$rewrite_rules = $wp_rewrite->generate_rewrite_rule($wp_rewrite->permalink_structure.$print_link_text, EP_PERMALINK);
-	$rewrite_rules = array_slice($rewrite_rules, 5, 1);
-	$r_rule = array_keys($rewrite_rules);
-	$r_rule = array_shift($r_rule);
-	$r_rule = str_replace('/trackback', '',$r_rule);
-	$r_link = array_values($rewrite_rules);
-	$r_link = array_shift($r_link);
-	$r_link = str_replace('tb=1', 'print=1', $r_link);
-	$wp_rewrite->rules = array_merge(array($r_rule => $r_link), $wp_rewrite->rules);
-	// Print Rules For Pages
-	$page_uris = $wp_rewrite->page_uri_index();
-	$uris = $page_uris[0];
-	if(is_array($uris)) {
-		$print_page_rules = array();
-		foreach ($uris as $uri => $pagename) {
-			$wp_rewrite->add_rewrite_tag('%pagename%', "($uri)", 'pagename=');
-			$rewrite_rules = $wp_rewrite->generate_rewrite_rules($wp_rewrite->get_page_permastruct().'/printpage', EP_PAGES);
-			$rewrite_rules = array_slice($rewrite_rules, 5, 1);
-			$r_rule = array_keys($rewrite_rules);
-			$r_rule = array_shift($r_rule);
-			$r_rule = str_replace('/trackback', '',$r_rule);
-			$r_link = array_values($rewrite_rules);
-			$r_link = array_shift($r_link);
-			$r_link = str_replace('tb=1', 'print=1', $r_link);
-			$print_page_rules = array_merge($print_page_rules, array($r_rule => $r_link));
-		}
-		$wp_rewrite->rules = array_merge($print_page_rules, $wp_rewrite->rules);
-	}
+### Function: Add htaccess ReWrite Endpoint - this handles all the rules
+add_action( 'init', 'wp_print_endpoint' );
+function wp_print_endpoint() {
+	add_rewrite_endpoint( 'print', EP_PERMALINK | EP_PAGES );
 }
 
 
@@ -90,7 +54,7 @@ function print_rewrite($wp_rewrite) {
 add_filter('query_vars', 'print_variables');
 function print_variables($public_query_vars) {
 	$public_query_vars[] = 'print';
-	$public_query_vars[] = 'printpage';
+	// $public_query_vars[] = 'printpage';
 	return $public_query_vars;
 }
 
@@ -130,9 +94,9 @@ function print_link($print_post_text = '', $print_page_text = '', $echo = true) 
 			} else {
 				$print_text = $print_page_text;
 			}
-			$print_link = $print_link.'printpage/'.$polyglot_append;
+			$print_link = $print_link.'print'.$polyglot_append;
 		} else {
-			$print_link = $print_link.'print/'.$polyglot_append;
+			$print_link = $print_link.'print'.$polyglot_append;
 		}
 	} else {
 		if(is_page()) {
@@ -376,7 +340,8 @@ function print_links($text_links = '') {
 ### Function: Load WP-Print
 add_action('template_redirect', 'wp_print', 5);
 function wp_print() {
-	if(intval(get_query_var('print')) == 1 || intval(get_query_var('printpage')) == 1) {
+	global $wp_query;
+	if( array_key_exists( 'print' , $wp_query->query_vars ) ) {
 		include(WP_PLUGIN_DIR.'/wp-print/print.php');
 		exit();
 	}
