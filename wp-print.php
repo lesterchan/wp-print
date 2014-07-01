@@ -30,19 +30,18 @@ Text Domain: wp-print
 
 
 ### Create Text Domain For Translations
-add_action('init', 'print_textdomain');
+add_action( 'plugins_loaded', 'print_textdomain' );
 function print_textdomain() {
-	load_plugin_textdomain('wp-print', false, 'wp-print');
+	load_plugin_textdomain( 'wp-print', false, dirname( plugin_basename( __FILE__ ) ) );
 }
 
 
 ### Function: Print Option Menu
 add_action('admin_menu', 'print_menu');
 function print_menu() {
-	if (function_exists('add_options_page')) {
-		add_options_page(__('Print', 'wp-print'), __('Print', 'wp-print'), 'manage_options', 'wp-print/print-options.php') ;
-	}
+	add_options_page(__('Print', 'wp-print'), __('Print', 'wp-print'), 'manage_options', 'wp-print/print-options.php') ;
 }
+
 
 ### Function: Add htaccess ReWrite Endpoint - this handles all the rules
 add_action( 'init', 'wp_print_endpoint' );
@@ -399,21 +398,48 @@ function str_replace_one($search, $replace, $content){
 }
 
 
-### Function: Print Options
-add_action('activate_wp-print/wp-print.php', 'print_init');
-function print_init() {
-	print_textdomain();
+### Function: Activate Plugin
+register_activation_hook( __FILE__, 'print_activation' );
+function print_activation( $network_wide )
+{
 	// Add Options
-	$print_options = array();
-	$print_options['post_text'] = __('Print This Post', 'wp-print');
-	$print_options['page_text'] = __('Print This Page', 'wp-print');
-	$print_options['print_icon'] = 'print.gif';
-	$print_options['print_style'] = 1;
-	$print_options['print_html'] = '<a href="%PRINT_URL%" rel="nofollow" title="%PRINT_TEXT%">%PRINT_TEXT%</a>';
-	$print_options['comments'] = 0;
-	$print_options['links'] = 1;
-	$print_options['images'] = 1;
-	$print_options['videos'] = 0;
-	$print_options['disclaimer'] = sprintf(__('Copyright &copy; %s %s. All rights reserved.', 'wp-print'), date('Y'), get_option('blogname'));
-	add_option('print_options', $print_options, 'Print Options');
+	$option_name = 'print_options';
+	$option = array(
+		  'post_text'   => __('Print This Post', 'wp-print')
+		, 'page_text'   => __('Print This Page', 'wp-print')
+		, 'print_icon'  => 'print.gif'
+		, 'print_style' => 1
+		, 'print_html'  => '<a href="%PRINT_URL%" rel="nofollow" title="%PRINT_TEXT%">%PRINT_TEXT%</a>'
+		, 'comments'    => 0
+		, 'links'       => 1
+		, 'images'      => 1
+		, 'videos'      => 0
+		, 'disclaimer'  => sprintf(__('Copyright &copy; %s %s. All rights reserved.', 'wp-print'), date('Y'), get_option('blogname'))
+	);
+
+	if ( is_multisite() && $network_wide )
+	{
+		$ms_sites = wp_get_sites();
+
+		if( 0 < sizeof( $ms_sites ) )
+		{
+			foreach ( $ms_sites as $ms_site )
+			{
+				switch_to_blog( $ms_site['blog_id'] );
+				add_option( $option_name, $option );
+				print_activate();
+			}
+		}
+
+		restore_current_blog();
+	}
+	else
+	{
+		add_option( $option_name, $option );
+		print_activate();
+	}
+}
+
+function print_activate() {
+	flush_rewrite_rules();
 }
