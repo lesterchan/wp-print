@@ -43,7 +43,7 @@ function print_menu() {
 }
 
 
-### Function: Add htaccess ReWrite Endpoint - this handles all the rules
+### Function: Add htaccess Rewrite Endpoint - this handles all the rules
 add_action( 'init', 'wp_print_endpoint' );
 function wp_print_endpoint() {
 	add_rewrite_endpoint( 'print', EP_PERMALINK | EP_PAGES );
@@ -54,7 +54,6 @@ function wp_print_endpoint() {
 add_filter('query_vars', 'print_variables');
 function print_variables($public_query_vars) {
 	$public_query_vars[] = 'print';
-	// $public_query_vars[] = 'printpage';
 	return $public_query_vars;
 }
 
@@ -94,10 +93,8 @@ function print_link($print_post_text = '', $print_page_text = '', $echo = true) 
 			} else {
 				$print_text = $print_page_text;
 			}
-			$print_link = $print_link.'print'.$polyglot_append;
-		} else {
-			$print_link = $print_link.'print'.$polyglot_append;
 		}
+		$print_link = $print_link.'print/'.$polyglot_append;
 	} else {
 		if(is_page()) {
 			if(empty($print_page_text)) {

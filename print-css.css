@@ -1,21 +1,13 @@
-/*
- * WordPress Plugin: WP-Print
- * Copyright (c) 2012 Lester "GaMerZ" Chan
- *
- * File Written By:
- * - Lester "GaMerZ" Chan
- * - http://lesterchan.net
- *
- * File Information:
- * - CSS Style For Printer Friendly Page
- * - wp-content/plugins/wp-print/print-css.css
- */
-
-
-Body {
+BODY {
 	font-family: Verdana, Arial, Tahoma;
 	font-size: 12px;
 	color: #000000;
+}
+IMG {
+	max-width: 100%;
+}
+P {
+	word-wrap: break-word;
 }
 .Center {
 	margin: 0px auto 0px auto;

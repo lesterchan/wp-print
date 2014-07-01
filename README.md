@@ -94,6 +94,7 @@ if(function_exists('wp_print')) {
 ## Changelog
 
 ### 2.54
+* NEW: Finally there is custom post type support. Props [nimmolo](http://andrewnimmo.org/ "nimmolo").
 * NEW: Allow Multisite Network Activate
 * NEW: Uses WordPress uninstall.php file to uninstall the plugin
 
