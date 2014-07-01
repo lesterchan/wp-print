@@ -341,9 +341,8 @@ function print_links($text_links = '') {
 ### Function: Load WP-Print
 add_action('template_redirect', 'wp_print', 5);
 function wp_print() {
-	$url = 'http://' . $_SERVER['SERVER_NAME'] . $_SERVER['REQUEST_URI'];
-	$endpoint = substr( $url, 6 );
-	if( false !== strpos( $endpoint, '/print' ) ) {
+	global $wp_query;
+	if( array_key_exists( 'print' , $wp_query->query_vars ) ) {
 		include(WP_PLUGIN_DIR.'/wp-print/print.php');
 		exit();
 	}
