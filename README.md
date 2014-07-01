@@ -18,12 +18,6 @@ Displays a printable version of your WordPress blog's post/page.
 ### Translations
 * [http://dev.wp-plugins.org/browser/wp-print/i18n/](http://dev.wp-plugins.org/browser/wp-print/i18n/ "http://dev.wp-plugins.org/browser/wp-print/i18n/")
 
-### Credits
-* Icons courtesy of [FamFamFam](http://www.famfamfam.com/)
-* __ngetext() by [Anna Ozeritskaya](http://hweia.ru/)
-* Right-to-left language support by [Kambiz R. Khojasteh](http://persian-programming.com/)
-* Do Not Print idea by [Robert "Nilpo" Dunham](http://www.nilpo.com/)
-
 ### Donations
 I spent most of my free time creating, updating, maintaining and supporting these plugins, if you really love my plugins and could spare me a couple of bucks as my school allowance, I will really appreciate it. If not feel free to use it without any obligations. Thank You. My Paypal account is lesterchan@gmail.com.
 
