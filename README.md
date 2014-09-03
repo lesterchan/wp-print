@@ -3,7 +3,7 @@ Contributors: GamerZ
 Donate link: http://lesterchan.net/site/donation/  
 Tags: print, printer, wp-print  
 Requires at least: 2.8  
-Tested up to: 3.9  
+Tested up to: 4.0  
 Stable tag: 2.54  
 
 Displays a printable version of your WordPress blog's post/page.
@@ -18,6 +18,10 @@ Displays a printable version of your WordPress blog's post/page.
 
 ### Translations
 [http://dev.wp-plugins.org/browser/wp-print/i18n/](http://dev.wp-plugins.org/browser/wp-print/i18n/ "http://dev.wp-plugins.org/browser/wp-print/i18n/")
+
+### Credits
+* Plugin icon by [SimpleIcon](http://www.simpleicon.com) from [Flaticon](http://www.flaticon.com)
+* Icons courtesy of [FamFamFam](http://www.famfamfam.com/)
 
 ### Donations
 I spent most of my free time creating, updating, maintaining and supporting these plugins, if you really love my plugins and could spare me a couple of bucks as my school allowance, I will really appreciate it. If not feel free to use it without any obligations. Thank You. My Paypal account is lesterchan@gmail.com.
