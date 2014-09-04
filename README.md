@@ -57,8 +57,7 @@ Once installed take the following steps to set it up:
 
 1. Admin Print Options
 2. Print Post Link
-3. Print Page link
-4. Print Page
+3. Print Page
 
 ## Frequently Asked Questions
 
