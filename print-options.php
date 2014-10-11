@@ -29,12 +29,12 @@ if(!empty($_POST['Submit'])) {
 	$text = '';
 	foreach($update_print_queries as $update_print_query) {
 		if($update_print_query) {
-			$text .= '<font color="green">'.$update_print_text[$i].' '.__('Updated', 'wp-print').'</font><br />';
+			$text .= '<p style="color: green;">'.$update_print_text[$i].' '.__('Updated', 'wp-print').'</p>';
 		}
 		$i++;
 	}
 	if(empty($text)) {
-		$text = '<font color="red">'.__('No Print Option Updated', 'wp-print').'</font>';
+		$text = '<p style="color: red;">'.__('No Print Option Updated', 'wp-print').'</p>';
 	}
 }
 
