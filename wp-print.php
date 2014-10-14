@@ -237,7 +237,7 @@ function print_content($display = true) {
 
 ### Function: Print Categories
 function print_categories($before = '', $after = '') {
-	$temp_cat = strip_tags(get_the_category_list(',', $parents));
+	$temp_cat = strip_tags(get_the_category_list(','));
 	$temp_cat = explode(', ', $temp_cat);
 	$temp_cat = implode($after.__(',', 'wp-print').' '.$before, $temp_cat);
 	echo $before.$temp_cat.$after;
