@@ -24,7 +24,7 @@ Displays a printable version of your WordPress blog's post/page.
 * Icons courtesy of [FamFamFam](http://www.famfamfam.com/)
 
 ### Donations
-I spent most of my free time creating, updating, maintaining and supporting these plugins, if you really love my plugins and could spare me a couple of bucks as my school allowance, I will really appreciate it. If not feel free to use it without any obligations. Thank You. My Paypal account is lesterchan@gmail.com.
+I spent most of my free time creating, updating, maintaining and supporting these plugins, if you really love my plugins and could spare me a couple of bucks as my school allowance, I will really appreciate it. If not feel free to use it without any obligations.
 
 ## Installation
 
