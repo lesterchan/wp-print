@@ -41,8 +41,7 @@ Once installed take the following steps to set it up:
 
 ### Usage
 
-1. Open `wp-content/themes/<YOUR THEME NAME>/index.php`
-      You may place it in single.php, post.php, page.php, etc also.
+1. Open `wp-content/themes/<YOUR THEME NAME>/index.php`. You should place it in single.php, post.php, page.php, etc also if they exist.
 1. Find: `<?php while (have_posts()) : the_post(); ?>`
 1. Add Anywhere Below It: `<?php if(function_exists('wp_print')) { print_link(); } ?>`
 
