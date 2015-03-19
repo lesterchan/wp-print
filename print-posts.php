@@ -36,13 +36,13 @@ global $text_direction;
 </head>
 <body>
 
-<main role="main" class="Center">
+<main role="main" class="center">
 
 	<?php if (have_posts()): ?>
 
 		<header class="entry-header">
 
-			<span style="text-align: center;">
+			<span class="hat">
 				<strong>
 					- <?php bloginfo('name'); ?> 
 					- 
@@ -85,55 +85,60 @@ global $text_direction;
 			
 		</header>	
 
-		<div id="BlogContent">
+		<div class="entry-content">
 
 			<?php print_content(); ?>
 
 		</div>
 
 	<?php endwhile; ?>
-
-	<?php if(print_can('comments')): ?>
-		<?php comments_template(); ?>
-	<?php endif; ?>
-
-	<p>
-		<?php _e('Article printed from', 'wp-print'); ?> 
-		<?php bloginfo('name'); ?>: 
-
-		<strong dir="ltr">
-			<?php bloginfo('url'); ?>
-		</strong>
-	</p>
-
-	<p>
-		<?php _e('URL to article', 'wp-print'); ?>: 
-		<strong dir="ltr">
-			<?php the_permalink(); ?>
-		</strong>
-	</p>
 	
-	<?php if(print_can('links')): ?>
-		<p><?php print_links(); ?></p>
-	<?php endif; ?>
-
-	<p style="text-align: <?php echo ('rtl' == $text_direction) ? 'left' : 'right'; ?>;" id="print-link">
-		<?php _e('Click', 'wp-print'); ?> 
-		<a href="#Print" onclick="window.print(); return false;" title="<?php _e('Click here to print.', 'wp-print'); ?>">
-			<?php _e('here', 'wp-print'); ?>
-		</a> 
-		<?php _e('to print.', 'wp-print'); ?>
-	</p>
-
-	<?php else: ?>
+	<div class="comments">
+		<?php if(print_can('comments')): ?>
+			<?php comments_template(); ?>
+		<?php endif; ?>
+	</div>
+	
+	<footer class="footer">
 		<p>
-			<?php _e('No posts matched your criteria.', 'wp-print'); ?>
-		</p>
-	<?php endif; ?>
+			<?php _e('Article printed from', 'wp-print'); ?> 
+			<?php bloginfo('name'); ?>: 
 
-	<p style="text-align: center;">
-		<?php echo stripslashes($print_options['disclaimer']); ?>
-	</p>
+			<strong dir="ltr">
+				<?php bloginfo('url'); ?>
+			</strong>
+		</p>
+
+		<p>
+			<?php _e('URL to article', 'wp-print'); ?>: 
+			<strong dir="ltr">
+				<?php the_permalink(); ?>
+			</strong>
+		</p>
+		
+		<?php if(print_can('links')): ?>
+			<p><?php print_links(); ?></p>
+		<?php endif; ?>
+
+		<p style="text-align: <?php echo ('rtl' == $text_direction) ? 'left' : 'right'; ?>;" id="print-link">
+			<a href="#Print" onclick="window.print(); return false;" title="<?php _e('Click here to print.', 'wp-print'); ?>">
+				<?php _e('Click', 'wp-print'); ?> 
+				<?php _e('here', 'wp-print'); ?>
+				<?php _e('to print.', 'wp-print'); ?>
+			</a> 
+		</p>
+
+		<?php else: ?>
+			<p>
+				<?php _e('No posts matched your criteria.', 'wp-print'); ?>
+			</p>
+		<?php endif; ?>
+
+		<p style="text-align: center;">
+			<?php echo stripslashes($print_options['disclaimer']); ?>
+		</p>
+	</footer>
+
 </main>
 
 
