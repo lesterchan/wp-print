@@ -4,7 +4,7 @@ Donate link: http://lesterchan.net/site/donation/
 Tags: print, printer, wp-print  
 Requires at least: 2.8  
 Tested up to: 4.2
-Stable tag: 2.55  
+Stable tag: 2.56  
 
 Displays a printable version of your WordPress blog's post/page.
 
@@ -83,12 +83,14 @@ if(function_exists('wp_print')) {
 * Do note that if you are using WP-Email, any text within [donotprint][/donotprint] will not be emailed as well.
 
 ### Custom Template
-* WP-Print will load 'print-css.css', '<strong>print-posts.php' and 'print-comments.php' from your theme's directory if it exists.
+* WP-Print will load 'print-css.css', 'print-posts.php' and 'print-comments.php' from your theme's directory if it exists.
 * If it doesn't exists, it will just load the respective default file that comes with WP-Print.
 * This will allow you to upgrade WP-Print without worrying about overwriting your printing styles or templates that you have created.
 
 
 ## Changelog
+### 2.66
+* NEW: Updated print HTML code. Props @Luanramos
 
 ### 2.55
 * NEW: Bump to 4.1
