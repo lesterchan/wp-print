@@ -3,7 +3,7 @@ Contributors: GamerZ
 Donate link: http://lesterchan.net/site/donation/  
 Tags: print, printer, wp-print  
 Requires at least: 2.8  
-Tested up to: 4.1  
+Tested up to: 4.2
 Stable tag: 2.55  
 
 Displays a printable version of your WordPress blog's post/page.
@@ -67,7 +67,7 @@ Once installed take the following steps to set it up:
 1. Find: `<?php while (have_posts()) : the_post(); ?>`
 1. Add Anywhere Below It: `<?php if(function_exists('wp_print')) { print_link(); } ?>`
 
-Simply add this code <strong>inside the loop ### where you want the print link to display:
+Simply add this code inside the loop ### where you want the print link to display:
 <code>
 if(function_exists('wp_print')) {
 	print_link();
