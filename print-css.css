@@ -48,6 +48,10 @@ a { color: inherit; }
 	line-height: 170%;
 }
 
+pre {
+    white-space: pre-wrap;
+}
+
 /* Footer */
 .footer {
 	margin-top: 25px;
