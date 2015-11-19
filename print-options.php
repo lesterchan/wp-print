@@ -2,7 +2,7 @@
 ### Variables Variables Variables
 $base_name = plugin_basename('wp-print/print-options.php');
 $base_page = 'admin.php?page='.$base_name;
-$mode = isset($_GET['mode']) ? trim($_GET['mode']) : '';
+$mode = ! empty( $_GET['mode'] ) ? trim( $_GET['mode'] ) : '';
 $print_settings = array('print_options');
 
 
@@ -11,34 +11,34 @@ $print_settings = array('print_options');
 if(!empty($_POST['Submit'])) {
 	check_admin_referer('wp-print_options');
 	$print_options = array();
-	$print_options['post_text'] = addslashes(trim(wp_filter_kses($_POST['print_post_text'])));
-	$print_options['page_text'] = addslashes(trim(wp_filter_kses($_POST['print_page_text'])));
-	$print_options['print_icon'] = trim($_POST['print_icon']);
-	$print_options['print_style'] = intval($_POST['print_style']);
-	$print_options['print_html'] = trim($_POST['print_html']);
-	$print_options['comments'] = intval($_POST['print_comments']);
-	$print_options['links'] = intval($_POST['print_links']);
-	$print_options['images'] = intval($_POST['print_images']);
-	$print_options['videos'] = intval($_POST['print_videos']);
-	$print_options['disclaimer'] = trim($_POST['print_disclaimer']);
+	$print_options['post_text']         = ! empty( $_POST['print_post_text'] )  ? addslashes( trim( wp_filter_kses( $_POST['print_post_text'] ) ) ) : '';
+	$print_options['page_text']         = ! empty( $_POST['print_page_text'] )  ? addslashes( trim( wp_filter_kses( $_POST['print_page_text'] ) ) ) : '';
+	$print_options['print_icon']        = ! empty( $_POST['print_icon'] )       ? trim( $_POST['print_icon'] ) : '';
+	$print_options['print_style']       = ! empty( $_POST['print_style'] )      ? intval($_POST['print_style']) : 1;
+	$print_options['print_html']        = ! empty( $_POST['print_html'] )       ? trim($_POST['print_html']) : '';
+	$print_options['comments']          = ! empty( $_POST['print_comments'] )   ? intval($_POST['print_comments']): 0;
+	$print_options['links']             = ! empty( $_POST['print_links'] )      ? intval($_POST['print_links']) : 1;
+	$print_options['images']            = ! empty( $_POST['print_images'] )     ? intval($_POST['print_images']) : 0;
+	$print_options['videos']            = ! empty( $_POST['print_videos'] )     ? intval( $_POST['print_videos'] ) : 1;
+	$print_options['disclaimer']        = ! empty( $_POST['print_disclaimer'] ) ? trim( $_POST['print_disclaimer'] ) : '';
 	$update_print_queries = array();
 	$update_print_text = array();
-	$update_print_queries[] = update_option('print_options', $print_options);
-	$update_print_text[] = __('Print Options', 'wp-print');
+	$update_print_queries[] = update_option( 'print_options', $print_options );
+	$update_print_text[] = __( 'Print Options', 'wp-print' );
 	$i=0;
 	$text = '';
-	foreach($update_print_queries as $update_print_query) {
-		if($update_print_query) {
-			$text .= '<p style="color: green;">'.$update_print_text[$i].' '.__('Updated', 'wp-print').'</p>';
+	foreach( $update_print_queries as $update_print_query ) {
+		if( $update_print_query ) {
+			$text .= '<p style="color: green;">' . $update_print_text[$i] . ' ' .__('Updated', 'wp-print') . '</p>';
 		}
 		$i++;
 	}
-	if(empty($text)) {
-		$text = '<p style="color: red;">'.__('No Print Option Updated', 'wp-print').'</p>';
+	if( empty( $text ) ) {
+		$text = '<p style="color: red;">' . __('No Print Option Updated', 'wp-print') . '</p>';
 	}
 }
 
-$print_options = get_option('print_options');
+$print_options = get_option( 'print_options' );
 ?>
 <script type="text/javascript">
 	/* <![CDATA[*/
