@@ -89,10 +89,10 @@ if(function_exists('wp_print')) {
 
 
 ## Changelog
-### 2.67
+### 2.57
 * FIXED: Notices
 
-### 2.66
+### 2.56
 * NEW: Updated print HTML code. Props @Luanramos
 
 ### 2.55
