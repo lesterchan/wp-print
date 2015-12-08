@@ -3,7 +3,7 @@
 Plugin Name: WP-Print
 Plugin URI: http://lesterchan.net/portfolio/programming/php/
 Description: Displays a printable version of your WordPress blog's post/page.
-Version: 2.57
+Version: 2.57.1
 Author: Lester 'GaMerZ' Chan
 Author URI: http://lesterchan.net
 Text Domain: wp-print
@@ -32,7 +32,7 @@ Text Domain: wp-print
 ### Create Text Domain For Translations
 add_action( 'plugins_loaded', 'print_textdomain' );
 function print_textdomain() {
-    load_plugin_textdomain( 'wp-print', false, dirname( plugin_basename( __FILE__ ) ) );
+    load_plugin_textdomain( 'wp-print' );
 }
 
 
