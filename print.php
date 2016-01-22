@@ -26,9 +26,13 @@ add_filter('comments_template', 'print_template_comments');
 ### Print Options
 $print_options = get_option('print_options');
 
-### Load Print Post/Page Template
+### Load Print Post/Page Template from stylesheet dir (child theme)
 if(file_exists(get_stylesheet_directory().'/print-posts.php')) {
 	include(get_stylesheet_directory().'/print-posts.php');
+### Then try template dir (parent theme) 
+} elseif(file_exists(get_template_directory().'/print-posts.php')) {
+	include(get_template_directory().'/print-posts.php');
+### Fall back to default template in plugin dir	
 } else {
 	include(WP_PLUGIN_DIR.'/wp-print/print-posts.php');
 }

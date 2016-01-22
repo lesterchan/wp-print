@@ -22,6 +22,8 @@ global $text_direction;
 	<meta name="Robots" content="noindex, nofollow" />
 	<?php if(@file_exists(get_stylesheet_directory().'/print-css.css')): ?>
 		<link rel="stylesheet" href="<?php echo get_stylesheet_directory_uri(); ?>/print-css.css" type="text/css" media="screen, print" />
+	<?php elseif(@file_exists(get_template_directory().'/print-css.css')): ?>
+		<link rel="stylesheet" href="<?php echo get_template_directory_uri(); ?>/print-css.css" type="text/css" media="screen, print" />
 	<?php else: ?>
 		<link rel="stylesheet" href="<?php echo plugins_url('wp-print/print-css.css'); ?>" type="text/css" media="screen, print" />
 	<?php endif; ?>
