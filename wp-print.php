@@ -409,6 +409,7 @@ function print_activation( $network_wide ) {
           'comments'    => 0,
           'links'       => 1,
           'images'      => 1,
+          'thumbnail'   => 0,
           'videos'      => 0,
           'disclaimer'  => sprintf(__('Copyright &copy; %s %s. All rights reserved.', 'wp-print'), date('Y'), get_option('blogname'))
     );
