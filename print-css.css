@@ -41,6 +41,11 @@ a { color: inherit; }
 	padding: 0 2%;
 }
 
+/* thumbnail */
+.thumbnail {
+	text-align: center;
+	margin-bottom: 25px;
+}
 
 /* content */
 .entry-content {

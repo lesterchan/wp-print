@@ -18,6 +18,7 @@ if( ! empty( $_POST['Submit'] ) ) {
     $print_options['comments']          = isset( $_POST['print_comments'] )     ? intval( $_POST['print_comments'] ): 0;
     $print_options['links']             = isset( $_POST['print_links'] )        ? intval( $_POST['print_links'] ) : 1;
     $print_options['images']            = isset( $_POST['print_images'] )       ? intval( $_POST['print_images'] ) : 0;
+    $print_options['thumbnail']         = isset( $_POST['print_thumbnail'] )    ? intval( $_POST['print_thumbnail'] ) : 0;
     $print_options['videos']            = isset( $_POST['print_videos'] )       ? intval( $_POST['print_videos'] ) : 1;
     $print_options['disclaimer']        = ! empty( $_POST['print_disclaimer'] ) ? trim( $_POST['print_disclaimer'] ) : '';
     $update_print_queries = array();
@@ -159,6 +160,15 @@ $print_options = get_option( 'print_options' );
                 <select name="print_images" size="1">
                     <option value="1"<?php selected('1', $print_options['images']); ?>><?php _e('Yes', 'wp-print'); ?></option>
                     <option value="0"<?php selected('0', $print_options['images']); ?>><?php _e('No', 'wp-print'); ?></option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <th scope="row" valign="top"><?php _e('Print Thumbnail?', 'wp-print'); ?></th>
+            <td>
+                <select name="print_thumbnail" size="1">
+                    <option value="1"<?php selected('1', $print_options['thumbnail']); ?>><?php _e('Yes', 'wp-print'); ?></option>
+                    <option value="0"<?php selected('0', $print_options['thumbnail']); ?>><?php _e('No', 'wp-print'); ?></option>
                 </select>
             </td>
         </tr>
