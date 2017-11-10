@@ -11,8 +11,6 @@
  * - Printer Friendly Post/Page Template
  * - wp-content/plugins/wp-print/print-posts.php
  */
-
-global $text_direction;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -27,7 +25,7 @@ global $text_direction;
 	<?php else: ?>
 		<link rel="stylesheet" href="<?php echo plugins_url('wp-print/print-css.css'); ?>" type="text/css" media="screen, print" />
 	<?php endif; ?>
-	<?php if('rtl' == $text_direction): ?>
+	<?php if ( is_rtl() ) : ?>
 		<?php if(@file_exists(get_stylesheet_directory().'/print-css-rtl.css')): ?>
 			<link rel="stylesheet" href="<?php echo get_stylesheet_directory_uri(); ?>/print-css-rtl.css" type="text/css" media="screen, print" />
 		<?php else: ?>
@@ -130,7 +128,7 @@ global $text_direction;
 			<p><?php print_links(); ?></p>
 		<?php endif; ?>
 
-		<p style="text-align: <?php echo ('rtl' == $text_direction) ? 'left' : 'right'; ?>;" id="print-link">
+		<p style="text-align: <?php echo ( is_rtl() ) ? 'left' : 'right'; ?>;" id="print-link">
 			<a href="#Print" onclick="window.print(); return false;" title="<?php _e('Click here to print.', 'wp-print'); ?>">
 				<?php _e('Click', 'wp-print'); ?> 
 				<?php _e('here', 'wp-print'); ?>
