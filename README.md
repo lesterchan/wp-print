@@ -3,8 +3,8 @@ Contributors: GamerZ
 Donate link: http://lesterchan.net/site/donation/  
 Tags: print, printer, wp-print  
 Requires at least: 4.0  
-Tested up to: 5.0  
-Stable tag: 2.58
+Tested up to: 5.1  
+Stable tag: 2.58.1  
 
 Displays a printable version of your WordPress blog's post/page.
 
@@ -80,6 +80,9 @@ if(function_exists('wp_print')) {
 * This will allow you to upgrade WP-Print without worrying about overwriting your printing styles or templates that you have created.
 
 ## Changelog
+### 2.58.1
+* FIXED: Strip iframe tags as well.
+
 ### 2.58
 * NEW: Ability to print thumbnail. Props @MatthieuMota.
 

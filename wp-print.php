@@ -3,7 +3,7 @@
 Plugin Name: WP-Print
 Plugin URI: http://lesterchan.net/portfolio/programming/php/
 Description: Displays a printable version of your WordPress blog's post/page.
-Version: 2.58
+Version: 2.58.1
 Author: Lester 'GaMerZ' Chan
 Author URI: http://lesterchan.net
 Text Domain: wp-print
@@ -11,7 +11,7 @@ Text Domain: wp-print
 
 
 /*
-	Copyright 2016  Lester Chan  (email : lesterchan@gmail.com)
+	Copyright 2019  Lester Chan  (email : lesterchan@gmail.com)
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -78,8 +78,8 @@ function print_link($print_post_text = '', $print_page_text = '', $echo = true) 
 	$print_link = get_permalink();
 	$print_html = stripslashes($print_options['print_html']);
 	// Fix For Static Page
-	if(get_option('show_on_front') == 'page' && is_page()) {
-		if(intval(get_option('page_on_front')) > 0) {
+	if ( get_option( 'show_on_front' ) === 'page' && is_page() ) {
+		if ( (int) get_option( 'page_on_front' ) > 0 ) {
 			$print_link = _get_page_link();
 		}
 	}
@@ -303,7 +303,6 @@ function print_comments_content($display = true) {
 ### Function: Print Comments
 function print_comments_number() {
 	global $post;
-	$comment_text = '';
 	$comment_status = $post->comment_status;
 	if($comment_status == 'open') {
 		$num_comments = get_comments_number();
@@ -383,9 +382,10 @@ function remove_image($content) {
 
 
 ### Function: Remove Video From Text
-function remove_video($content) {
-	$content= preg_replace('/<object[^>]*?>.*?<\/object>/', '',$content);
-	$content= preg_replace('/<embed[^>]*?>.*?<\/embed>/', '',$content);
+function remove_video( $content ) {
+	$content= preg_replace( '/<object[^>]*?>.*?<\/object>/', '',$content );
+	$content= preg_replace( '/<embed[^>]*?>.*?<\/embed>/', '',$content );
+	$content= preg_replace( '/<iframe[^>]*?>.*?<\/iframe>/', '',$content );
 	return $content;
 }
 
@@ -422,7 +422,7 @@ function print_activation( $network_wide ) {
 	if ( is_multisite() && $network_wide ) {
 		$ms_sites = function_exists( 'get_sites' ) ? get_sites() : wp_get_sites();
 
-		if( 0 < sizeof( $ms_sites ) ) {
+		if( 0 < count( $ms_sites ) ) {
 			foreach ( $ms_sites as $ms_site ) {
 				$blog_id = isset( $ms_site['blog_id'] ) ? $ms_site['blog_id'] : $ms_site->blog_id;
 				switch_to_blog( $blog_id );
