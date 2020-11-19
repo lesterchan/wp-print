@@ -3,7 +3,7 @@
 Plugin Name: WP-Print
 Plugin URI: http://lesterchan.net/portfolio/programming/php/
 Description: Displays a printable version of your WordPress blog's post/page.
-Version: 2.58.1
+Version: 2.58.2
 Author: Lester 'GaMerZ' Chan
 Author URI: http://lesterchan.net
 Text Domain: wp-print
@@ -11,7 +11,7 @@ Text Domain: wp-print
 
 
 /*
-	Copyright 2019  Lester Chan  (email : lesterchan@gmail.com)
+	Copyright 2020  Lester Chan  (email : lesterchan@gmail.com)
 
 	This program is free software; you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -252,7 +252,7 @@ function print_comments_content($display = true) {
 		$matched_links = array();
 	}
 	$content  = get_comment_text();
-	$content = apply_filters('comment_text', $content);
+	$content = apply_filters( 'comment_text', $content, null, array() );
 	if(!print_can('images')) {
 		$content = remove_image($content);
 	}
