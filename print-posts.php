@@ -13,7 +13,7 @@
  */
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?php echo substr(get_bloginfo('language'), 0, strpos(get_bloginfo('language'), '-')); ?>" dir="<?php echo get_bloginfo('text_direction'); ?>">
 <head>
 	<title><?php bloginfo('name'); ?> <?php wp_title(); ?></title>
 	<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />
@@ -26,6 +26,9 @@
 		<link rel="stylesheet" href="<?php echo plugins_url('wp-print/print-css.css'); ?>" type="text/css" media="screen, print" />
 	<?php endif; ?>
 	<?php if ( is_rtl() ) : ?>
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 		<?php if(@file_exists(get_stylesheet_directory().'/print-css-rtl.css')): ?>
 			<link rel="stylesheet" href="<?php echo get_stylesheet_directory_uri(); ?>/print-css-rtl.css" type="text/css" media="screen, print" />
 		<?php else: ?>
