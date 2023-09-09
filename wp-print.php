@@ -109,15 +109,15 @@ function print_link($print_post_text = '', $print_page_text = '', $echo = true) 
 	switch($print_style) {
 		// Icon + Text Link
 		case 1:
-			$output = '<a href="'.$print_link.'" title="'.$print_text.'" rel="nofollow"><img class="WP-PrintIcon" src="'.$print_icon.'" alt="'.$print_text.'" title="'.$print_text.'" style="border: 0px;" /></a>&nbsp;<a href="'.$print_link.'" title="'.$print_text.'" rel="nofollow">'.$print_text.'</a>';
+			$output = '<span id="wp-print-btn" style="cursor: pointer;" title="'.$print_text.'" rel="nofollow"><img class="WP-PrintIcon" src="'.$print_icon.'" alt="'.$print_text.'" title="'.$print_text.'" style="border: 0px;" />&nbsp;'.$print_text.'</span><script>document.getElementById("wp-print-btn").addEventListener("click", () => {window.open(window.location.href+"print", "Print Window").print();});</script>';
 			break;
 		// Icon Only
 		case 2:
-			$output = '<a href="'.$print_link.'" title="'.$print_text.'" rel="nofollow"><img class="WP-PrintIcon" src="'.$print_icon.'" alt="'.$print_text.'" title="'.$print_text.'" style="border: 0px;" /></a>';
+			$output = '<span id="wp-print-btn" style="cursor: pointer;" title="'.$print_text.'" rel="nofollow"><img class="WP-PrintIcon" src="'.$print_icon.'" alt="'.$print_text.'" title="'.$print_text.'" style="border: 0px;" /></span><script>document.getElementById("wp-print-btn").addEventListener("click", () => {window.open(window.location.href+"print", "Print Window").print();});</script>';
 			break;
 		// Text Link Only
 		case 3:
-			$output = '<a href="'.$print_link.'" title="'.$print_text.'" rel="nofollow">'.$print_text.'</a>';
+			$output = '<span id="wp-print-btn" style="cursor: pointer;" title="'.$print_text.'" rel="nofollow">'.$print_text.'</span><script>document.getElementById("wp-print-btn").addEventListener("click", () => {window.open(window.location.href+"print", "Print Window").print();});</script>';
 			break;
 		case 4:
 			$print_html = str_replace("%PRINT_URL%", $print_link, $print_html);
