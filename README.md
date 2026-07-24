@@ -1,10 +1,10 @@
 # WP-Print
 Contributors: GamerZ  
-Donate link: http://lesterchan.net/site/donation/  
+Donate link: https://lesterchan.net/site/donation/  
 Tags: print, printer, wp-print  
 Requires at least: 4.0  
-Tested up to: 6.3  
-Stable tag: 2.58.2  
+Tested up to: 7.00  
+Stable tag: 2.58.3  
 
 Displays a printable version of your WordPress blog's post/page.
 
@@ -28,9 +28,6 @@ Once installed take the following steps to set it up:
 * Alternatively, you can set the text in 'WP-Admin -> Settings -> Print'.
 * If you DO NOT want the print link to appear in every post/page, DO NOT use the code above. Just type in <strong>[print_link]</strong> into the selected post/page content and it will embed the print link into that post/page only.
 
-### Build Status
-[![Build Status](https://travis-ci.org/lesterchan/wp-print.svg?branch=master)](https://travis-ci.org/lesterchan/wp-print)
-
 ### Development
 [https://github.com/lesterchan/wp-print](https://github.com/lesterchan/wp-print "https://github.com/lesterchan/wp-print")
 
@@ -39,7 +36,6 @@ Once installed take the following steps to set it up:
 
 ### Credits
 * Plugin icon by [SimpleIcon](http://www.simpleicon.com) from [Flaticon](http://www.flaticon.com)
-* Icons courtesy of [FamFamFam](http://www.famfamfam.com/)
 
 ### Donations
 I spent most of my free time creating, updating, maintaining and supporting these plugins, if you really love my plugins and could spare me a couple of bucks as my school allowance, I will really appreciate it. If not feel free to use it without any obligations.
@@ -80,6 +76,13 @@ if(function_exists('wp_print')) {
 * This will allow you to upgrade WP-Print without worrying about overwriting your printing styles or templates that you have created.
 
 ## Changelog
+### 2.58.3
+* NEW: Bump to WordPress 7.0
+
+### 2.58.2
+* NEW: Use strong instead of b for bold
+* FIXED: Improve RTL
+
 ### 2.58.1
 * FIXED: Strip iframe tags as well.
 

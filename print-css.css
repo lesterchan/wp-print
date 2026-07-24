@@ -10,8 +10,8 @@ body {
 }
 hr { display: none; }
 img { max-width: 100%; }
-p { 
-	word-wrap: break-word; 
+p {
+	word-wrap: break-word;
 	margin-bottom: 15px;
 }
 a { color: inherit; }
@@ -54,7 +54,7 @@ a { color: inherit; }
 }
 
 pre {
-    white-space: pre-wrap;
+	white-space: pre-wrap;
 }
 
 /* Footer */
@@ -65,10 +65,10 @@ pre {
 }
 
 @media print {
-    #comments_controls,
-    #print-link {
-        display: none;
-    }
+	#comments_controls,
+	#print-link {
+		display: none;
+	}
 }
 .alignleft, .alignleft {
 	float: left;

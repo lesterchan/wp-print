@@ -1,7 +1,7 @@
 <?php
 /*
  * WordPress Plugin: WP-Print
- * Copyright (c) 2012 Lester "GaMerZ" Chan
+ * Copyright (c) 2026 Lester "GaMerZ" Chan
  *
  * File Written By:
  * - Lester "GaMerZ" Chan
