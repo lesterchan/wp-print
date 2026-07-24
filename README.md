@@ -78,6 +78,7 @@ if(function_exists('wp_print')) {
 ## Changelog
 ### 2.58.3
 * NEW: Bump to WordPress 7.0
+* FIXED: Fixed XSS audit by Claude
 
 ### 2.58.2
 * NEW: Use strong instead of b for bold
