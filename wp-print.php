@@ -105,23 +105,26 @@ function print_link($print_post_text = '', $print_page_text = '', $echo = true) 
 		$print_link = $print_link.'&amp;print=1';
 	}
 	unset($print_options);
+	$print_link_esc = esc_url($print_link);
+	$print_icon_esc = esc_url($print_icon);
+	$print_text_attr = esc_attr($print_text);
 	switch($print_style) {
 		// Icon + Text Link
 		case 1:
-			$output = '<a href="'.$print_link.'" title="'.$print_text.'" rel="nofollow"><img class="WP-PrintIcon" src="'.$print_icon.'" alt="'.$print_text.'" title="'.$print_text.'" style="border: 0px;" /></a>&nbsp;<a href="'.$print_link.'" title="'.$print_text.'" rel="nofollow">'.$print_text.'</a>';
+			$output = '<a href="'.$print_link_esc.'" title="'.$print_text_attr.'" rel="nofollow"><img class="WP-PrintIcon" src="'.$print_icon_esc.'" alt="'.$print_text_attr.'" title="'.$print_text_attr.'" style="border: 0px;" /></a>&nbsp;<a href="'.$print_link_esc.'" title="'.$print_text_attr.'" rel="nofollow">'.$print_text.'</a>';
 			break;
 		// Icon Only
 		case 2:
-			$output = '<a href="'.$print_link.'" title="'.$print_text.'" rel="nofollow"><img class="WP-PrintIcon" src="'.$print_icon.'" alt="'.$print_text.'" title="'.$print_text.'" style="border: 0px;" /></a>';
+			$output = '<a href="'.$print_link_esc.'" title="'.$print_text_attr.'" rel="nofollow"><img class="WP-PrintIcon" src="'.$print_icon_esc.'" alt="'.$print_text_attr.'" title="'.$print_text_attr.'" style="border: 0px;" /></a>';
 			break;
 		// Text Link Only
 		case 3:
-			$output = '<a href="'.$print_link.'" title="'.$print_text.'" rel="nofollow">'.$print_text.'</a>';
+			$output = '<a href="'.$print_link_esc.'" title="'.$print_text_attr.'" rel="nofollow">'.$print_text.'</a>';
 			break;
 		case 4:
-			$print_html = str_replace("%PRINT_URL%", $print_link, $print_html);
+			$print_html = str_replace("%PRINT_URL%", $print_link_esc, $print_html);
 			$print_html = str_replace("%PRINT_TEXT%", $print_text, $print_html);
-			$print_html = str_replace("%PRINT_ICON_URL%", $print_icon, $print_html);
+			$print_html = str_replace("%PRINT_ICON_URL%", $print_icon_esc, $print_html);
 			$output = $print_html;
 			break;
 	}
@@ -263,6 +266,7 @@ function print_comments_content($display = true) {
 		for ($i=0; $i < count($matches[0]); $i++) {
 			$link_match = $matches[0][$i];
 			$link_url = $matches[2][$i];
+			$link_text = $matches[4][$i];
 			if(stristr($link_url, 'https://')) {
 				 $link_url =(strtolower(substr($link_url,0,8)) != 'https://') ?get_option('home') . $link_url : $link_url;
 			} else if(stristr($link_url, 'mailto:')) {
