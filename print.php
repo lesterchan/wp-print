@@ -17,28 +17,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-### Variables
+// Variables
 $links_text = '';
 
-### Actions
-add_action('init', 'print_content');
+// Actions
+add_action( 'init', 'print_content' );
 
-### Filters
-add_filter('wp_title', 'print_pagetitle');
-add_filter('comments_template', 'print_template_comments');
+// Filters
+add_filter( 'wp_title', 'print_pagetitle' );
+add_filter( 'comments_template', 'print_template_comments' );
 
-### Print Options
-# Merged over the defaults so a template reading $print_options directly - which
-# the bundled print-posts.php does for the disclaimer - never sees a missing key.
+// Print Options
+// Merged over the defaults so a template reading $print_options directly - which
+// the bundled print-posts.php does for the disclaimer - never sees a missing key.
 $print_options = print_get_options();
 
-### Load Print Post/Page Template from stylesheet dir (child theme)
-if(file_exists(get_stylesheet_directory().'/print-posts.php')) {
-	include(get_stylesheet_directory().'/print-posts.php');
-### Then try template dir (parent theme) 
-} elseif(file_exists(get_template_directory().'/print-posts.php')) {
-	include(get_template_directory().'/print-posts.php');
-### Fall back to default template in plugin dir	
+// Load Print Post/Page Template from stylesheet dir (child theme)
+if ( file_exists( get_stylesheet_directory() . '/print-posts.php' ) ) {
+	include get_stylesheet_directory() . '/print-posts.php';
+	// Then try template dir (parent theme)
+} elseif ( file_exists( get_template_directory() . '/print-posts.php' ) ) {
+	include get_template_directory() . '/print-posts.php';
+	// Fall back to default template in plugin dir
 } else {
-	include(WP_PLUGIN_DIR.'/wp-print/print-posts.php');
+	include WP_PLUGIN_DIR . '/wp-print/print-posts.php';
 }

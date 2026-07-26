@@ -17,32 +17,32 @@
 	// Not every locale carries a region: get_bloginfo('language') returns 'ca' as
 	// well as 'en-US'. strpos() returns false for those, and substr($s, 0, false)
 	// is '', which emitted lang="". Split on the dash only when there is one.
-	$print_language = get_bloginfo('language');
-	$print_dash = strpos($print_language, '-');
-	if (false !== $print_dash) {
-		$print_language = substr($print_language, 0, $print_dash);
-	}
+	$print_language = get_bloginfo( 'language' );
+	$print_dash     = strpos( $print_language, '-' );
+if ( false !== $print_dash ) {
+	$print_language = substr( $print_language, 0, $print_dash );
+}
 ?>
-<html lang="<?php echo esc_attr($print_language); ?>" dir="<?php echo is_rtl() ? 'rtl' : 'ltr'; ?>">
+<html lang="<?php echo esc_attr( $print_language ); ?>" dir="<?php echo is_rtl() ? 'rtl' : 'ltr'; ?>">
 <head>
-	<title><?php bloginfo('name'); ?> <?php wp_title(); ?></title>
-	<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />
+	<title><?php bloginfo( 'name' ); ?> <?php wp_title(); ?></title>
+	<meta http-equiv="Content-Type" content="<?php bloginfo( 'html_type' ); ?>; charset=<?php bloginfo( 'charset' ); ?>" />
 	<meta name="Robots" content="noindex, nofollow" />
-	<?php if(@file_exists(get_stylesheet_directory().'/print-css.css')): ?>
+	<?php if ( @file_exists( get_stylesheet_directory() . '/print-css.css' ) ) : ?>
 		<link rel="stylesheet" href="<?php echo get_stylesheet_directory_uri(); ?>/print-css.css" type="text/css" media="screen, print" />
-	<?php elseif(@file_exists(get_template_directory().'/print-css.css')): ?>
+	<?php elseif ( @file_exists( get_template_directory() . '/print-css.css' ) ) : ?>
 		<link rel="stylesheet" href="<?php echo get_template_directory_uri(); ?>/print-css.css" type="text/css" media="screen, print" />
-	<?php else: ?>
-		<link rel="stylesheet" href="<?php echo plugins_url('wp-print/print-css.css'); ?>" type="text/css" media="screen, print" />
+	<?php else : ?>
+		<link rel="stylesheet" href="<?php echo plugins_url( 'wp-print/print-css.css' ); ?>" type="text/css" media="screen, print" />
 	<?php endif; ?>
 	<?php if ( is_rtl() ) : ?>
 		<link rel="preconnect" href="https://fonts.googleapis.com">
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 		<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-		<?php if(@file_exists(get_stylesheet_directory().'/print-css-rtl.css')): ?>
+		<?php if ( @file_exists( get_stylesheet_directory() . '/print-css-rtl.css' ) ) : ?>
 			<link rel="stylesheet" href="<?php echo get_stylesheet_directory_uri(); ?>/print-css-rtl.css" type="text/css" media="screen, print" />
-		<?php else: ?>
-			<link rel="stylesheet" href="<?php echo plugins_url('wp-print/print-css-rtl.css'); ?>" type="text/css" media="screen, print" />
+		<?php else : ?>
+			<link rel="stylesheet" href="<?php echo plugins_url( 'wp-print/print-css-rtl.css' ); ?>" type="text/css" media="screen, print" />
 		<?php endif; ?>
 	<?php endif; ?>
 	<link rel="canonical" href="<?php the_permalink(); ?>" />
@@ -51,20 +51,23 @@
 
 <main role="main" class="center">
 
-	<?php if (have_posts()): ?>
+	<?php if ( have_posts() ) : ?>
 
 		<header class="entry-header">
 
 			<span class="hat">
 				<strong>
-					- <?php bloginfo('name'); ?> 
+					- <?php bloginfo( 'name' ); ?> 
 					- 
-					<span dir="ltr"><?php bloginfo('url')?></span> 
+					<span dir="ltr"><?php bloginfo( 'url' ); ?></span> 
 					-
 				</strong>
 			</span>
 			
-			<?php while (have_posts()): the_post(); ?>
+			<?php
+			while ( have_posts() ) :
+				the_post();
+				?>
 
 			<h1 class="entry-title">
 				<?php the_title(); ?>
@@ -72,91 +75,96 @@
 
 			<span class="entry-date">
 
-				<?php _e('Posted By', 'wp-print'); ?> 
+				<?php _e( 'Posted By', 'wp-print' ); ?> 
 
 				<cite><?php the_author(); ?></cite> 
 
-				<?php _e('On', 'wp-print'); ?> 
+				<?php _e( 'On', 'wp-print' ); ?> 
 
 				<time>	
-					<?php the_time(sprintf(__('%s @ %s', 'wp-print'), 
-						get_option('date_format'), 
-						get_option('time_format'))); 
-					?> 
-				</time>
+					<?php
+					the_time(
+						sprintf(
+							__( '%1$s @ %2$s', 'wp-print' ),
+							get_option( 'date_format' ),
+							get_option( 'time_format' )
+						)
+					);
+					?>
+									</time>
 
-			  	<span>
-			  		<?php _e('In', 'wp-print'); ?> 
-			  		<?php print_categories(); ?> | 
-			  	</span>	
+					<span>
+					<?php _e( 'In', 'wp-print' ); ?> 
+					<?php print_categories(); ?> | 
+					</span>   
 
-		  		<a href='#comments_controls'>
-		  			<?php print_comments_number(); ?>
-	  			</a>	  			
+					<a href='#comments_controls'>
+					<?php print_comments_number(); ?>
+					</a>              
 
 				</span>
 			
 		</header>
 
-		<?php if(print_can('thumbnail')): ?>
-			<?php if ( has_post_thumbnail() ) : ?>
+				<?php if ( print_can( 'thumbnail' ) ) : ?>
+					<?php if ( has_post_thumbnail() ) : ?>
 				<div class="thumbnail">
-					<?php the_post_thumbnail('medium'); ?>
+						<?php the_post_thumbnail( 'medium' ); ?>
 				</div>
 			<?php endif; ?>
 		<?php endif; ?>
 
 		<div class="entry-content">
 
-			<?php print_content(); ?>
+				<?php print_content(); ?>
 
 		</div>
 
 	<?php endwhile; ?>
 	
 	<div class="comments">
-		<?php if(print_can('comments')): ?>
+		<?php if ( print_can( 'comments' ) ) : ?>
 			<?php comments_template(); ?>
 		<?php endif; ?>
 	</div>
 	
 	<footer class="footer">
 		<p>
-			<?php _e('Article printed from', 'wp-print'); ?> 
-			<?php bloginfo('name'); ?>: 
+			<?php _e( 'Article printed from', 'wp-print' ); ?> 
+			<?php bloginfo( 'name' ); ?>: 
 
 			<strong dir="ltr">
-				<?php bloginfo('url'); ?>
+				<?php bloginfo( 'url' ); ?>
 			</strong>
 		</p>
 
 		<p>
-			<?php _e('URL to article', 'wp-print'); ?>: 
+			<?php _e( 'URL to article', 'wp-print' ); ?>: 
 			<strong dir="ltr">
 				<?php the_permalink(); ?>
 			</strong>
 		</p>
 		
-		<?php if(print_can('links')): ?>
+		<?php if ( print_can( 'links' ) ) : ?>
 			<p><?php print_links(); ?></p>
 		<?php endif; ?>
 
 		<p style="text-align: <?php echo ( is_rtl() ) ? 'left' : 'right'; ?>;" id="print-link">
-			<a href="#Print" onclick="window.print(); return false;" title="<?php _e('Click here to print.', 'wp-print'); ?>">
-				<?php _e('Click', 'wp-print'); ?> 
-				<?php _e('here', 'wp-print'); ?>
-				<?php _e('to print.', 'wp-print'); ?>
+			<a href="#Print" onclick="window.print(); return false;" title="<?php _e( 'Click here to print.', 'wp-print' ); ?>">
+				<?php _e( 'Click', 'wp-print' ); ?> 
+				<?php _e( 'here', 'wp-print' ); ?>
+				<?php _e( 'to print.', 'wp-print' ); ?>
 			</a> 
 		</p>
 
-		<?php else: ?>
+		<?php else : ?>
 			<p>
-				<?php _e('No posts matched your criteria.', 'wp-print'); ?>
+				<?php _e( 'No posts matched your criteria.', 'wp-print' ); ?>
 			</p>
 		<?php endif; ?>
 
 		<p style="text-align: center;">
-			<?php echo stripslashes($print_options['disclaimer']); ?>
+			<?php echo stripslashes( $print_options['disclaimer'] ); ?>
 		</p>
 	</footer>
 

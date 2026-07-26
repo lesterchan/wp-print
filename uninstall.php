@@ -2,8 +2,9 @@
 /*
  * Uninstall plugin
  */
-if ( !defined( 'WP_UNINSTALL_PLUGIN' ) )
-	exit ();
+if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+	exit();
+}
 
 function print_uninstall_site() {
 	delete_option( 'print_options' );
@@ -15,7 +16,12 @@ if ( is_multisite() ) {
 	// reports success. 'fields' => 'ids' avoids hydrating WP_Site objects the loop
 	// does not use. wp_get_sites() is gone - removed in WordPress 5.1 - so the old
 	// fallback would fatal on a multisite uninstall rather than merely skip sites.
-	$site_ids = get_sites( array( 'fields' => 'ids', 'number' => 0 ) );
+	$site_ids = get_sites(
+		array(
+			'fields' => 'ids',
+			'number' => 0,
+		)
+	);
 
 	foreach ( $site_ids as $site_id ) {
 		switch_to_blog( (int) $site_id );
