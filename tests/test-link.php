@@ -1,0 +1,257 @@
+<?php
+/**
+ * Print link markup: all four styles, and the URL it points at.
+ *
+ * The markup is asserted byte-for-byte because it is the plugin's most visible
+ * output and themes style it by class.
+ *
+ * @package WP-Print
+ */
+
+/**
+ * Tests for the print link.
+ *
+ * @covers Print_Link
+ * @covers ::print_link
+ */
+class Test_Print_Link extends WP_UnitTestCase {
+
+	/**
+	 * Post fixture.
+	 *
+	 * @var int
+	 */
+	private static $post_id;
+
+	/**
+	 * Page fixture.
+	 *
+	 * @var int
+	 */
+	private static $page_id;
+
+	/**
+	 * Create the fixtures once.
+	 *
+	 * @param WP_UnitTest_Factory $factory Factory.
+	 */
+	public static function wpSetUpBeforeClass( $factory ) {
+		self::$post_id = $factory->post->create(
+			array(
+				'post_title' => 'Link Post',
+				'post_name'  => 'link-post',
+			)
+		);
+		self::$page_id = $factory->post->create(
+			array(
+				'post_title' => 'Link Page',
+				'post_name'  => 'link-page',
+				'post_type'  => 'page',
+			)
+		);
+	}
+
+	/**
+	 * Pretty permalinks, and a known option row.
+	 */
+	public function set_up() {
+		parent::set_up();
+
+		$this->set_permalink_structure( '/%postname%/' );
+		update_option( Print_Options::OPTION_NAME, Print_Options::get_defaults() );
+
+		// A print_content() call in another test leaves the print-view stand-in
+		// registered for [print_link]; restore the real callback. See the note in
+		// Test_Print_Content::set_up().
+		add_shortcode( 'print_link', array( 'Print_Link', 'shortcode' ) );
+	}
+
+	/**
+	 * The icon URL, as the plugin builds it.
+	 *
+	 * @return string
+	 */
+	private function icon_url() {
+		return plugins_url( 'images/print.gif', WP_PRINT_MAIN_FILE );
+	}
+
+	/**
+	 * Style 1: icon plus text link.
+	 */
+	public function test_style_one_is_icon_then_text() {
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 1 ) ) );
+
+		$url  = esc_url( get_permalink( self::$post_id ) . 'print/' );
+		$icon = esc_url( $this->icon_url() );
+		$text = 'Print This Post';
+
+		$this->assertSame(
+			'<a href="' . $url . '" title="' . $text . '" rel="nofollow"><img class="WP-PrintIcon" src="' . $icon . '" alt="' . $text . '" title="' . $text . '" style="border: 0px;" /></a>&nbsp;<a href="' . $url . '" title="' . $text . '" rel="nofollow">' . $text . '</a>',
+			print_link( '', '', false )
+		);
+	}
+
+	/**
+	 * Style 2: icon only.
+	 */
+	public function test_style_two_is_icon_only() {
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 2 ) ) );
+
+		$output = print_link( '', '', false );
+
+		$this->assertStringContainsString( 'WP-PrintIcon', $output );
+		$this->assertSame( 1, substr_count( $output, '<a href=' ) );
+		$this->assertStringNotContainsString( '&nbsp;', $output );
+	}
+
+	/**
+	 * Style 3: text only.
+	 */
+	public function test_style_three_is_text_only() {
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
+
+		$url = esc_url( get_permalink( self::$post_id ) . 'print/' );
+
+		$this->assertSame(
+			'<a href="' . $url . '" title="Print This Post" rel="nofollow">Print This Post</a>',
+			print_link( '', '', false )
+		);
+	}
+
+	/**
+	 * Style 4 substitutes all three placeholders.
+	 */
+	public function test_style_four_substitutes_every_placeholder() {
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		update_option(
+			Print_Options::OPTION_NAME,
+			array_merge(
+				Print_Options::get_defaults(),
+				array(
+					'print_style' => 4,
+					'print_html'  => '[%PRINT_URL%][%PRINT_TEXT%][%PRINT_ICON_URL%]',
+				)
+			)
+		);
+
+		$this->assertSame(
+			'[' . esc_url( get_permalink( self::$post_id ) . 'print/' ) . '][Print This Post][' . esc_url( $this->icon_url() ) . ']',
+			print_link( '', '', false )
+		);
+	}
+
+	/**
+	 * A page uses the page text; a post uses the post text.
+	 */
+	public function test_page_uses_the_page_text() {
+		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
+
+		$this->go_to( get_permalink( self::$page_id ) );
+		the_post();
+
+		$this->assertStringContainsString( '>Print This Page</a>', print_link( '', '', false ) );
+	}
+
+	/**
+	 * Explicit arguments win over the stored options.
+	 */
+	public function test_explicit_text_overrides_the_option() {
+		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
+
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+		$this->assertStringContainsString( '>Mine</a>', print_link( 'Mine', '', false ) );
+
+		$this->go_to( get_permalink( self::$page_id ) );
+		the_post();
+		$this->assertStringContainsString( '>Theirs</a>', print_link( '', 'Theirs', false ) );
+	}
+
+	/**
+	 * Echo mode appends exactly one newline, and returns nothing.
+	 */
+	public function test_echo_mode_appends_one_newline() {
+		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
+
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		$expected = print_link( '', '', false );
+
+		ob_start();
+		$returned = print_link( '', '', true );
+		$echoed   = ob_get_clean();
+
+		$this->assertNull( $returned );
+		$this->assertSame( $expected . "\n", $echoed );
+	}
+
+	/**
+	 * Without pretty permalinks the endpoint becomes a query argument.
+	 */
+	public function test_url_falls_back_to_a_query_argument() {
+		$this->set_permalink_structure( '' );
+
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		$this->assertStringContainsString( 'print=1', Print_Link::url() );
+	}
+
+	/**
+	 * With pretty permalinks the URL is the permalink plus the endpoint, and it is
+	 * always slashed exactly once however the permalink ends.
+	 */
+	public function test_url_appends_the_endpoint_once() {
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		$url = Print_Link::url();
+
+		$this->assertStringEndsWith( '/print/', $url );
+		$this->assertStringNotContainsString( '//print/', str_replace( array( 'http://', 'https://' ), '', $url ) );
+	}
+
+	/**
+	 * A row missing the keys a later version added still renders a usable link,
+	 * rather than an empty one, and raises no diagnostic.
+	 */
+	public function test_link_survives_a_row_missing_keys() {
+		update_option( Print_Options::OPTION_NAME, array( 'print_style' => 1 ) );
+
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		$output = print_link( '', '', false );
+
+		$this->assertStringContainsString( 'Print This Post', $output );
+		$this->assertStringContainsString( 'print.gif', $output );
+	}
+
+	/**
+	 * In a feed the shortcode explains itself instead of emitting a link, because
+	 * a feed reader is not where printing happens.
+	 */
+	public function test_shortcode_explains_itself_in_a_feed() {
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		$this->assertStringContainsString( 'WP-PrintIcon', do_shortcode( '[print_link]' ) );
+
+		global $wp_query;
+		$wp_query->is_feed = true;
+
+		$this->assertStringContainsString( 'please visit this post', do_shortcode( '[print_link]' ) );
+	}
+}

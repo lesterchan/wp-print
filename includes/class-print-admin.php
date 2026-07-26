@@ -100,13 +100,19 @@ class Print_Admin {
 			true
 		);
 
-		wp_localize_script(
+		$defaults = array(
+			'print_html' => Print_Options::get_defaults()['print_html'],
+			'disclaimer' => Print_Options::default_disclaimer(),
+		);
+
+		// wp_add_inline_script(), not wp_localize_script(): the latter runs
+		// html_entity_decode() over every scalar, so the disclaimer's &copy; reached
+		// the page as a literal ©. Both render identically, but Restore Default would
+		// then insert something other than the shipped default byte for byte.
+		wp_add_inline_script(
 			'wp-print-admin',
-			'wpPrintDefaults',
-			array(
-				'print_html' => Print_Options::get_defaults()['print_html'],
-				'disclaimer' => Print_Options::default_disclaimer(),
-			)
+			'var wpPrintDefaults = ' . wp_json_encode( $defaults ) . ';',
+			'before'
 		);
 	}
 
@@ -255,7 +261,17 @@ class Print_Admin {
 	public static function field_icon() {
 		$selected = Print_Options::get( 'print_icon' );
 		$dir      = plugin_dir_path( WP_PRINT_MAIN_FILE ) . 'images/';
-		$files    = glob( $dir . '*.{gif,png,jpg,jpeg,svg,webp}', GLOB_BRACE );
+
+		// One glob per extension rather than a {a,b} brace pattern: GLOB_BRACE is
+		// not available on every platform - it is absent from musl-based builds, so
+		// the whole picker would vanish there - and glob() silently returns nothing
+		// when the flag is unsupported.
+		$files = array();
+		foreach ( array( 'gif', 'png', 'jpg', 'jpeg', 'svg', 'webp' ) as $extension ) {
+			$files = array_merge( $files, (array) glob( $dir . '*.' . $extension ) );
+		}
+
+		$files = array_filter( $files );
 
 		if ( ! $files ) {
 			esc_html_e( 'No print icons were found.', 'wp-print' );
