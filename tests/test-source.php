@@ -180,7 +180,7 @@ class Test_Print_Source extends WP_UnitTestCase {
 		// repo for this symbol, and a test asserting its absence would otherwise be
 		// counted as a call to it - the same false positive a docblock mentioning a
 		// removed function produces.
-		$loader = 'load_plugin' . '_textdomain';
+		$loader = 'load_plugin' . '_textdomain'; // phpcs:ignore Generic.Strings.UnnecessaryStringConcat.Found -- Split deliberately; see above.
 
 		foreach ( $this->php_files() as $relative ) {
 			$this->assertStringNotContainsString(
