@@ -13,6 +13,10 @@
  */
 
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 ### Variables
 $links_text = '';
 
@@ -24,7 +28,9 @@ add_filter('wp_title', 'print_pagetitle');
 add_filter('comments_template', 'print_template_comments');
 
 ### Print Options
-$print_options = get_option('print_options');
+# Merged over the defaults so a template reading $print_options directly - which
+# the bundled print-posts.php does for the disclaimer - never sees a missing key.
+$print_options = print_get_options();
 
 ### Load Print Post/Page Template from stylesheet dir (child theme)
 if(file_exists(get_stylesheet_directory().'/print-posts.php')) {

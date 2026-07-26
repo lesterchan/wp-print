@@ -1,4 +1,8 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
+
 ### Variables Variables Variables
 $base_name = plugin_basename( 'wp-print/print-options.php' );
 $base_page = 'admin.php?page=' . $base_name;
@@ -55,7 +59,7 @@ if( ! empty( $_POST['Submit'] ) ) {
     }
 }
 
-$print_options = get_option( 'print_options' );
+$print_options = print_get_options();
 ?>
 <script type="text/javascript">
     /* <![CDATA[*/

@@ -13,7 +13,17 @@
  */
 ?>
 <!DOCTYPE html>
-<html lang="<?php echo substr(get_bloginfo('language'), 0, strpos(get_bloginfo('language'), '-')); ?>" dir="<?php echo get_bloginfo('text_direction'); ?>">
+<?php
+	// Not every locale carries a region: get_bloginfo('language') returns 'ca' as
+	// well as 'en-US'. strpos() returns false for those, and substr($s, 0, false)
+	// is '', which emitted lang="". Split on the dash only when there is one.
+	$print_language = get_bloginfo('language');
+	$print_dash = strpos($print_language, '-');
+	if (false !== $print_dash) {
+		$print_language = substr($print_language, 0, $print_dash);
+	}
+?>
+<html lang="<?php echo esc_attr($print_language); ?>" dir="<?php echo is_rtl() ? 'rtl' : 'ltr'; ?>">
 <head>
 	<title><?php bloginfo('name'); ?> <?php wp_title(); ?></title>
 	<meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php bloginfo('charset'); ?>" />

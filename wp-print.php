@@ -28,10 +28,48 @@ Text Domain: wp-print
 */
 
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+
 ### Create Text Domain For Translations
 add_action( 'plugins_loaded', 'print_textdomain' );
 function print_textdomain() {
 	load_plugin_textdomain( 'wp-print' );
+}
+
+
+### Function: Default Option Values
+function print_default_options() {
+	return array(
+		'post_text'   => __('Print This Post', 'wp-print'),
+		'page_text'   => __('Print This Page', 'wp-print'),
+		'print_icon'  => 'print.gif',
+		'print_style' => 1,
+		'print_html'  => '<a href="%PRINT_URL%" rel="nofollow" title="%PRINT_TEXT%">%PRINT_TEXT%</a>',
+		'comments'    => 0,
+		'links'       => 1,
+		'images'      => 1,
+		'thumbnail'   => 0,
+		'videos'      => 0,
+		'disclaimer'  => sprintf(__('Copyright &copy; %s %s. All rights reserved.', 'wp-print'), current_time('Y'), get_option('blogname'))
+	);
+}
+
+
+### Function: Read The Options, Merged Over The Defaults
+# Merging on read is what lets an install upgraded from a version that predates a
+# key pick that key up. Without it, reading one raises "Undefined array key" and
+# renders an empty print link.
+function print_get_options() {
+	$print_options = get_option( 'print_options' );
+
+	if ( ! is_array( $print_options ) ) {
+		$print_options = array();
+	}
+
+	return array_merge( print_default_options(), $print_options );
 }
 
 
@@ -66,7 +104,7 @@ function print_link($print_post_text = '', $print_page_text = '', $echo = true) 
 	}
 	$output = '';
 	$using_permalink = get_option('permalink_structure');
-	$print_options = get_option('print_options');
+	$print_options = print_get_options();
 	$print_style = intval($print_options['print_style']);
 	if(empty($print_post_text)) {
 		$print_text = stripslashes($print_options['post_text']);
@@ -170,12 +208,17 @@ function print_content($display = true) {
 	if(post_password_required()) {
 		$content = get_the_password_form();
 	} else {
+		# $pages is only populated by setup_postdata(). Guard it so a print view
+		# reached outside the loop degrades to empty content instead of a warning.
+		$pages = is_array($pages) ? $pages : array();
 		if($multipage) {
 			for($page = 0; $page < $numpages; $page++) {
-				$content .= $pages[$page];
+				if(isset($pages[$page])) {
+					$content .= $pages[$page];
+				}
 			}
 		} else {
-			$content = $pages[0];
+			$content = isset($pages[0]) ? $pages[0] : '';
 		}
 		if(function_exists('email_rewrite')) {
 			remove_shortcode('donotemail');
@@ -219,12 +262,15 @@ function print_content($display = true) {
 					$new_link = false;
 					$link_number = $matched_links[$link_url_hash];
 				}
-				$content = str_replace_one($link_match, "<a href=\"$link_url\" rel=\"external\">".$link_text.'</a> <sup>['.number_format_i18n($link_number).']</sup>', $content);
+				# The URL is rebuilt from the post's own markup above, so escape it at
+				# both sinks: esc_url() for the attribute, esc_html() for the printed
+				# list. Without them a quote in an href closes the attribute early.
+				$content = str_replace_one($link_match, '<a href="'.esc_url($link_url).'" rel="external">'.$link_text.'</a> <sup>['.number_format_i18n($link_number).']</sup>', $content);
 				if ($new_link) {
 					if(preg_match('/<img(.+?)src=[\"\'](.+?)[\"\'](.*?)>/',$link_text)) {
-						$links_text .= '<p style="margin: 2px 0;">['.number_format_i18n($link_number).'] '.__('Image', 'wp-print').': <strong><span dir="ltr">'.$link_url.'</span></strong></p>';
+						$links_text .= '<p style="margin: 2px 0;">['.number_format_i18n($link_number).'] '.__('Image', 'wp-print').': <strong><span dir="ltr">'.esc_html($link_url).'</span></strong></p>';
 					} else {
-						$links_text .= '<p style="margin: 2px 0;">['.number_format_i18n($link_number).'] '.$link_text.': <strong><span dir="ltr">'.$link_url.'</span></strong></p>';
+						$links_text .= '<p style="margin: 2px 0;">['.number_format_i18n($link_number).'] '.$link_text.': <strong><span dir="ltr">'.esc_html($link_url).'</span></strong></p>';
 					}
 				}
 			}
@@ -239,11 +285,18 @@ function print_content($display = true) {
 
 
 ### Function: Print Categories
+# get_the_category_list() was being joined with ',' and then split on ', ', so the
+# split never matched and the whole list came back as one element: $before/$after
+# wrapped the entire run of categories instead of each one, and the separator lost
+# its space. Splitting on the same string that was used to join fixes both. The
+# separator is also no longer run through __(), because a bare ',' gives
+# translators no context and reads as an untranslatable string.
 function print_categories($before = '', $after = '') {
-	$temp_cat = strip_tags(get_the_category_list(','));
-	$temp_cat = explode(', ', $temp_cat);
-	$temp_cat = implode($after.__(',', 'wp-print').' '.$before, $temp_cat);
-	echo $before.$temp_cat.$after;
+	$categories = strip_tags(get_the_category_list(','));
+	$categories = explode(',', $categories);
+	$categories = array_filter(array_map('trim', $categories), 'strlen');
+
+	echo $before.implode($after.', '.$before, $categories).$after;
 }
 
 
@@ -285,12 +338,13 @@ function print_comments_content($display = true) {
 				$new_link = false;
 				$link_number = $matched_links[$link_url_hash];
 			}
-			$content = str_replace_one($link_match, "<a href=\"$link_url\" rel=\"external\">".$link_text.'</a> <sup>['.number_format_i18n($link_number).']</sup>', $content);
+			# Escaped at both sinks, as in print_content() above.
+			$content = str_replace_one($link_match, '<a href="'.esc_url($link_url).'" rel="external">'.$link_text.'</a> <sup>['.number_format_i18n($link_number).']</sup>', $content);
 			if ($new_link) {
 				if(preg_match('/<img(.+?)src=[\"\'](.+?)[\"\'](.*?)>/',$link_text)) {
-					$links_text .= '<p style="margin: 2px 0;">['.number_format_i18n($link_number).'] '.__('Image', 'wp-print').': <strong><span dir="ltr">'.$link_url.'</span></strong></p>';
+					$links_text .= '<p style="margin: 2px 0;">['.number_format_i18n($link_number).'] '.__('Image', 'wp-print').': <strong><span dir="ltr">'.esc_html($link_url).'</span></strong></p>';
 				} else {
-					$links_text .= '<p style="margin: 2px 0;">['.number_format_i18n($link_number).'] '.$link_text.': <strong><span dir="ltr">'.$link_url.'</span></strong></p>';
+					$links_text .= '<p style="margin: 2px 0;">['.number_format_i18n($link_number).'] '.$link_text.': <strong><span dir="ltr">'.esc_html($link_url).'</span></strong></p>';
 				}
 			}
 		}
@@ -368,7 +422,7 @@ function print_pagetitle($page_title) {
 
 ### Function: Can Print?
 function print_can($type) {
-	$print_options = get_option( 'print_options' );
+	$print_options = print_get_options();
 	if ( isset( $print_options[$type] ) ) {
 		return (int) $print_options[$type];
 	}
@@ -395,7 +449,13 @@ function remove_video( $content ) {
 
 ### Function: Replace One Time Only
 function str_replace_one($search, $replace, $content){
-	if ($pos = strpos($content, $search)) {
+	$pos = strpos($content, $search);
+
+	// Compare against false explicitly. A match at offset 0 is a valid match, but
+	// 0 is falsy, so the old truthiness test silently skipped the replacement for
+	// any content that began with the string being replaced - which is what
+	// happens to the first link in a post whose theme has turned wpautop off.
+	if (false !== $pos) {
 		return substr($content, 0, $pos).$replace.substr($content, $pos+strlen($search));
 	} else {
 		return $content;
@@ -406,35 +466,25 @@ function str_replace_one($search, $replace, $content){
 ### Function: Activate Plugin
 register_activation_hook( __FILE__, 'print_activation' );
 function print_activation( $network_wide ) {
-	// Add Options
 	$option_name = 'print_options';
-	$option = array(
-		'post_text'   => __('Print This Post', 'wp-print'),
-		'page_text'   => __('Print This Page', 'wp-print'),
-		'print_icon'  => 'print.gif',
-		'print_style' => 1,
-		'print_html'  => '<a href="%PRINT_URL%" rel="nofollow" title="%PRINT_TEXT%">%PRINT_TEXT%</a>',
-		'comments'    => 0,
-		'links'       => 1,
-		'images'      => 1,
-		'thumbnail'   => 0,
-		'videos'      => 0,
-		'disclaimer'  => sprintf(__('Copyright &copy; %s %s. All rights reserved.', 'wp-print'), date('Y'), get_option('blogname'))
-	);
+	$option = print_default_options();
 
 	if ( is_multisite() && $network_wide ) {
-		$ms_sites = function_exists( 'get_sites' ) ? get_sites() : wp_get_sites();
+		// 'number' => 0 is required: WP_Site_Query defaults to 100, so without it a
+		// network larger than that silently leaves every site past the hundredth
+		// unconfigured. 'fields' => 'ids' avoids hydrating WP_Site objects the loop
+		// does not use. wp_get_sites() is gone - it was removed in WordPress 5.1 -
+		// so the old fallback would fatal rather than merely skip sites.
+		$site_ids = get_sites( array( 'fields' => 'ids', 'number' => 0 ) );
 
-		if( 0 < count( $ms_sites ) ) {
-			foreach ( $ms_sites as $ms_site ) {
-				$blog_id = isset( $ms_site['blog_id'] ) ? $ms_site['blog_id'] : $ms_site->blog_id;
-				switch_to_blog( $blog_id );
-				add_option( $option_name, $option );
-				print_activate();
-			}
+		foreach ( $site_ids as $site_id ) {
+			switch_to_blog( (int) $site_id );
+			add_option( $option_name, $option );
+			print_activate();
+			// Inside the loop: switch_to_blog() pushes onto a stack, so restoring
+			// once after the loop would leave it unwound by all but one entry.
+			restore_current_blog();
 		}
-
-		restore_current_blog();
 	} else {
 		add_option( $option_name, $option );
 		print_activate();

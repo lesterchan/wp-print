@@ -13,8 +13,9 @@
  */
 
 if($comments) : ?>
-	<?php $comment_count = 1; global $text_direction; ?>
-	<span style='float:<?php echo ('rtl' == $text_direction) ? 'left' : 'right'; ?>' id='comments_controls'><?php print_comments_number(); ?> (<a  href="#" onclick="javascript:document.getElementById('comments_box').style.display = 'block'; return false;"><?php _e('Open', 'wp-print'); ?></a> | <a href="#" onclick="javascript:document.getElementById('comments_box').style.display = 'none'; return false;"><?php _e('Close', 'wp-print'); ?></a>)</span>
+	<?php $comment_count = 1; ?>
+	<?php // is_rtl(), not the $text_direction global: that global is long gone, so the test always fell through to 'right'. ?>
+	<span style='float:<?php echo is_rtl() ? 'left' : 'right'; ?>' id='comments_controls'><?php print_comments_number(); ?> (<a  href="#" onclick="javascript:document.getElementById('comments_box').style.display = 'block'; return false;"><?php _e('Open', 'wp-print'); ?></a> | <a href="#" onclick="javascript:document.getElementById('comments_box').style.display = 'none'; return false;"><?php _e('Close', 'wp-print'); ?></a>)</span>
 	<div id="comments_box">
 		<p id="CommentTitle"><?php print_comments_number(); ?> <?php _e('To', 'wp-print'); ?> "<?php the_title(); ?>"</p>
 		<?php foreach ($comments as $comment) : ?>
