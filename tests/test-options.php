@@ -73,7 +73,14 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * what an unchecked control sends - reads as off rather than "leave alone".
 	 */
 	public function test_sanitize_normalizes_toggles() {
-		$clean = Print_Options::sanitize( array( 'comments' => '1' ) );
+		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'images' => 1 ) ) );
+
+		$clean = Print_Options::sanitize(
+			array(
+				'comments' => '1',
+				'images'   => '0',
+			)
+		);
 
 		$this->assertSame( 1, $clean['comments'] );
 		$this->assertSame( 0, $clean['images'] );
@@ -84,8 +91,12 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 */
 	public function test_sanitize_clamps_the_style() {
 		$this->assertSame( 4, Print_Options::sanitize( array( 'print_style' => '4' ) )['print_style'] );
-		$this->assertSame( 1, Print_Options::sanitize( array( 'print_style' => '99' ) )['print_style'] );
-		$this->assertSame( 1, Print_Options::sanitize( array( 'print_style' => 'abc' ) )['print_style'] );
+
+		// An unknown style renders nothing at all, so the last valid one is kept.
+		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
+
+		$this->assertSame( 3, Print_Options::sanitize( array( 'print_style' => '99' ) )['print_style'] );
+		$this->assertSame( 3, Print_Options::sanitize( array( 'print_style' => 'abc' ) )['print_style'] );
 	}
 
 	/**
@@ -219,6 +230,53 @@ class Test_Print_Options extends WP_UnitTestCase {
 		);
 
 		$this->assertArrayNotHasKey( 'injected_key', $clean );
+	}
+
+	/**
+	 * A partial update leaves every key it did not mention alone.
+	 *
+	 * Note that register_setting() hangs this callback on
+	 * sanitize_option_print_options, so
+	 * it also runs for update_option() calls from WP-CLI, a migration or another
+	 * plugin - and those are usually partial. Blanking the disclaimer and the
+	 * custom template because a caller flipped one toggle is data loss.
+	 */
+	public function test_a_partial_update_keeps_everything_else() {
+		update_option(
+			Print_Options::OPTION_NAME,
+			array_merge(
+				Print_Options::get_defaults(),
+				array(
+					'disclaimer'  => 'MY DISCLAIMER',
+					'print_html'  => '<a href="%PRINT_URL%">mine</a>',
+					'post_text'   => 'My Post Text',
+					'print_icon'  => 'printer_famfamfam.gif',
+					'print_style' => 4,
+				)
+			)
+		);
+
+		$clean = Print_Options::sanitize( array( 'comments' => 1 ) );
+
+		$this->assertSame( 'MY DISCLAIMER', $clean['disclaimer'] );
+		$this->assertSame( '<a href="%PRINT_URL%">mine</a>', $clean['print_html'] );
+		$this->assertSame( 'My Post Text', $clean['post_text'] );
+		$this->assertSame( 'printer_famfamfam.gif', $clean['print_icon'] );
+		$this->assertSame( 4, $clean['print_style'] );
+		$this->assertSame( 1, $clean['comments'] );
+	}
+
+	/**
+	 * Emptying an HTML field is still allowed - a site may not want a disclaimer.
+	 * That is a submitted empty value, not an absent key.
+	 */
+	public function test_an_html_field_can_be_emptied_deliberately() {
+		update_option(
+			Print_Options::OPTION_NAME,
+			array_merge( Print_Options::get_defaults(), array( 'disclaimer' => 'MY DISCLAIMER' ) )
+		);
+
+		$this->assertSame( '', Print_Options::sanitize( array( 'disclaimer' => '' ) )['disclaimer'] );
 	}
 
 	/**

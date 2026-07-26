@@ -224,6 +224,34 @@ class Test_Print_Link extends WP_UnitTestCase {
 	}
 
 	/**
+	 * On a static front page the permalink is the site root, which the endpoint
+	 * cannot usefully be appended to, so the page's own URL is used instead.
+	 */
+	public function test_a_static_front_page_uses_its_own_url() {
+		$front_id = self::factory()->post->create(
+			array(
+				'post_type'  => 'page',
+				'post_title' => 'Front',
+				'post_name'  => 'front',
+			)
+		);
+
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $front_id );
+
+		$this->go_to( home_url( '/' ) );
+		the_post();
+
+		$url = Print_Link::url();
+
+		update_option( 'show_on_front', 'posts' );
+		update_option( 'page_on_front', 0 );
+
+		$this->assertStringContainsString( 'front', $url );
+		$this->assertStringEndsWith( '/print/', $url );
+	}
+
+	/**
 	 * A row missing the keys a later version added still renders a usable link,
 	 * rather than an empty one, and raises no diagnostic.
 	 */

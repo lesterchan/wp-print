@@ -276,6 +276,63 @@ class Test_Print_Content extends WP_UnitTestCase {
 	}
 
 	/**
+	 * A post split with <!--nextpage--> prints every page, not just the first.
+	 * Printing page one of five and calling it the article is the failure this
+	 * guards against.
+	 */
+	public function test_a_multipage_post_prints_every_page() {
+		$out = $this->render( 'Page one.<!--nextpage-->Page two.<!--nextpage-->Page three.' );
+
+		$this->assertStringContainsString( 'Page one.', $out );
+		$this->assertStringContainsString( 'Page two.', $out );
+		$this->assertStringContainsString( 'Page three.', $out );
+	}
+
+	/**
+	 * Links keep numbering across the page break rather than restarting.
+	 */
+	public function test_a_multipage_post_numbers_links_continuously() {
+		$out = $this->render(
+			'<a href="https://example.com/one">One</a><!--nextpage--><a href="https://example.com/two">Two</a>'
+		);
+
+		$this->assertStringContainsString( 'One</a> <sup>[1]</sup>', $out );
+		$this->assertStringContainsString( 'Two</a> <sup>[2]</sup>', $out );
+	}
+
+	/**
+	 * Called outside the loop there is no $pages global to read, which used to be
+	 * an unguarded array index. It has to degrade to empty rather than warn.
+	 */
+	public function test_content_outside_the_loop_is_empty_not_fatal() {
+		$this->go_to( home_url( '/' ) );
+
+		unset( $GLOBALS['pages'], $GLOBALS['multipage'], $GLOBALS['numpages'] );
+
+		Print_Content::reset();
+
+		$this->assertSame( '', print_content( false ) );
+	}
+
+	/**
+	 * A shortcode nested inside [donotprint] is dropped with its wrapper on the
+	 * print view, rather than leaking its output.
+	 */
+	public function test_a_shortcode_nested_in_donotprint_is_dropped() {
+		add_shortcode(
+			'harness_inner',
+			static function () {
+				return 'INNERTEXT';
+			}
+		);
+
+		$this->assertStringContainsString( 'INNERTEXT', do_shortcode( '[donotprint][harness_inner][/donotprint]' ) );
+		$this->assertStringNotContainsString( 'INNERTEXT', $this->render( 'a [donotprint][harness_inner][/donotprint] b' ) );
+
+		remove_shortcode( 'harness_inner' );
+	}
+
+	/**
 	 * A password-protected post shows the form, never the body.
 	 */
 	public function test_a_protected_post_withholds_its_body() {

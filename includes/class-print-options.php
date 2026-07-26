@@ -160,6 +160,16 @@ class Print_Options {
 	 * already run wp_unslash() over it, so nothing here re-slashes: values are
 	 * stored exactly as they will be rendered.
 	 *
+	 * A key missing from the input keeps whatever is already stored, rather than
+	 * reverting to a default or blanking. Every control on the settings screen is
+	 * a text field, a select or a textarea, so the form always posts all of them
+	 * and the screen behaves identically either way - but register_setting() hangs
+	 * this on sanitize_option_print_options, which means it also runs for
+	 * update_option() calls made by WP-CLI, a migration or another plugin. Those
+	 * are usually partial, and blanking the disclaimer and the custom template
+	 * because a caller only wanted to flip one toggle is not a defensible reading
+	 * of "sanitize".
+	 *
 	 * @param mixed $input Raw submitted value.
 	 * @return array
 	 */
@@ -170,25 +180,32 @@ class Print_Options {
 		$clean    = array();
 
 		foreach ( self::text_keys() as $key ) {
+			if ( ! isset( $input[ $key ] ) || ! is_scalar( $input[ $key ] ) ) {
+				continue;
+			}
+
 			// wp_kses_data(), not wp_filter_kses(). The two allow the same tags -
 			// these are link labels, so only the small inline set is worth keeping -
 			// but wp_filter_kses() also runs addslashes() on the way out, because it
 			// was written for the days when superglobals stayed slashed. options.php
 			// has already unslashed, so using it here stored "Tom & Jerry\'s Post".
-			$clean[ $key ] = isset( $input[ $key ] ) && is_scalar( $input[ $key ] )
-				? trim( wp_kses_data( (string) $input[ $key ] ) )
-				: $defaults[ $key ];
+			$value = trim( wp_kses_data( (string) $input[ $key ] ) );
 
-			if ( '' === $clean[ $key ] ) {
-				$clean[ $key ] = $defaults[ $key ];
-			}
+			// An empty link label renders a link with nothing to click, so an empty
+			// submission means "give me the shipped text back".
+			$clean[ $key ] = '' === $value ? $defaults[ $key ] : $value;
 		}
 
 		foreach ( self::html_keys() as $key ) {
-			$value = isset( $input[ $key ] ) && is_scalar( $input[ $key ] ) ? trim( (string) $input[ $key ] ) : '';
+			if ( ! isset( $input[ $key ] ) || ! is_scalar( $input[ $key ] ) ) {
+				continue;
+			}
+
+			$value = trim( (string) $input[ $key ] );
 
 			// HTML is allowed, but a user without unfiltered_html - a site admin on
-			// multisite, for instance - must not be able to store script.
+			// multisite, for instance - must not be able to store script. Emptying
+			// these is legitimate: a site may not want a disclaimer at all.
 			if ( ! current_user_can( 'unfiltered_html' ) ) {
 				$value = wp_kses_post( $value );
 			}
@@ -197,17 +214,29 @@ class Print_Options {
 		}
 
 		foreach ( self::bool_keys() as $key ) {
-			$clean[ $key ] = ( isset( $input[ $key ] ) && $input[ $key ] ) ? 1 : 0;
+			if ( ! isset( $input[ $key ] ) ) {
+				continue;
+			}
+
+			$clean[ $key ] = $input[ $key ] ? 1 : 0;
 		}
 
-		$style                = isset( $input['print_style'] ) ? (int) $input['print_style'] : (int) $defaults['print_style'];
-		$clean['print_style'] = in_array( $style, array( 1, 2, 3, 4 ), true ) ? $style : (int) $defaults['print_style'];
+		if ( isset( $input['print_style'] ) ) {
+			$style = (int) $input['print_style'];
+
+			// An unknown style renders nothing at all, so keep the last valid one.
+			if ( in_array( $style, array( 1, 2, 3, 4 ), true ) ) {
+				$clean['print_style'] = $style;
+			}
+		}
 
 		// Only accept an icon that really exists in the plugin's images directory,
-		// so the stored value can never be turned into a path traversal.
-		$clean['print_icon'] = $defaults['print_icon'];
+		// so the stored value can never be turned into a path traversal. Anything
+		// else - absent, empty, a traversal, a file that is not there - leaves the
+		// stored icon alone.
 		if ( isset( $input['print_icon'] ) && is_scalar( $input['print_icon'] ) ) {
 			$icon = basename( trim( (string) $input['print_icon'] ) );
+
 			if ( '' !== $icon && is_file( plugin_dir_path( WP_PRINT_MAIN_FILE ) . 'images/' . $icon ) ) {
 				$clean['print_icon'] = $icon;
 			}
