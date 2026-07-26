@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<ruleset name="WP-Print">
+	<description>WordPress Coding Standards for WP-Print.</description>
+
+	<!--
+		PHP only. WPCS has had no JavaScript sniffs since 3.0, so scanning .js
+		here would only apply PHP_CodeSniffer's own PEAR/Squiz *PHP* conventions
+		to JavaScript through a tokenizer that PHP_CodeSniffer 4.0 removes
+		outright. JavaScript is linted with ESLint instead.
+	-->
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+
+	<file>.</file>
+
+	<!--
+		Dependency trees. Without these the scan walks every installed package
+		and runs the runner out of memory.
+	-->
+	<exclude-pattern>*/node_modules/*</exclude-pattern>
+	<exclude-pattern>*/vendor/*</exclude-pattern>
+
+	<rule ref="WordPress"/>
+
+	<config name="text_domain" value="wp-print"/>
+	<config name="minimum_wp_version" value="6.0"/>
+
+	<!--
+		The print view is a standalone document that deliberately does not call
+		wp_head(), so its stylesheet and script are plain tags rather than
+		enqueued handles. Enqueueing them would pull the theme's and every other
+		plugin's assets into a page whose whole purpose is to print cleanly.
+	-->
+	<rule ref="WordPress.WP.EnqueuedResources">
+		<exclude-pattern>print-posts\.php</exclude-pattern>
+	</rule>
+
+	<!-- Tests drive the plugin directly and print to the CLI. -->
+	<rule ref="WordPress.Security.EscapeOutput">
+		<exclude-pattern>tests/*</exclude-pattern>
+	</rule>
+</ruleset>
