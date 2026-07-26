@@ -2,9 +2,12 @@
 Contributors: GamerZ  
 Donate link: https://lesterchan.net/site/donation/  
 Tags: print, printer, wp-print  
-Requires at least: 4.0  
+Requires at least: 6.0  
 Tested up to: 7.0  
-Stable tag: 2.58.3  
+Stable tag: 3.0.0  
+Requires PHP: 7.4  
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Displays a printable version of your WordPress blog's post/page.
 
@@ -31,11 +34,8 @@ Once installed take the following steps to set it up:
 ### Development
 [https://github.com/lesterchan/wp-print](https://github.com/lesterchan/wp-print "https://github.com/lesterchan/wp-print")
 
-### Translations
-[http://dev.wp-plugins.org/browser/wp-print/i18n/](http://dev.wp-plugins.org/browser/wp-print/i18n/ "http://dev.wp-plugins.org/browser/wp-print/i18n/")
-
 ### Credits
-* Plugin icon by [SimpleIcon](http://www.simpleicon.com) from [Flaticon](http://www.flaticon.com)
+* Plugin icon by [SimpleIcon](https://www.simpleicon.com) from [Flaticon](https://www.flaticon.com)
 
 ### Donations
 I spent most of my free time creating, updating, maintaining and supporting these plugins, if you really love my plugins and could spare me a couple of bucks as my school allowance, I will really appreciate it. If not feel free to use it without any obligations.
@@ -76,6 +76,24 @@ if(function_exists('wp_print')) {
 * This will allow you to upgrade WP-Print without worrying about overwriting your printing styles or templates that you have created.
 
 ## Changelog
+### 3.0.0
+* NEW: Requires WordPress 6.0 and PHP 7.4 or newer.
+* NEW: Rewritten as classes under `includes/`, following the Plugin Handbook's folder structure.
+* NEW: The options screen now uses the WordPress Settings API. Its address changes from `options-general.php?page=wp-print/print-options.php` to `options-general.php?page=wp-print` — the Settings -> Print menu item is unaffected, and there is now a Settings link on the Plugins screen. Update any bookmark.
+* NEW: No more jQuery. The settings screen and the print view use plain JavaScript, and every inline `onclick` attribute is gone.
+* NEW: Print options are stored unslashed. An existing install is migrated once, automatically, on the first admin page load after upgrading.
+* FIXED: Print options set before a key existed no longer produce "Undefined array key" warnings or a print link with no text and no icon.
+* FIXED: The first link in a post was left unnumbered on themes that turn `wpautop` off.
+* FIXED: The category list separator lost its space, and `print_categories( $before, $after )` wrapped the whole list instead of each category.
+* FIXED: The print view emitted `lang=""` for locales without a region, such as `ca`.
+* FIXED: Right-to-left detection in the comments template never triggered, and the print view raised a deprecation notice on every load.
+* FIXED: Link URLs taken from post content are escaped when written back into the printable page.
+* FIXED: Uninstalling on a multisite network larger than 100 sites left the options behind on every site past the hundredth, and would fail outright on WordPress 5.1 or newer.
+* REMOVED: The `remove_image()`, `remove_video()` and `str_replace_one()` global functions, which were undocumented and used names other plugins could collide with.
+* REMOVED: Support for the Polyglot plugin, which has not been available for over a decade.
+* NOTE: Every documented template tag — `print_link()`, `print_content()`, `print_categories()`, `print_comments_content()`, `print_comments_number()`, `print_links()`, `print_can()` — keeps its name, arguments and behaviour, and `[print_link]` and `[donotprint]` are unchanged.
+* NOTE: If you have copied `print-posts.php` or `print-comments.php` into your theme, your copy still works and still takes precedence. It will not pick up this release's template fixes until you merge them in; compare against the new files in the plugin folder.
+
 ### 2.58.3
 * NEW: Bump to WordPress 7.0
 * FIXED: Fixed XSS audit by Claude
@@ -109,7 +127,7 @@ if(function_exists('wp_print')) {
 * FIXED: Replace font with p
 
 ### 2.54
-* NEW: Finally there is custom post type support. Props [nimmolo](http://andrewnimmo.org/ "nimmolo").
+* NEW: Finally there is custom post type support. Props [nimmolo](https://andrewnimmo.org/ "nimmolo").
 * NEW: Allow Multisite Network Activate
 * NEW: Uses WordPress uninstall.php file to uninstall the plugin
 
