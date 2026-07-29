@@ -139,14 +139,17 @@ class Test_Print_Source extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The uninstaller removes both rows the plugin owns, including the schema version
-	 * one, which is easy to forget because nothing reads it after uninstall.
+	 * The uninstaller removes all four rows the plugin has ever owned: the two
+	 * prefixed ones and the two the migration folds in, which are left behind on
+	 * a site that was upgraded and then deleted without wp-admin being opened in
+	 * between.
 	 */
 	public function test_uninstall_removes_every_option_the_plugin_owns() {
 		$code = $this->code( 'uninstall.php' );
 
-		$this->assertStringContainsString( "delete_option( 'print_options' )", $code );
-		$this->assertStringContainsString( "delete_option( 'print_db_version' )", $code );
+		foreach ( array( 'wp_print_options', 'wp_print_version', 'print_options', 'print_db_version' ) as $row ) {
+			$this->assertStringContainsString( "delete_option( '{$row}' )", $code );
+		}
 	}
 
 	/**

@@ -11,18 +11,22 @@ defined( 'ABSPATH' ) || exit;
  * Builds Settings -> Print with the WordPress Settings API.
  *
  * Replaces the hand-rolled form that posted to itself and did its own nonce and
- * capability handling. The option key and every stored key are unchanged; the
- * submitted field names now nest under print_options[...] because
- * register_setting() hands the whole array to one sanitize callback.
+ * capability handling. Every stored key is unchanged; the submitted field names
+ * nest under wp_print_options[...] because register_setting() hands the whole
+ * array to one sanitize callback.
  */
 class WP_Print_Admin {
 
 	/**
 	 * Settings group passed to register_setting() and settings_fields().
 	 *
+	 * Spelled the same as the settings row: one name for one thing, so a form
+	 * that posts the group and a callback that writes the row can never drift
+	 * apart.
+	 *
 	 * @var string
 	 */
-	const GROUP = 'print_options_group';
+	const GROUP = 'wp_print_options';
 
 	/**
 	 * The page slug.

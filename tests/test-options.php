@@ -20,6 +20,8 @@ class Test_Print_Options extends WP_UnitTestCase {
 
 		delete_option( WP_Print_Options::OPTION );
 		delete_option( WP_Print_Options::VERSION );
+		delete_option( WP_Print_Options::LEGACY_OPTION );
+		delete_option( WP_Print_Options::LEGACY_VERSION );
 	}
 
 	/**
@@ -280,22 +282,65 @@ class Test_Print_Options extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The migration unslashes a pre-3.0.0 row exactly once.
+	 * The migration moves the pre-3.0.0 row to the prefixed name and unslashes it
+	 * on the way, exactly once.
 	 */
-	public function test_migration_unslashes_a_legacy_row() {
+	public function test_migration_folds_the_legacy_row_into_the_prefixed_one() {
 		update_option(
-			WP_Print_Options::OPTION,
+			WP_Print_Options::LEGACY_OPTION,
 			array(
 				'post_text'  => "Tom & Jerry\\'s Post",
 				'disclaimer' => "Copyright \\'26",
 			)
 		);
+		update_option( WP_Print_Options::LEGACY_VERSION, '1' );
 
 		WP_Print_Options::maybe_upgrade();
 
 		$this->assertSame( "Tom & Jerry's Post", WP_Print_Options::get( 'post_text' ) );
 		$this->assertSame( "Copyright '26", WP_Print_Options::get( 'disclaimer' ) );
-		$this->assertSame( WP_PRINT_DB_VERSION, get_option( WP_Print_Options::VERSION ) );
+	}
+
+	/**
+	 * ...and takes the two unprefixed rows away with it. Leaving them behind is
+	 * how a plugin ends up owning four rows for two settings.
+	 */
+	public function test_migration_deletes_the_legacy_rows() {
+		update_option( WP_Print_Options::LEGACY_OPTION, array( 'post_text' => 'Mine' ) );
+		update_option( WP_Print_Options::LEGACY_VERSION, '1' );
+
+		WP_Print_Options::maybe_upgrade();
+
+		$this->assertFalse( get_option( WP_Print_Options::LEGACY_OPTION ), 'print_options must not survive the migration.' );
+		$this->assertFalse( get_option( WP_Print_Options::LEGACY_VERSION ), 'print_db_version must not survive the migration.' );
+	}
+
+	/**
+	 * The markers land in their own row, holding those two keys and no others.
+	 */
+	public function test_migration_writes_both_markers_to_their_own_row() {
+		WP_Print_Options::maybe_upgrade();
+
+		$this->assertSame(
+			array(
+				'plugin' => WP_PRINT_VERSION,
+				'db'     => WP_PRINT_DB_VERSION,
+			),
+			get_option( WP_Print_Options::VERSION )
+		);
+	}
+
+	/**
+	 * A value already in the prefixed row wins over the legacy one, so a
+	 * migration interrupted half way cannot undo itself on the next run.
+	 */
+	public function test_migration_does_not_overwrite_an_already_migrated_value() {
+		update_option( WP_Print_Options::LEGACY_OPTION, array( 'post_text' => 'Old' ) );
+		update_option( WP_Print_Options::OPTION, array( 'post_text' => 'New' ) );
+
+		WP_Print_Options::maybe_upgrade();
+
+		$this->assertSame( 'New', WP_Print_Options::get( 'post_text' ) );
 	}
 
 	/**
@@ -306,7 +351,7 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * is what makes this hold.
 	 */
 	public function test_migration_is_idempotent() {
-		update_option( WP_Print_Options::OPTION, array( 'post_text' => 'Back\\\\slash kept' ) );
+		update_option( WP_Print_Options::LEGACY_OPTION, array( 'post_text' => 'Back\\\\slash kept' ) );
 
 		WP_Print_Options::maybe_upgrade();
 		$once = WP_Print_Options::get( 'post_text' );
@@ -321,7 +366,7 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * A migrated install keeps its settings; the migration must not reset them.
 	 */
 	public function test_migration_does_not_overwrite_settings_with_defaults() {
-		update_option( WP_Print_Options::VERSION, WP_PRINT_DB_VERSION );
+		WP_Print_Options::maybe_upgrade();
 		update_option(
 			WP_Print_Options::OPTION,
 			array(

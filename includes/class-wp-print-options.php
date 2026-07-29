@@ -23,7 +23,7 @@ class WP_Print_Options {
 	 *
 	 * @var string
 	 */
-	const OPTION = 'print_options';
+	const OPTION = 'wp_print_options';
 
 	/**
 	 * Upgrade markers row, holding 'plugin' and 'db'. Autoloaded.
@@ -35,7 +35,28 @@ class WP_Print_Options {
 	 *
 	 * @var string
 	 */
-	const VERSION = 'print_db_version';
+	const VERSION = 'wp_print_version';
+
+	/**
+	 * The settings row as every release up to 2.58.3 named it.
+	 *
+	 * Read once by the migration and then deleted. Spelled as a constant rather
+	 * than inline so that no live get_option() call in this plugin names an
+	 * unprefixed row.
+	 *
+	 * @var string
+	 */
+	const LEGACY_OPTION = 'print_options';
+
+	/**
+	 * The schema counter as every release up to 2.58.3 named it.
+	 *
+	 * A bare string rather than the pair of markers, and unprefixed. Deleted by
+	 * the migration.
+	 *
+	 * @var string
+	 */
+	const LEGACY_VERSION = 'print_db_version';
 
 	/**
 	 * Keys whose values are rendered as HTML.
@@ -162,7 +183,7 @@ class WP_Print_Options {
 	 * reverting to a default or blanking. Every control on the settings screen is
 	 * a text field, a select or a textarea, so the form always posts all of them
 	 * and the screen behaves identically either way - but register_setting() hangs
-	 * this on sanitize_option_print_options, which means it also runs for
+	 * this on sanitize_option_wp_print_options, which means it also runs for
 	 * update_option() calls made by WP-CLI, a migration or another plugin. Those
 	 * are usually partial, and blanking the disclaimer and the custom template
 	 * because a caller only wanted to flip one toggle is not a defensible reading
@@ -246,38 +267,89 @@ class WP_Print_Options {
 	}
 
 	/**
+	 * The stored upgrade markers, normalised to an array.
+	 *
+	 * @return array
+	 */
+	public static function markers() {
+		$markers = get_option( self::VERSION, array() );
+
+		return is_array( $markers ) ? $markers : array();
+	}
+
+	/**
 	 * Run any pending migration.
 	 *
-	 * Gated on the stored schema version, not on whether the old shape can still
-	 * be detected: gating on detection means an install that has already been
-	 * migrated gets migrated again.
+	 * Gated on the stored markers, not on whether the old shape can still be
+	 * detected: gating on detection means an install that has already been
+	 * migrated gets migrated again on every request.
 	 *
-	 * Idempotent, and called from `admin_init` as well as activation, because
-	 * activation does not fire when a plugin is updated.
+	 * Idempotent, and called from `admin_init` as well as from activation,
+	 * because activation does not fire when a plugin is merely updated.
 	 *
 	 * @return void
 	 */
 	public static function maybe_upgrade() {
-		$stored = get_option( self::VERSION, '0' );
+		$markers = self::markers();
 
-		if ( version_compare( (string) $stored, WP_PRINT_DB_VERSION, '>=' ) ) {
+		$plugin = isset( $markers['plugin'] ) ? (string) $markers['plugin'] : '';
+		$db     = isset( $markers['db'] ) ? (string) $markers['db'] : '';
+
+		if ( WP_PRINT_VERSION === $plugin && WP_PRINT_DB_VERSION === $db ) {
 			return;
 		}
 
-		$options = get_option( self::OPTION );
+		self::migrate_legacy_rows();
 
-		if ( is_array( $options ) ) {
-			// Before 3.0.0 these four were stored slashed and unslashed again by
-			// every reader. They are now stored clean, so undo the slashing once.
-			foreach ( array_merge( self::text_keys(), self::html_keys() ) as $key ) {
-				if ( isset( $options[ $key ] ) && is_string( $options[ $key ] ) ) {
-					$options[ $key ] = wp_unslash( $options[ $key ] );
-				}
-			}
+		// Both markers in one write, so an upgrade that dies half way never
+		// records itself as finished.
+		update_option(
+			self::VERSION,
+			array(
+				'plugin' => WP_PRINT_VERSION,
+				'db'     => WP_PRINT_DB_VERSION,
+			),
+			true
+		);
+	}
 
-			update_option( self::OPTION, $options );
+	/**
+	 * Fold the pre-3.0.0 rows into the prefixed ones and delete them.
+	 *
+	 * Two things happen here, both once. The settings move from `print_options`
+	 * to `wp_print_options`, because an unprefixed row named after one of the
+	 * commonest words in the language is a collision waiting to happen; and the
+	 * four string values are unslashed, because up to 2.58.3 the admin screen
+	 * slashed them on the way in and every reader called stripslashes() on the
+	 * way out. `print_db_version` goes too, replaced by the pair of markers in
+	 * `wp_print_version`.
+	 *
+	 * A value already in the prefixed row wins over the legacy one, so a partly
+	 * finished migration cannot undo itself on a second run.
+	 *
+	 * @return void
+	 */
+	private static function migrate_legacy_rows() {
+		$legacy = get_option( self::LEGACY_OPTION, false );
+
+		delete_option( self::LEGACY_VERSION );
+
+		if ( ! is_array( $legacy ) ) {
+			delete_option( self::LEGACY_OPTION );
+
+			return;
 		}
 
-		update_option( self::VERSION, WP_PRINT_DB_VERSION );
+		foreach ( array_merge( self::text_keys(), self::html_keys() ) as $key ) {
+			if ( isset( $legacy[ $key ] ) && is_string( $legacy[ $key ] ) ) {
+				$legacy[ $key ] = wp_unslash( $legacy[ $key ] );
+			}
+		}
+
+		$stored = get_option( self::OPTION, array() );
+
+		update_option( self::OPTION, array_merge( $legacy, is_array( $stored ) ? $stored : array() ) );
+
+		delete_option( self::LEGACY_OPTION );
 	}
 }

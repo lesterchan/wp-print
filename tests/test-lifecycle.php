@@ -20,6 +20,8 @@ class Test_Print_Lifecycle extends WP_UnitTestCase {
 
 		delete_option( WP_Print_Options::OPTION );
 		delete_option( WP_Print_Options::VERSION );
+		delete_option( WP_Print_Options::LEGACY_OPTION );
+		delete_option( WP_Print_Options::LEGACY_VERSION );
 	}
 
 	/**
@@ -32,8 +34,14 @@ class Test_Print_Lifecycle extends WP_UnitTestCase {
 		$stored = get_option( WP_Print_Options::OPTION );
 
 		$this->assertIsArray( $stored );
-		$this->assertSame( 'print.gif', $stored['print_icon'] );
-		$this->assertSame( WP_PRINT_DB_VERSION, get_option( WP_Print_Options::VERSION ) );
+		$this->assertSame( 1, (int) $stored['print_style'] );
+		$this->assertSame(
+			array(
+				'plugin' => WP_PRINT_VERSION,
+				'db'     => WP_PRINT_DB_VERSION,
+			),
+			get_option( WP_Print_Options::VERSION )
+		);
 	}
 
 	/**
@@ -63,12 +71,13 @@ class Test_Print_Lifecycle extends WP_UnitTestCase {
 	 * is fixed up whichever way it gets there.
 	 */
 	public function test_activation_runs_the_migration() {
-		update_option( WP_Print_Options::OPTION, array( 'post_text' => "Tom & Jerry\\'s Post" ) );
+		update_option( WP_Print_Options::LEGACY_OPTION, array( 'post_text' => "Tom & Jerry\\'s Post" ) );
 
 		WP_Print::activate();
 
 		$this->assertSame( "Tom & Jerry's Post", WP_Print_Options::get( 'post_text' ) );
-		$this->assertSame( WP_PRINT_DB_VERSION, get_option( WP_Print_Options::VERSION ) );
+		$this->assertFalse( get_option( WP_Print_Options::LEGACY_OPTION ) );
+		$this->assertSame( WP_PRINT_DB_VERSION, WP_Print_Options::markers()['db'] );
 	}
 
 	/**
@@ -94,11 +103,11 @@ class Test_Print_Lifecycle extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The uninstaller removes both rows the plugin owns and nothing else.
+	 * The uninstaller removes every row the plugin owns and nothing else.
 	 */
 	public function test_uninstall_removes_the_plugin_options() {
 		update_option( WP_Print_Options::OPTION, WP_Print_Options::get_defaults() );
-		update_option( WP_Print_Options::VERSION, WP_PRINT_DB_VERSION );
+		WP_Print_Options::maybe_upgrade();
 		update_option( 'an_unrelated_option', 'keep me' );
 
 		// uninstall.php guards on this and would exit the whole test run without it.
@@ -106,7 +115,7 @@ class Test_Print_Lifecycle extends WP_UnitTestCase {
 			define( 'WP_UNINSTALL_PLUGIN', 'wp-print/wp-print.php' );
 		}
 
-		require plugin_dir_path( WP_PRINT_MAIN_FILE ) . 'uninstall.php';
+		require WP_PRINT_DIR . 'uninstall.php';
 
 		$this->assertFalse( get_option( WP_Print_Options::OPTION ) );
 		$this->assertFalse( get_option( WP_Print_Options::VERSION ) );
