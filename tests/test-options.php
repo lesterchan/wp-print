@@ -218,10 +218,10 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * A partial update leaves every key it did not mention alone.
 	 *
 	 * Note that register_setting() hangs this callback on
-	 * sanitize_option_print_options, so
-	 * it also runs for update_option() calls from WP-CLI, a migration or another
-	 * plugin - and those are usually partial. Blanking the disclaimer and the
-	 * custom template because a caller flipped one toggle is data loss.
+	 * sanitize_option_wp_print_options, so it also runs for update_option()
+	 * calls from WP-CLI, a migration or another plugin - and those are usually
+	 * partial. Blanking the disclaimer and the custom template because a caller
+	 * flipped one toggle is data loss.
 	 */
 	public function test_a_partial_update_keeps_everything_else() {
 		update_option(
