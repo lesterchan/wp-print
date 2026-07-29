@@ -14,7 +14,7 @@
  *
  * @covers WP_Print_Admin
  */
-class Test_Print_Admin extends WP_UnitTestCase {
+class WP_Print_Admin_Test extends WP_Print_TestCase {
 
 	/**
 	 * Register the settings as an admin request would.

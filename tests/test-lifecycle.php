@@ -10,7 +10,7 @@
  *
  * @covers WP_Print
  */
-class Test_Print_Lifecycle extends WP_UnitTestCase {
+class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 
 	/**
 	 * Start from an install that has never seen the plugin.
@@ -106,16 +106,11 @@ class Test_Print_Lifecycle extends WP_UnitTestCase {
 	 * The uninstaller removes every row the plugin owns and nothing else.
 	 */
 	public function test_uninstall_removes_the_plugin_options() {
-		update_option( WP_Print_Options::OPTION, WP_Print_Options::get_defaults() );
+		$this->set_options();
 		WP_Print_Options::maybe_upgrade();
 		update_option( 'an_unrelated_option', 'keep me' );
 
-		// uninstall.php guards on this and would exit the whole test run without it.
-		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-			define( 'WP_UNINSTALL_PLUGIN', 'wp-print/wp-print.php' );
-		}
-
-		require WP_PRINT_DIR . 'uninstall.php';
+		$this->run_uninstall();
 
 		$this->assertFalse( get_option( WP_Print_Options::OPTION ) );
 		$this->assertFalse( get_option( WP_Print_Options::VERSION ) );
@@ -126,12 +121,10 @@ class Test_Print_Lifecycle extends WP_UnitTestCase {
 	 * Uninstalling twice is not an error - the second pass has nothing to do.
 	 */
 	public function test_uninstall_is_idempotent() {
-		if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-			define( 'WP_UNINSTALL_PLUGIN', 'wp-print/wp-print.php' );
-		}
+		$this->set_options();
 
-		wp_print_uninstall_site();
-		wp_print_uninstall_site();
+		$this->run_uninstall();
+		$this->run_uninstall();
 
 		$this->assertFalse( get_option( WP_Print_Options::OPTION ) );
 	}

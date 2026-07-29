@@ -14,7 +14,7 @@
  * @covers WP_Print_Link
  * @covers ::print_link
  */
-class Test_Print_Link extends WP_UnitTestCase {
+class WP_Print_Link_Test extends WP_Print_TestCase {
 
 	/**
 	 * Post fixture.
@@ -62,7 +62,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 
 		// A print_content() call in another test leaves the print-view stand-in
 		// registered for [print_link]; restore the real callback. See the note in
-		// Test_Print_Content::set_up().
+		// WP_Print_Content_Test::set_up().
 		add_shortcode( 'print_link', array( 'WP_Print_Link', 'shortcode' ) );
 	}
 

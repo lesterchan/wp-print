@@ -14,7 +14,7 @@
  *
  * @covers WP_Print_Template
  */
-class Test_Print_Render extends WP_UnitTestCase {
+class WP_Print_Render_Test extends WP_Print_TestCase {
 
 	/**
 	 * Pretty permalinks, a known option row, and content worth printing.
@@ -23,7 +23,7 @@ class Test_Print_Render extends WP_UnitTestCase {
 		parent::set_up();
 
 		// Fixtures are written as a user who may post unfiltered HTML; see the note
-		// in Test_Print_Content::set_up().
+		// in WP_Print_Content_Test::set_up().
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 
 		$this->set_permalink_structure( '/%postname%/' );

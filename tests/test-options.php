@@ -10,7 +10,7 @@
  *
  * @covers WP_Print_Options
  */
-class Test_Print_Options extends WP_UnitTestCase {
+class WP_Print_Options_Test extends WP_Print_TestCase {
 
 	/**
 	 * Reset the option row between tests.

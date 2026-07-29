@@ -12,7 +12,7 @@
  * @covers ::print_content
  * @covers ::print_comments_content
  */
-class Test_Print_Content extends WP_UnitTestCase {
+class WP_Print_Content_Test extends WP_Print_TestCase {
 
 	/**
 	 * Known options and a clean footnote counter for every test.

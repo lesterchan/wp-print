@@ -11,7 +11,7 @@
  * @covers WP_Print_Template
  * @covers WP_Print
  */
-class Test_Print_Template extends WP_UnitTestCase {
+class WP_Print_Template_Test extends WP_Print_TestCase {
 
 	/**
 	 * Pretty permalinks and a known option row.
