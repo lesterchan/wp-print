@@ -35,17 +35,24 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 	public function test_the_screen_is_added_under_settings() {
 		global $submenu, $menu;
 
+		// wp-admin builds these two once per request and nothing resets them
+		// between tests, so they are saved and put back rather than emptied.
+		$was_submenu = $submenu;
+		$was_menu    = $menu;
+
 		$submenu = array();
 		$menu    = array();
 
-		WP_Print_Admin::add_page();
+		try {
+			WP_Print_Admin::add_page();
 
-		$this->assertArrayHasKey( 'options-general.php', $submenu, 'The screen belongs under Settings.' );
-
-		$slugs = wp_list_pluck( $submenu['options-general.php'], 2 );
-
-		$this->assertContains( WP_Print_Admin::PAGE, $slugs );
-		$this->assertSame( array(), $menu, 'WP-Print claims no top-level menu.' );
+			$this->assertArrayHasKey( 'options-general.php', $submenu, 'The screen belongs under Settings.' );
+			$this->assertContains( WP_Print_Admin::PAGE, wp_list_pluck( $submenu['options-general.php'], 2 ) );
+			$this->assertSame( array(), $menu, 'WP-Print claims no top-level menu.' );
+		} finally {
+			$submenu = $was_submenu;
+			$menu    = $was_menu;
+		}
 	}
 
 	/**
@@ -113,6 +120,8 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 	 * post editor.
 	 */
 	public function test_the_admin_script_loads_only_on_its_own_screen() {
+		$this->reset_scripts();
+
 		WP_Print_Admin::enqueue( 'index.php' );
 		$this->assertFalse( wp_script_is( 'wp-print-admin', 'enqueued' ), 'Not on the dashboard.' );
 
@@ -129,6 +138,8 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 	 * anyone flattens them back.
 	 */
 	public function test_the_localised_defaults_keep_their_entities() {
+		$this->reset_scripts();
+
 		WP_Print_Admin::enqueue( 'settings_page_' . WP_Print_Admin::PAGE );
 
 		$data = wp_scripts()->get_data( 'wp-print-admin', 'data' );
@@ -143,6 +154,8 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 	 * The script declares no dependencies at all, jQuery least of all.
 	 */
 	public function test_the_admin_script_declares_no_dependencies() {
+		$this->reset_scripts();
+
 		WP_Print_Admin::enqueue( 'settings_page_' . WP_Print_Admin::PAGE );
 
 		$this->assertSame( array(), wp_scripts()->registered['wp-print-admin']->deps );
@@ -168,5 +181,18 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 
 		$this->assertCount( 1, $links );
 		$this->assertStringContainsString( 'page=' . WP_Print_Admin::PAGE, $links[0] );
+	}
+
+	/**
+	 * Start from an empty script registry.
+	 *
+	 * WP_Dependencies remembers what has been registered and enqueued for the
+	 * whole process, so without this a test asserting the script is *not*
+	 * enqueued would depend on which test ran before it.
+	 *
+	 * @return void
+	 */
+	private function reset_scripts() {
+		$GLOBALS['wp_scripts'] = null;
 	}
 }
