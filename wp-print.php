@@ -75,6 +75,7 @@ require_once WP_PRINT_DIR . 'includes/template-tags.php';
 
 if ( is_admin() ) {
 	require_once WP_PRINT_DIR . 'includes/class-wp-print-admin.php';
+	require_once WP_PRINT_DIR . 'includes/class-wp-print-settings.php';
 }
 
 WP_Print::get_instance();

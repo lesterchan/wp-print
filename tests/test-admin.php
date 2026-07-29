@@ -1,176 +1,151 @@
 <?php
 /**
- * Settings screen: the Settings API registration and the rendered fields.
+ * The admin menu, the screen it renders and the script that screen loads.
  *
- * A Settings API screen fails silently when the option group does not match what
- * settings_fields() emits, or when the sanitize callback returns null - the save
- * simply does nothing. Both are asserted here.
+ * The fields on that screen, and the sanitiser behind them, belong to
+ * WP_Print_Settings and are covered in test-settings.php.
  *
  * @package WP-Print
  */
 
 /**
- * Tests for the settings screen.
+ * Tests for WP_Print_Admin.
  *
  * @covers WP_Print_Admin
  */
 class WP_Print_Admin_Test extends WP_Print_TestCase {
 
 	/**
-	 * Register the settings as an admin request would.
+	 * Act as an administrator on a configured site.
 	 */
 	public function set_up() {
 		parent::set_up();
 
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 
-		update_option( WP_Print_Options::OPTION, WP_Print_Options::get_defaults() );
+		$this->set_options();
 
 		require_once ABSPATH . 'wp-admin/includes/template.php';
-		WP_Print_Admin::register_settings();
 	}
 
 	/**
-	 * The setting is registered in the group the form posts, with the sanitize
-	 * callback attached.
+	 * A plugin whose only admin surface is settings goes under Settings, with no
+	 * top-level menu of its own.
 	 */
-	public function test_the_setting_is_registered_in_the_right_group() {
-		global $wp_registered_settings;
+	public function test_the_screen_is_added_under_settings() {
+		global $submenu, $menu;
 
-		$this->assertArrayHasKey( WP_Print_Options::OPTION, $wp_registered_settings );
+		$submenu = array();
+		$menu    = array();
 
-		$registered = $wp_registered_settings[ WP_Print_Options::OPTION ];
+		WP_Print_Admin::add_page();
 
-		$this->assertSame( WP_Print_Admin::GROUP, $registered['group'] );
-		$this->assertSame( array( 'WP_Print_Options', 'sanitize' ), $registered['sanitize_callback'] );
+		$this->assertArrayHasKey( 'options-general.php', $submenu, 'The screen belongs under Settings.' );
+
+		$slugs = wp_list_pluck( $submenu['options-general.php'], 2 );
+
+		$this->assertContains( WP_Print_Admin::PAGE, $slugs );
+		$this->assertSame( array(), $menu, 'WP-Print claims no top-level menu.' );
 	}
 
 	/**
-	 * The form emits the same group the setting was registered under, which is the
-	 * pairing that makes a save take effect at all.
+	 * The screen requires manage_options, which is what a settings screen takes.
 	 */
-	public function test_the_form_posts_the_registered_group() {
+	public function test_the_screen_requires_manage_options_by_default() {
+		$this->assertSame( 'manage_options', WP_Print_Admin::CAPABILITY );
+		$this->assertSame( 'manage_options', WP_Print_Admin::capability( 'settings' ) );
+	}
+
+	/**
+	 * Every check goes through one filter, so a site that wants its editors to
+	 * reach the print settings has one thing to hook.
+	 */
+	public function test_the_capability_filter_is_honoured() {
+		$contexts = array();
+
+		$filter = static function ( $capability, $context ) use ( &$contexts ) {
+			$contexts[] = $context;
+
+			return 'edit_pages';
+		};
+
+		add_filter( 'wp_print_capability', $filter, 10, 2 );
+
+		$this->assertSame( 'edit_pages', WP_Print_Admin::capability( 'menu' ) );
+		$this->assertSame( 'edit_pages', WP_Print_Admin::capability( 'settings' ) );
+
+		remove_filter( 'wp_print_capability', $filter, 10 );
+
+		$this->assertSame( array( 'menu', 'settings' ), $contexts, 'The context is passed to the filter.' );
+	}
+
+	/**
+	 * The page renders the form that posts to options.php, under the group the
+	 * setting is registered in.
+	 */
+	public function test_the_page_renders_the_form_for_the_registered_group() {
+		WP_Print_Settings::register();
+
 		ob_start();
-		settings_fields( WP_Print_Admin::GROUP );
-		$fields = ob_get_clean();
-
-		// settings_fields() emits single-quoted attributes, so match the value alone.
-		$this->assertStringContainsString( WP_Print_Admin::GROUP, $fields );
-		$this->assertStringContainsString( "name='option_page'", $fields );
-		$this->assertStringContainsString( '_wpnonce', $fields );
-	}
-
-	/**
-	 * Writing the option runs it through the sanitize callback, because
-	 * register_setting() hangs it on sanitize_option_{$option}. This is what makes
-	 * the round trip safe rather than only the screen.
-	 */
-	public function test_writing_the_option_runs_the_sanitizer() {
-		update_option(
-			WP_Print_Options::OPTION,
-			array(
-				'print_style' => '99',
-				'post_text'   => "Tom & Jerry's",
-			)
-		);
-
-		$this->assertSame( 1, (int) WP_Print_Options::get( 'print_style' ) );
-		$this->assertStringNotContainsString( '\\', WP_Print_Options::get( 'post_text' ) );
-	}
-
-	/**
-	 * Every field renders, nests its name under the option key, and escapes.
-	 */
-	public function test_the_screen_renders_every_field() {
-		$html = $this->render_screen();
-
-		foreach ( array( 'post_text', 'page_text', 'print_style', 'print_html', 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
-			$this->assertStringContainsString(
-				WP_Print_Options::OPTION . '[' . $key . ']',
-				$html,
-				"Field $key is missing from the screen"
-			);
-		}
+		WP_Print_Admin::render_page();
+		$html = ob_get_clean();
 
 		$this->assertStringContainsString( 'action="options.php"', $html );
-		$this->assertStringContainsString( WP_Print_Admin::GROUP, $html );
+		$this->assertStringContainsString( WP_Print_Settings::GROUP, $html );
+		$this->assertSame( 1, substr_count( $html, '<h1>' ), 'One h1 per screen.' );
+		$this->assertStringContainsString( 'class="wrap"', $html );
 	}
 
 	/**
-	 * The screen carries no inline event handlers and no jQuery dependency: the
-	 * behaviour is delegated from data-* attributes in print-admin.js.
+	 * A user without the capability is turned away rather than shown the form.
 	 */
-	public function test_the_screen_has_no_inline_handlers() {
-		$html = $this->render_screen();
+	public function test_the_page_refuses_a_user_without_the_capability() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
 
-		$this->assertStringNotContainsString( 'onclick=', $html );
-		$this->assertStringNotContainsString( 'onchange=', $html );
-		$this->assertStringContainsString( 'data-print-toggle', $html );
-		$this->assertStringContainsString( 'data-print-restore', $html );
+		$this->expectException( WPDieException::class );
+
+		WP_Print_Admin::render_page();
 	}
 
 	/**
-	 * A stored value containing markup is escaped on the way into the form, so the
-	 * screen cannot be used to execute what an earlier save stored.
+	 * The script loads on the plugin's own screen and nowhere else. Enqueuing it
+	 * everywhere is how a settings screen's JavaScript ends up running on the
+	 * post editor.
 	 */
-	public function test_stored_markup_is_escaped_into_the_form() {
-		update_option(
-			WP_Print_Options::OPTION,
-			array_merge(
-				WP_Print_Options::get_defaults(),
-				array(
-					'post_text'  => 'Quote " and <b>bold</b>',
-					'disclaimer' => '</textarea><script>alert(1)</script>',
-				)
-			)
-		);
+	public function test_the_admin_script_loads_only_on_its_own_screen() {
+		WP_Print_Admin::enqueue( 'index.php' );
+		$this->assertFalse( wp_script_is( 'wp-print-admin', 'enqueued' ), 'Not on the dashboard.' );
 
-		$html = $this->render_screen();
-
-		$this->assertStringNotContainsString( '<script>alert(1)</script>', $html );
-		$this->assertStringNotContainsString( '</textarea><script', $html );
+		WP_Print_Admin::enqueue( 'settings_page_' . WP_Print_Admin::PAGE );
+		$this->assertTrue( wp_script_is( 'wp-print-admin', 'enqueued' ) );
 	}
 
 	/**
-	 * The custom template block is hidden unless the Custom style is selected, so
-	 * the screen looks the same as it did before the rewrite.
-	 */
-	public function test_the_custom_block_is_hidden_unless_selected() {
-		$this->assertStringContainsString( 'wp-print-custom hidden', $this->render_screen() );
-
-		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 4 ) ) );
-
-		$this->assertStringNotContainsString( 'wp-print-custom hidden', $this->render_screen() );
-	}
-
-	/**
-	 * There is no icon picker any more, and no field for the setting behind it.
+	 * The localised defaults reach the page byte for byte.
 	 *
-	 * One inline SVG replaced the two bundled GIFs, so the choice it offered no
-	 * longer exists. A field left behind would write a key nothing reads.
+	 * Localisation runs html_entity_decode() over every scalar it is given, which
+	 * turned the shipped disclaimer's &copy; into a literal ©. Nesting the two
+	 * strings one level deep avoids that, and this is the test that fails if
+	 * anyone flattens them back.
 	 */
-	public function test_the_screen_offers_no_icon_setting() {
-		$html = $this->render_screen();
+	public function test_the_localised_defaults_keep_their_entities() {
+		WP_Print_Admin::enqueue( 'settings_page_' . WP_Print_Admin::PAGE );
 
-		$this->assertStringNotContainsString( 'print_icon', $html );
-		$this->assertStringNotContainsString( 'images/', $html );
+		$data = wp_scripts()->get_data( 'wp-print-admin', 'data' );
+
+		$this->assertIsString( $data );
+		$this->assertStringContainsString( 'wpPrintL10n', $data );
+		$this->assertStringContainsString( '&copy;', $data, 'The entity must survive localisation.' );
+		$this->assertStringNotContainsString( 'wpPrintDefaults', $data, 'The old object name is retired.' );
 	}
 
 	/**
-	 * The placeholder documentation is emitted as code spans rather than inside a
-	 * translatable string, so phpcbf cannot renumber %PRINT_URL% as a printf
-	 * placeholder and show users "%1$PRINT_URL%".
+	 * The script declares no dependencies at all, jQuery least of all.
 	 */
-	public function test_placeholders_are_documented_outside_translatable_strings() {
-		$html = $this->render_screen();
+	public function test_the_admin_script_declares_no_dependencies() {
+		WP_Print_Admin::enqueue( 'settings_page_' . WP_Print_Admin::PAGE );
 
-		$this->assertStringContainsString( '<code>%PRINT_URL%</code>', $html );
-		$this->assertStringContainsString( '<code>%PRINT_TEXT%</code>', $html );
-		$this->assertStringContainsString( '<code>%PRINT_ICON%</code>', $html );
-		$this->assertStringNotContainsString( '%1$PRINT', $html );
-
-		// The retired one is not offered: it named a URL, and the glyph is inline.
-		$this->assertStringNotContainsString( '%PRINT_ICON_URL%', $html );
+		$this->assertSame( array(), wp_scripts()->registered['wp-print-admin']->deps );
 	}
 
 	/**
@@ -185,19 +160,13 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 	}
 
 	/**
-	 * Render the settings screen.
-	 *
-	 * @return string
+	 * A filter handing back something other than an array must not fatal the
+	 * Plugins screen.
 	 */
-	private function render_screen() {
-		ob_start();
-		WP_Print_Admin::render_page();
-		$page = ob_get_clean();
+	public function test_the_action_links_survive_a_non_array() {
+		$links = WP_Print_Admin::action_links( null );
 
-		ob_start();
-		do_settings_sections( WP_Print_Admin::PAGE );
-		$sections = ob_get_clean();
-
-		return $page . $sections;
+		$this->assertCount( 1, $links );
+		$this->assertStringContainsString( 'page=' . WP_Print_Admin::PAGE, $links[0] );
 	}
 }

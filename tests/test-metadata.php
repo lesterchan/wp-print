@@ -416,7 +416,7 @@ class WP_Print_Metadata_Test extends WP_Print_TestCase {
 	 * bug the separate row exists to make impossible.
 	 */
 	public function test_settings_sanitizer_never_stores_version_markers() {
-		$clean = WP_Print_Options::sanitize(
+		$clean = WP_Print_Settings::sanitize(
 			array(
 				'post_text'  => 'Print This',
 				'comments'   => 1,

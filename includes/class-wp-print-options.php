@@ -8,7 +8,13 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Reads, writes and sanitizes the plugin's option rows.
+ * Reads, writes and upgrades the plugin's option rows.
+ *
+ * What the rows are called, what shape they hold and how one version's shape
+ * becomes the next. The sanitize callback that guards writes from the settings
+ * screen belongs to WP_Print_Settings, which is where register_setting() hangs
+ * it; this class describes the keys it works on -- text_keys(), html_keys(),
+ * bool_keys() and retired_keys().
  *
  * The shape of the stored strings changed in 3.0.0: before it the admin screen
  * slashed values on the way in and every reader called stripslashes() on the way
@@ -182,91 +188,6 @@ class WP_Print_Options {
 		$value = self::get( $type );
 
 		return null === $value ? 0 : (int) $value;
-	}
-
-	/**
-	 * Sanitize a submitted option array.
-	 *
-	 * Receives the whole nested array from register_setting(). options.php has
-	 * already run wp_unslash() over it, so nothing here re-slashes: values are
-	 * stored exactly as they will be rendered.
-	 *
-	 * A key missing from the input keeps whatever is already stored, rather than
-	 * reverting to a default or blanking. Every control on the settings screen is
-	 * a text field, a select or a textarea, so the form always posts all of them
-	 * and the screen behaves identically either way - but register_setting() hangs
-	 * this on sanitize_option_wp_print_options, which means it also runs for
-	 * update_option() calls made by WP-CLI, a migration or another plugin. Those
-	 * are usually partial, and blanking the disclaimer and the custom template
-	 * because a caller only wanted to flip one toggle is not a defensible reading
-	 * of "sanitize".
-	 *
-	 * @param mixed $input Raw submitted value.
-	 * @return array
-	 */
-	public static function sanitize( $input ) {
-		$defaults = self::get_defaults();
-		$current  = self::get();
-		$input    = is_array( $input ) ? $input : array();
-		$clean    = array();
-
-		foreach ( self::text_keys() as $key ) {
-			if ( ! isset( $input[ $key ] ) || ! is_scalar( $input[ $key ] ) ) {
-				continue;
-			}
-
-			// wp_kses_data(), not wp_filter_kses(). The two allow the same tags -
-			// these are link labels, so only the small inline set is worth keeping -
-			// but wp_filter_kses() also runs addslashes() on the way out, because it
-			// was written for the days when superglobals stayed slashed. options.php
-			// has already unslashed, so using it here stored "Tom & Jerry\'s Post".
-			$value = trim( wp_kses_data( (string) $input[ $key ] ) );
-
-			// An empty link label renders a link with nothing to click, so an empty
-			// submission means "give me the shipped text back".
-			$clean[ $key ] = '' === $value ? $defaults[ $key ] : $value;
-		}
-
-		foreach ( self::html_keys() as $key ) {
-			if ( ! isset( $input[ $key ] ) || ! is_scalar( $input[ $key ] ) ) {
-				continue;
-			}
-
-			$value = trim( (string) $input[ $key ] );
-
-			// HTML is allowed, but a user without unfiltered_html - a site admin on
-			// multisite, for instance - must not be able to store script. Emptying
-			// these is legitimate: a site may not want a disclaimer at all.
-			if ( ! current_user_can( 'unfiltered_html' ) ) {
-				$value = wp_kses_post( $value );
-			}
-
-			$clean[ $key ] = $value;
-		}
-
-		foreach ( self::bool_keys() as $key ) {
-			if ( ! isset( $input[ $key ] ) ) {
-				continue;
-			}
-
-			$clean[ $key ] = $input[ $key ] ? 1 : 0;
-		}
-
-		if ( isset( $input['print_style'] ) ) {
-			$style = (int) $input['print_style'];
-
-			// An unknown style renders nothing at all, so keep the last valid one.
-			if ( in_array( $style, array( 1, 2, 3, 4 ), true ) ) {
-				$clean['print_style'] = $style;
-			}
-		}
-
-		// Preserve anything a filter or an older version stored that this screen
-		// does not render, rather than dropping it on the first save - except a
-		// key the plugin has deliberately retired, which must not survive.
-		$current = array_diff_key( $current, array_flip( self::retired_keys() ) );
-
-		return array_merge( $current, $clean );
 	}
 
 	/**
