@@ -390,6 +390,6 @@ class Test_Print_Content extends WP_UnitTestCase {
 		$out = $this->render( '<a href="https://example.com/other">Other</a>' );
 
 		$this->assertStringContainsString( '<sup>[1]</sup>', $out );
-		$this->assertSame( 1, substr_count( WP_Print_Content::links_text(), '<p style=' ) );
+		$this->assertSame( 1, substr_count( WP_Print_Content::links_text(), '<p class="wp-print-url">' ) );
 	}
 }

@@ -37,15 +37,17 @@ if ( false !== $print_dash ) {
 	/*
 	 * Printed by handle rather than enqueued for wp_head(): this document has no
 	 * wp_head() call, on purpose, so that printing a page does not drag in the
-	 * theme's stylesheets and every other plugin's assets. The handles are
-	 * registered by WP_Print_Template::register_assets().
+	 * theme's stylesheets and every other plugin's assets. Both handles are
+	 * registered by WP_Print_Template::register_assets(). There is one
+	 * stylesheet, in both text directions -- css/wp-print.css uses logical
+	 * properties, so the dir attribute on <html> above is the whole mechanism.
 	 */
-	wp_print_styles( is_rtl() ? array( 'wp-print', 'wp-print-rtl' ) : array( 'wp-print' ) );
+	wp_print_styles( array( 'wp-print' ) );
 	?>
 	<link rel="canonical" href="<?php the_permalink(); ?>" />
 	<?php wp_print_scripts( array( 'wp-print' ) ); ?>
 </head>
-<body>
+<body class="wp-print">
 
 <main role="main" class="center">
 
@@ -134,7 +136,7 @@ if ( false !== $print_dash ) {
 				<p><?php print_links(); ?></p>
 			<?php endif; ?>
 
-			<p style="text-align: <?php echo is_rtl() ? 'left' : 'right'; ?>;" id="print-link">
+			<p id="print-link">
 				<a href="#print" data-print-action="print" title="<?php esc_attr_e( 'Click here to print.', 'wp-print' ); ?>">
 					<?php esc_html_e( 'Click here to print.', 'wp-print' ); ?>
 				</a>
@@ -147,7 +149,7 @@ if ( false !== $print_dash ) {
 
 	<?php endif; ?>
 
-			<p style="text-align: center;"><?php print_disclaimer(); ?></p>
+			<p class="wp-print-disclaimer"><?php print_disclaimer(); ?></p>
 		</footer>
 
 </main>

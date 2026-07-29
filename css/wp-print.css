@@ -1,80 +1,191 @@
-body {
-	font-family: Verdana, Arial, Tahoma;
-	font-size: 14px;
-	color: #000000;
+/*
+ * WP-Print: the printable document.
+ *
+ * The print view is a standalone page that deliberately never calls wp_head(),
+ * so this sheet is on its own -- there is no theme stylesheet underneath it to
+ * inherit from, which is why it sets a type scale at all. Everything it does set
+ * goes through a custom property, so a theme, or a child theme setting four
+ * variables, can retune it without forking the file.
+ *
+ * Every rule is scoped to .wp-print on <body>, and every directional property is
+ * a logical one. There is no print-css-rtl.css and no wp_style_add_data( 'rtl' ):
+ * one sheet serves both directions, which is one fewer thing to keep in step.
+ */
+
+.wp-print {
+	--wp-print-font-family: system-ui, -apple-system, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
+	--wp-print-font-size: 16px;
+	--wp-print-line-height: 1.7;
+	--wp-print-text: #111;
+	--wp-print-background: #fff;
+	--wp-print-rule: #555;
+	--wp-print-gap: 25px;
+
+	background-color: var(--wp-print-background);
+	color: var(--wp-print-text);
+	font-family: var(--wp-print-font-family);
+	font-size: var(--wp-print-font-size);
+	line-height: var(--wp-print-line-height);
 }
-* {
-	padding: 0;
+
+/*
+ * Reading a printable page on screen before printing it is the common case, and
+ * this document paints its own surface, so it owes a dark-mode reader a dark
+ * one. The @media print block below puts it back to ink on paper either way.
+ */
+@media (prefers-color-scheme: dark) {
+	.wp-print {
+		--wp-print-text: #e6e6e6;
+		--wp-print-background: #16181a;
+		--wp-print-rule: #4a4f55;
+	}
+}
+
+.wp-print * {
 	margin: 0;
-	list-style-type: none;
+	padding: 0;
 }
-hr { display: none; }
-img { max-width: 100%; }
-p {
-	word-wrap: break-word;
-	margin-bottom: 15px;
-}
-a { color: inherit; }
 
-/*  Header */
-.entry-header {
-	margin-bottom: 25px;
-	padding-bottom: 25px;
-	border-bottom: 1px solid #555;
+.wp-print hr {
+	display: none;
 }
-.hat {
+
+.wp-print img {
+	height: auto;
+	max-width: 100%;
+}
+
+.wp-print p {
+	margin-block-end: 15px;
+	overflow-wrap: break-word;
+}
+
+/* Every link is footnoted with a number, so its colour carries no information. */
+.wp-print a {
+	color: inherit;
+}
+
+.wp-print .center {
+	margin-inline: auto;
+	padding-inline: 2%;
+}
+
+/* Header */
+
+.wp-print .entry-header {
+	border-block-end: 1px solid var(--wp-print-rule);
+	margin-block-end: var(--wp-print-gap);
+	padding-block-end: var(--wp-print-gap);
+}
+
+.wp-print .hat {
 	display: block;
+	margin-block: 15px 20px;
 	text-align: center;
-	margin: 15px 0 20px 0;
 }
 
-.entry-title, #CommentTitle {
+.wp-print .entry-title,
+.wp-print #CommentTitle {
+	font-size: 1.4em;
 	font-weight: bold;
-	font-size: 21px;
-	margin-bottom: 5px;
-}
-#CommentTitle { margin-bottom: 15px; }
-
-/* Main */
-.center {
-	margin: 0 auto;
-	padding: 0 2%;
+	margin-block-end: 5px;
 }
 
-/* thumbnail */
-.thumbnail {
+.wp-print #CommentTitle {
+	margin-block-end: 15px;
+}
+
+/* Content */
+
+.wp-print .thumbnail {
+	margin-block-end: var(--wp-print-gap);
 	text-align: center;
-	margin-bottom: 25px;
 }
 
-/* content */
-.entry-content {
-	margin-bottom: 35px;
-	line-height: 170%;
+.wp-print .entry-content {
+	margin-block-end: 35px;
 }
 
-pre {
+.wp-print pre {
 	white-space: pre-wrap;
 }
 
-/* Footer */
-.footer {
-	margin-top: 25px;
-	padding: 25px 0 0 0;
-	border-top: 1px solid #555;
+/*
+ * The blanket reset above used to carry list-style-type: none, so a post built
+ * around a numbered list printed as an unnumbered one. The article's own lists
+ * get their markers back; the plugin's own chrome keeps none.
+ */
+.wp-print .entry-content ul,
+.wp-print .CommentContent ul {
+	list-style-type: disc;
 }
 
+.wp-print .entry-content ol,
+.wp-print .CommentContent ol {
+	list-style-type: decimal;
+}
+
+.wp-print .entry-content ul,
+.wp-print .entry-content ol,
+.wp-print .CommentContent ul,
+.wp-print .CommentContent ol {
+	margin-block-end: 15px;
+	padding-inline-start: 2.5em;
+}
+
+.wp-print .alignleft {
+	float: inline-start;
+	margin-block: 10px 5px;
+	margin-inline-end: 10px;
+}
+
+.wp-print .alignright {
+	float: inline-end;
+	margin-block: 10px 5px;
+	margin-inline-start: 10px;
+}
+
+/* Comments */
+
+.wp-print #comments_controls {
+	float: inline-end;
+}
+
+.wp-print .CommentDate {
+	margin-block-start: 15px;
+}
+
+/* Footer */
+
+.wp-print .footer {
+	border-block-start: 1px solid var(--wp-print-rule);
+	margin-block-start: var(--wp-print-gap);
+	padding-block-start: var(--wp-print-gap);
+}
+
+/* One entry of the collected URL list. */
+.wp-print .wp-print-url {
+	margin-block: 2px;
+}
+
+.wp-print .wp-print-disclaimer {
+	text-align: center;
+}
+
+.wp-print #print-link {
+	text-align: end;
+}
+
+/* On paper: no controls, and ink on white however the screen was rendering it. */
 @media print {
-	#comments_controls,
-	#print-link {
+	.wp-print {
+		--wp-print-text: #000;
+		--wp-print-background: #fff;
+		--wp-print-rule: #555;
+	}
+
+	.wp-print #comments_controls,
+	.wp-print #print-link {
 		display: none;
 	}
-}
-.alignleft, .alignleft {
-	float: left;
-	margin: 10px 10px 5px 0;
-}
-.alignright, .alignright {
-	float: right;
-	margin: 10px 0 5px 10px;
 }

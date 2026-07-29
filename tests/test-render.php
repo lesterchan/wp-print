@@ -286,8 +286,14 @@ class Test_Print_Render extends WP_UnitTestCase {
 	}
 
 	/**
-	 * A right-to-left locale flips the document direction. The old template read a
-	 * $text_direction global that no longer exists, so RTL never triggered.
+	 * A right-to-left locale sets dir="rtl" and changes nothing else.
+	 *
+	 * That one attribute is the whole mechanism now. The stylesheet uses logical
+	 * properties -- margin-inline-start, float: inline-start, text-align: end --
+	 * so the browser mirrors the layout off the dir attribute and the second
+	 * stylesheet that used to do it by hand is gone. The old template read a
+	 * $text_direction global that no longer existed, so RTL never triggered at
+	 * all; this asserts it does, without a mirrored sheet behind it.
 	 */
 	public function test_a_right_to_left_locale_flips_the_document() {
 		global $wp_locale;
@@ -299,21 +305,42 @@ class Test_Print_Render extends WP_UnitTestCase {
 			$html = $this->render_document( $this->make_post() );
 
 			$this->assertStringContainsString( 'dir="rtl"', $html );
-			$this->assertStringContainsString( 'wp-print-rtl.css', $html );
-			$this->assertStringContainsString( 'text-align: left', $html );
+			$this->assertStringNotContainsString( '-rtl.css', $html, 'No plugin in this family ships a mirrored stylesheet.' );
+			$this->assertStringContainsString( 'css/wp-print.css', $html, 'The one sheet serves both directions.' );
 		} finally {
 			$wp_locale->text_direction = $was;
 		}
 	}
 
 	/**
-	 * ...and a left-to-right one does not.
+	 * ...and a left-to-right one loads exactly the same stylesheet.
 	 */
-	public function test_a_left_to_right_locale_leaves_the_document_alone() {
+	public function test_a_left_to_right_locale_loads_the_same_stylesheet() {
 		$html = $this->render_document( $this->make_post() );
 
 		$this->assertStringContainsString( 'dir="ltr"', $html );
-		$this->assertStringNotContainsString( 'wp-print-rtl.css', $html );
+		$this->assertStringNotContainsString( '-rtl.css', $html );
+		$this->assertStringContainsString( 'css/wp-print.css', $html );
+	}
+
+	/**
+	 * The document carries the root class every rule in the sheet is scoped to.
+	 *
+	 * A theme that copied print-posts.php before 3.0.0 has a <body> with no
+	 * class on it, and would get an unstyled print view -- which is why the
+	 * upgrade notice says so.
+	 */
+	public function test_the_document_body_carries_the_root_class() {
+		$this->assertStringContainsString( '<body class="wp-print">', $this->render_document( $this->make_post() ) );
+	}
+
+	/**
+	 * Nothing in the document styles itself inline.
+	 */
+	public function test_the_document_uses_no_inline_styles() {
+		$html = $this->render_document( $this->make_post() );
+
+		$this->assertStringNotContainsString( 'style="', $html, 'Styling belongs in css/wp-print.css.' );
 	}
 
 	/**

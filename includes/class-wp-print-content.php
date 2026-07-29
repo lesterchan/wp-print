@@ -67,7 +67,7 @@ class WP_Print_Content {
 			$GLOBALS['links_text'] = '';
 		}
 
-		$GLOBALS['links_text'] .= '<p style="margin: 2px 0;">[' . number_format_i18n( $number ) . '] '
+		$GLOBALS['links_text'] .= '<p class="wp-print-url">[' . number_format_i18n( $number ) . '] '
 			. $label . ': <strong><span dir="ltr">' . esc_html( $url ) . '</span></strong></p>';
 	}
 

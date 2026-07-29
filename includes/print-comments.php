@@ -14,7 +14,7 @@ defined( 'ABSPATH' ) || exit;
 if ( have_comments() ) :
 	$print_comment_count = 1;
 	?>
-	<span style="float: <?php echo is_rtl() ? 'left' : 'right'; ?>;" id="comments_controls">
+	<span id="comments_controls">
 		<?php print_comments_number(); ?>
 		(<a href="#comments_box" data-print-action="open" data-print-target="comments_box"><?php esc_html_e( 'Open', 'wp-print' ); ?></a>
 		| <a href="#comments_box" data-print-action="close" data-print-target="comments_box"><?php esc_html_e( 'Close', 'wp-print' ); ?></a>)

@@ -153,16 +153,6 @@ class WP_Print_Template {
 				'in_footer' => false,
 			)
 		);
-
-		if ( is_rtl() ) {
-			wp_register_style(
-				'wp-print-rtl',
-				self::plugin_url( 'css/wp-print-rtl.css' ),
-				array( 'wp-print' ),
-				WP_PRINT_VERSION,
-				'screen, print'
-			);
-		}
 	}
 
 	/**
