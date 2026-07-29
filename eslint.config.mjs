@@ -18,12 +18,20 @@ export default [
 		languageOptions: {
 			globals: {
 				...globals.browser,
-				// Localised into the settings screen by wp_localize_script().
-				wpPrintDefaults: 'readonly',
+				// Localised into the page by wp_localize_script().
+				wpPrintL10n: 'readonly',
 			},
 		},
 		settings: {
 			react: { version: '18.0' },
+		},
+	},
+	{
+		files: [ 'tests/js/**/*.test.js' ],
+		languageOptions: {
+			globals: {
+				...globals.node,
+			},
 		},
 	},
 ];

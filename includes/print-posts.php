@@ -33,15 +33,17 @@ if ( false !== $print_dash ) {
 	<meta name="robots" content="noindex, nofollow" />
 	<?php // The print suffix comes from the wp_title filter Print_Template::render() adds; appending it here as well would print it twice. ?>
 	<title><?php bloginfo( 'name' ); ?> <?php wp_title(); ?></title>
-	<link rel="stylesheet" href="<?php echo esc_url( Print_Template::asset_url( 'print-css.css' ) ); ?>" media="screen, print" />
-	<?php if ( is_rtl() ) : ?>
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&#038;display=swap" />
-		<link rel="stylesheet" href="<?php echo esc_url( Print_Template::plugin_url( 'css/wp-print-rtl.css' ) ); ?>" media="screen, print" />
-	<?php endif; ?>
+	<?php
+	/*
+	 * Printed by handle rather than enqueued for wp_head(): this document has no
+	 * wp_head() call, on purpose, so that printing a page does not drag in the
+	 * theme's stylesheets and every other plugin's assets. The handles are
+	 * registered by Print_Template::register_assets().
+	 */
+	wp_print_styles( is_rtl() ? array( 'wp-print', 'wp-print-rtl' ) : array( 'wp-print' ) );
+	?>
 	<link rel="canonical" href="<?php the_permalink(); ?>" />
-	<script src="<?php echo esc_url( Print_Template::plugin_url( 'js/wp-print.js' ) ); ?>" defer></script>
+	<?php wp_print_scripts( array( 'wp-print' ) ); ?>
 </head>
 <body>
 

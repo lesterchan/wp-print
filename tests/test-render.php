@@ -53,6 +53,7 @@ class Test_Print_Render extends WP_UnitTestCase {
 		$this->go_to( get_permalink( $post_id ) );
 
 		Print_Content::reset();
+		$this->register_assets();
 
 		add_filter( 'wp_title', array( 'Print_Template', 'page_title' ) );
 		add_filter( 'comments_template', array( 'Print_Template', 'comments_template' ) );
@@ -69,6 +70,23 @@ class Test_Print_Render extends WP_UnitTestCase {
 		remove_filter( 'comments_template', array( 'Print_Template', 'comments_template' ) );
 
 		return $html;
+	}
+
+	/**
+	 * Register the print view's handles against an empty dependency registry.
+	 *
+	 * WP_Dependencies remembers what it has already printed, so a second render
+	 * inside one PHP process would emit no stylesheet and no script at all. A
+	 * real request renders one document and exits; the suite renders several, so
+	 * the registries are rebuilt for each one.
+	 *
+	 * @return void
+	 */
+	private function register_assets() {
+		$GLOBALS['wp_styles']  = null;
+		$GLOBALS['wp_scripts'] = null;
+
+		Print_Template::register_assets();
 	}
 
 	/**
@@ -328,6 +346,7 @@ class Test_Print_Render extends WP_UnitTestCase {
 		$this->go_to( home_url( '/?p=999999' ) );
 
 		Print_Content::reset();
+		$this->register_assets();
 		$print_options = Print_Options::get();
 
 		ob_start();

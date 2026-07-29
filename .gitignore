@@ -1,19 +1,5 @@
-# OS
-.DS_Store
-Thumbs.db
-
-# Editors
-.idea/
-.vscode/
-*.sublime-*
-
-# Dependencies
-node_modules/
 vendor/
-
-# Logs
-*.log
-
-# Tests
+node_modules/
+.idea/
 .phpunit.result.cache
 .wp-env.override.json

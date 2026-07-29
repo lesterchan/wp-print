@@ -103,6 +103,8 @@ class Print_Template {
 	public static function render() {
 		Print_Content::reset();
 
+		self::register_assets();
+
 		add_filter( 'wp_title', array( __CLASS__, 'page_title' ) );
 		add_filter( 'comments_template', array( __CLASS__, 'comments_template' ) );
 
@@ -114,6 +116,53 @@ class Print_Template {
 		require self::locate( 'print-posts.php' );
 
 		exit;
+	}
+
+	/**
+	 * Register the print view's own stylesheet and script.
+	 *
+	 * The print view is a standalone document that deliberately never calls
+	 * wp_head(), so nothing here is hooked to an enqueue action: the handles are
+	 * registered, then printed by name from the template with
+	 * wp_print_styles( 'wp-print' ) / wp_print_scripts( 'wp-print' ). Printing by
+	 * name is what keeps the theme's and every other plugin's assets out of a
+	 * page whose whole purpose is to print cleanly, while still going through
+	 * WP_Dependencies rather than emitting hand-written tags.
+	 *
+	 * Registered here rather than in the template so that a theme's own copy of
+	 * print-posts.php only has to print the handles.
+	 *
+	 * @return void
+	 */
+	public static function register_assets() {
+		wp_register_style(
+			'wp-print',
+			self::asset_url( 'print-css.css' ),
+			array(),
+			WP_PRINT_VERSION,
+			'screen, print'
+		);
+
+		wp_register_script(
+			'wp-print',
+			self::plugin_url( 'js/wp-print.js' ),
+			array(),
+			WP_PRINT_VERSION,
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => false,
+			)
+		);
+
+		if ( is_rtl() ) {
+			wp_register_style(
+				'wp-print-rtl',
+				self::plugin_url( 'css/wp-print-rtl.css' ),
+				array( 'wp-print' ),
+				WP_PRINT_VERSION,
+				'screen, print'
+			);
+		}
 	}
 
 	/**
