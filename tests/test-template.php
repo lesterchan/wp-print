@@ -96,7 +96,7 @@ class Test_Print_Template extends WP_UnitTestCase {
 	 */
 	public function test_asset_url_falls_back_to_the_plugin() {
 		$this->assertSame(
-			plugins_url( 'print-css.css', WP_PRINT_MAIN_FILE ),
+			plugins_url( 'css/wp-print.css', WP_PRINT_MAIN_FILE ),
 			Print_Template::asset_url( 'print-css.css' )
 		);
 	}
@@ -106,8 +106,8 @@ class Test_Print_Template extends WP_UnitTestCase {
 	 */
 	public function test_plugin_url_resolves_inside_the_plugin() {
 		$this->assertSame(
-			plugins_url( 'print.js', WP_PRINT_MAIN_FILE ),
-			Print_Template::plugin_url( 'print.js' )
+			plugins_url( 'js/wp-print.js', WP_PRINT_MAIN_FILE ),
+			Print_Template::plugin_url( 'js/wp-print.js' )
 		);
 	}
 

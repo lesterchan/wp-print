@@ -33,7 +33,7 @@
 		plugin's assets into a page whose whole purpose is to print cleanly.
 	-->
 	<rule ref="WordPress.WP.EnqueuedResources">
-		<exclude-pattern>print-posts\.php</exclude-pattern>
+		<exclude-pattern>includes/print-posts\.php</exclude-pattern>
 	</rule>
 
 	<!-- Tests drive the plugin directly and print to the CLI. -->

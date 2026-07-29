@@ -208,7 +208,7 @@ class Test_Print_Source extends WP_UnitTestCase {
 	 * The print view carries no inline event handlers, in either template.
 	 */
 	public function test_templates_have_no_inline_handlers() {
-		foreach ( array( 'print-posts.php', 'print-comments.php' ) as $template ) {
+		foreach ( array( 'includes/print-posts.php', 'includes/print-comments.php' ) as $template ) {
 			$source = $this->code( $template );
 
 			$this->assertStringNotContainsString( 'onclick=', $source, "$template still uses an inline onclick" );

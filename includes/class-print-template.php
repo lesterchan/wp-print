@@ -10,12 +10,40 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Locates and renders the printable document.
  *
- * The three overridable files - print-posts.php, print-comments.php and
- * print-css.css - keep their names and their lookup order: child theme, then
- * parent theme, then the copies bundled with the plugin. That is the documented
- * way to restyle the print view without losing the changes on upgrade.
+ * The three overridable files keep the names a theme has always looked for -
+ * print-posts.php, print-comments.php and print-css.css - and the lookup order
+ * is unchanged: child theme, then parent theme, then the copy bundled with the
+ * plugin. That is the documented way to restyle the print view without losing
+ * the changes on upgrade.
+ *
+ * The bundled copies moved in 3.0.0: the two templates now live in includes/
+ * and the stylesheet in css/, because the plugin root holds only the main file,
+ * index.php and uninstall.php. The theme-side names deliberately did not move
+ * with them, so an existing override still wins.
  */
 class Print_Template {
+
+	/**
+	 * Where the plugin keeps each overridable file, keyed by the name a theme
+	 * overrides it with.
+	 *
+	 * @var array
+	 */
+	const OVERRIDABLE = array(
+		'print-posts.php'    => 'includes/print-posts.php',
+		'print-comments.php' => 'includes/print-comments.php',
+		'print-css.css'      => 'css/wp-print.css',
+	);
+
+	/**
+	 * The plugin's own copy of an overridable file.
+	 *
+	 * @param string $file Theme-side file name.
+	 * @return string Path relative to the plugin root.
+	 */
+	private static function bundled( $file ) {
+		return isset( self::OVERRIDABLE[ $file ] ) ? self::OVERRIDABLE[ $file ] : $file;
+	}
 
 	/**
 	 * Find an overridable template file.
@@ -36,7 +64,7 @@ class Print_Template {
 			return $template;
 		}
 
-		return plugin_dir_path( WP_PRINT_MAIN_FILE ) . $file;
+		return plugin_dir_path( WP_PRINT_MAIN_FILE ) . self::bundled( $file );
 	}
 
 	/**
@@ -54,7 +82,7 @@ class Print_Template {
 			return get_template_directory_uri() . '/' . $file;
 		}
 
-		return plugins_url( $file, WP_PRINT_MAIN_FILE );
+		return plugins_url( self::bundled( $file ), WP_PRINT_MAIN_FILE );
 	}
 
 	/**

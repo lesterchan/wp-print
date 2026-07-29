@@ -94,7 +94,7 @@ class Print_Admin {
 
 		wp_enqueue_script(
 			'wp-print-admin',
-			plugins_url( 'print-admin.js', WP_PRINT_MAIN_FILE ),
+			plugins_url( 'js/wp-print-admin.js', WP_PRINT_MAIN_FILE ),
 			array(),
 			WP_PRINT_VERSION,
 			true

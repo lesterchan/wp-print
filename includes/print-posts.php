@@ -38,10 +38,10 @@ if ( false !== $print_dash ) {
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&#038;display=swap" />
-		<link rel="stylesheet" href="<?php echo esc_url( Print_Template::asset_url( 'print-css-rtl.css' ) ); ?>" media="screen, print" />
+		<link rel="stylesheet" href="<?php echo esc_url( Print_Template::plugin_url( 'css/wp-print-rtl.css' ) ); ?>" media="screen, print" />
 	<?php endif; ?>
 	<link rel="canonical" href="<?php the_permalink(); ?>" />
-	<script src="<?php echo esc_url( Print_Template::plugin_url( 'print.js' ) ); ?>" defer></script>
+	<script src="<?php echo esc_url( Print_Template::plugin_url( 'js/wp-print.js' ) ); ?>" defer></script>
 </head>
 <body>
 

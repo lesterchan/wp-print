@@ -108,7 +108,7 @@ class Test_Print_Render extends WP_UnitTestCase {
 		$this->assertStringContainsString( '</html>', $html );
 		$this->assertStringContainsString( 'noindex, nofollow', $html );
 		$this->assertStringContainsString( 'rel="canonical"', $html );
-		$this->assertStringContainsString( 'print-css.css', $html );
+		$this->assertStringContainsString( 'css/wp-print.css', $html );
 	}
 
 	/**
@@ -181,7 +181,7 @@ class Test_Print_Render extends WP_UnitTestCase {
 
 		$this->assertStringNotContainsString( 'onclick=', $html );
 		$this->assertStringNotContainsString( 'javascript:', $html );
-		$this->assertStringContainsString( 'print.js', $html );
+		$this->assertStringContainsString( 'js/wp-print.js', $html );
 		$this->assertStringContainsString( 'data-print-action="print"', $html );
 	}
 
@@ -281,7 +281,7 @@ class Test_Print_Render extends WP_UnitTestCase {
 			$html = $this->render_document( $this->make_post() );
 
 			$this->assertStringContainsString( 'dir="rtl"', $html );
-			$this->assertStringContainsString( 'print-css-rtl.css', $html );
+			$this->assertStringContainsString( 'wp-print-rtl.css', $html );
 			$this->assertStringContainsString( 'text-align: left', $html );
 		} finally {
 			$wp_locale->text_direction = $was;
@@ -295,7 +295,7 @@ class Test_Print_Render extends WP_UnitTestCase {
 		$html = $this->render_document( $this->make_post() );
 
 		$this->assertStringContainsString( 'dir="ltr"', $html );
-		$this->assertStringNotContainsString( 'print-css-rtl.css', $html );
+		$this->assertStringNotContainsString( 'wp-print-rtl.css', $html );
 	}
 
 	/**
