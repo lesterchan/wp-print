@@ -47,6 +47,25 @@ class WP_Print_Admin {
 	const CAPABILITY = 'manage_options';
 
 	/**
+	 * Settings section: how the print link itself looks.
+	 *
+	 * @var string
+	 */
+	const SECTION_STYLES = 'wp_print_styles';
+
+	/**
+	 * Settings section: what goes into the printed document.
+	 *
+	 * Named for what it holds rather than the 'wp_print_options' it used to be
+	 * called, which is now the name of the settings row -- two different things
+	 * answering to one string is how a section id ends up passed to
+	 * register_setting().
+	 *
+	 * @var string
+	 */
+	const SECTION_CONTENT = 'wp_print_content';
+
+	/**
 	 * The capability required for a given part of the screen.
 	 *
 	 * Every capability check in the plugin goes through here, so a site that
@@ -174,7 +193,7 @@ class WP_Print_Admin {
 		);
 
 		add_settings_section(
-			'wp_print_styles',
+			self::SECTION_STYLES,
 			__( 'Print Styles', 'wp-print' ),
 			'__return_empty_string',
 			self::PAGE
@@ -185,7 +204,7 @@ class WP_Print_Admin {
 			__( 'Print Text Link For Post', 'wp-print' ),
 			array( __CLASS__, 'field_text' ),
 			self::PAGE,
-			'wp_print_styles',
+			self::SECTION_STYLES,
 			array( 'key' => 'post_text' )
 		);
 
@@ -194,7 +213,7 @@ class WP_Print_Admin {
 			__( 'Print Text Link For Page', 'wp-print' ),
 			array( __CLASS__, 'field_text' ),
 			self::PAGE,
-			'wp_print_styles',
+			self::SECTION_STYLES,
 			array( 'key' => 'page_text' )
 		);
 
@@ -203,7 +222,7 @@ class WP_Print_Admin {
 			__( 'Print Icon', 'wp-print' ),
 			array( __CLASS__, 'field_icon' ),
 			self::PAGE,
-			'wp_print_styles'
+			self::SECTION_STYLES
 		);
 
 		add_settings_field(
@@ -211,11 +230,11 @@ class WP_Print_Admin {
 			__( 'Print Text Link Style', 'wp-print' ),
 			array( __CLASS__, 'field_style' ),
 			self::PAGE,
-			'wp_print_styles'
+			self::SECTION_STYLES
 		);
 
 		add_settings_section(
-			'wp_print_options',
+			self::SECTION_CONTENT,
 			__( 'Print Options', 'wp-print' ),
 			'__return_empty_string',
 			self::PAGE
@@ -235,7 +254,7 @@ class WP_Print_Admin {
 				$label,
 				array( __CLASS__, 'field_toggle' ),
 				self::PAGE,
-				'wp_print_options',
+				self::SECTION_CONTENT,
 				array( 'key' => $key )
 			);
 		}
@@ -245,7 +264,7 @@ class WP_Print_Admin {
 			__( 'Disclaimer/Copyright Text?', 'wp-print' ),
 			array( __CLASS__, 'field_disclaimer' ),
 			self::PAGE,
-			'wp_print_options'
+			self::SECTION_CONTENT
 		);
 	}
 
@@ -365,7 +384,7 @@ class WP_Print_Admin {
 		?>
 		<div id="wp-print-custom" class="wp-print-custom<?php echo esc_attr( $hidden ); ?>">
 			<p>
-				<textarea rows="3" cols="80" class="large-text code" name="<?php echo esc_attr( self::name( 'print_html' ) ); ?>" id="wp-print-html"><?php echo esc_textarea( WP_Print_Options::get( 'print_html' ) ); ?></textarea>
+				<textarea rows="3" class="large-text code" name="<?php echo esc_attr( self::name( 'print_html' ) ); ?>" id="wp-print-html"><?php echo esc_textarea( WP_Print_Options::get( 'print_html' ) ); ?></textarea>
 			</p>
 			<p class="description">
 				<?php esc_html_e( 'HTML is allowed. These placeholders are replaced when the link is rendered:', 'wp-print' ); ?>
@@ -392,7 +411,7 @@ class WP_Print_Admin {
 	public static function field_disclaimer() {
 		?>
 		<p>
-			<textarea rows="3" cols="80" class="large-text code" name="<?php echo esc_attr( self::name( 'disclaimer' ) ); ?>" id="wp-print-disclaimer"><?php echo esc_textarea( WP_Print_Options::get( 'disclaimer' ) ); ?></textarea>
+			<textarea rows="3" class="large-text code" name="<?php echo esc_attr( self::name( 'disclaimer' ) ); ?>" id="wp-print-disclaimer"><?php echo esc_textarea( WP_Print_Options::get( 'disclaimer' ) ); ?></textarea>
 		</p>
 		<p class="description"><?php esc_html_e( 'HTML is allowed.', 'wp-print' ); ?></p>
 		<p>
@@ -415,7 +434,6 @@ class WP_Print_Admin {
 		?>
 		<div class="wrap">
 			<h1><?php esc_html_e( 'Print Options', 'wp-print' ); ?></h1>
-			<style>.wp-print-custom.hidden { display: none; } .wp-print-custom { margin-top: 1em; }</style>
 			<form method="post" action="options.php">
 				<?php
 				settings_fields( self::GROUP );
