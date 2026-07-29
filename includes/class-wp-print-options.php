@@ -86,6 +86,19 @@ class WP_Print_Options {
 	}
 
 	/**
+	 * Keys the plugin used to store and no longer does.
+	 *
+	 * Dropped by the sanitizer on every write, so a retired setting cannot come
+	 * back through the "keep what this screen does not render" merge below.
+	 * `print_icon` chose between two bundled GIFs; there is one inline SVG now.
+	 *
+	 * @return array
+	 */
+	public static function retired_keys() {
+		return array( 'print_icon' );
+	}
+
+	/**
 	 * The default option values.
 	 *
 	 * Translated on demand rather than at load time, so this must not be called
@@ -97,7 +110,6 @@ class WP_Print_Options {
 		return array(
 			'post_text'   => __( 'Print This Post', 'wp-print' ),
 			'page_text'   => __( 'Print This Page', 'wp-print' ),
-			'print_icon'  => 'print.gif',
 			'print_style' => 1,
 			'print_html'  => '<a href="%PRINT_URL%" rel="nofollow" title="%PRINT_TEXT%">%PRINT_TEXT%</a>',
 			'comments'    => 0,
@@ -249,20 +261,11 @@ class WP_Print_Options {
 			}
 		}
 
-		// Only accept an icon that really exists in the plugin's images directory,
-		// so the stored value can never be turned into a path traversal. Anything
-		// else - absent, empty, a traversal, a file that is not there - leaves the
-		// stored icon alone.
-		if ( isset( $input['print_icon'] ) && is_scalar( $input['print_icon'] ) ) {
-			$icon = basename( trim( (string) $input['print_icon'] ) );
-
-			if ( '' !== $icon && is_file( WP_PRINT_DIR . 'images/' . $icon ) ) {
-				$clean['print_icon'] = $icon;
-			}
-		}
-
 		// Preserve anything a filter or an older version stored that this screen
-		// does not render, rather than dropping it on the first save.
+		// does not render, rather than dropping it on the first save - except a
+		// key the plugin has deliberately retired, which must not survive.
+		$current = array_diff_key( $current, array_flip( self::retired_keys() ) );
+
 		return array_merge( $current, $clean );
 	}
 
@@ -300,6 +303,7 @@ class WP_Print_Options {
 		}
 
 		self::migrate_legacy_rows();
+		self::migrate_icon_placeholder();
 
 		// Both markers in one write, so an upgrade that dies half way never
 		// records itself as finished.
@@ -351,5 +355,42 @@ class WP_Print_Options {
 		update_option( self::OPTION, array_merge( $legacy, is_array( $stored ) ? $stored : array() ) );
 
 		delete_option( self::LEGACY_OPTION );
+	}
+
+	/**
+	 * Retire the print_icon setting and the placeholder that went with it.
+	 *
+	 * There were two bundled GIFs to choose between; there is now one inline SVG
+	 * that takes its colour from the theme, so the setting has nothing left to
+	 * choose. %PRINT_ICON_URL% goes with it -- an inline glyph has no URL -- and a
+	 * custom template carrying it is rewritten to %PRINT_ICON%, which substitutes
+	 * the glyph itself.
+	 *
+	 * The <img> wrapper is replaced whole where there is one, because
+	 * <img src="<svg ...>"> would be worse than either. A bare %PRINT_ICON_URL%
+	 * outside an img is simply renamed.
+	 *
+	 * @return void
+	 */
+	private static function migrate_icon_placeholder() {
+		$stored = get_option( self::OPTION, array() );
+
+		if ( ! is_array( $stored ) ) {
+			return;
+		}
+
+		$before = $stored;
+
+		unset( $stored['print_icon'] );
+
+		if ( isset( $stored['print_html'] ) && is_string( $stored['print_html'] ) ) {
+			$html = preg_replace( '#<img[^>]*%PRINT_ICON_URL%[^>]*>#i', '%PRINT_ICON%', $stored['print_html'] );
+
+			$stored['print_html'] = str_replace( '%PRINT_ICON_URL%', '%PRINT_ICON%', (string) $html );
+		}
+
+		if ( $stored !== $before ) {
+			update_option( self::OPTION, $stored );
+		}
 	}
 }

@@ -71,12 +71,10 @@ class Test_Print_Admin extends WP_UnitTestCase {
 			array(
 				'print_style' => '99',
 				'post_text'   => "Tom & Jerry's",
-				'print_icon'  => '../../../wp-config.php',
 			)
 		);
 
 		$this->assertSame( 1, (int) WP_Print_Options::get( 'print_style' ) );
-		$this->assertSame( 'print.gif', WP_Print_Options::get( 'print_icon' ) );
 		$this->assertStringNotContainsString( '\\', WP_Print_Options::get( 'post_text' ) );
 	}
 
@@ -86,7 +84,7 @@ class Test_Print_Admin extends WP_UnitTestCase {
 	public function test_the_screen_renders_every_field() {
 		$html = $this->render_screen();
 
-		foreach ( array( 'post_text', 'page_text', 'print_icon', 'print_style', 'print_html', 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
+		foreach ( array( 'post_text', 'page_text', 'print_style', 'print_html', 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
 			$this->assertStringContainsString(
 				WP_Print_Options::OPTION . '[' . $key . ']',
 				$html,
@@ -146,15 +144,16 @@ class Test_Print_Admin extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The icon picker offers the bundled icons, and marks the stored one.
+	 * There is no icon picker any more, and no field for the setting behind it.
+	 *
+	 * One inline SVG replaced the two bundled GIFs, so the choice it offered no
+	 * longer exists. A field left behind would write a key nothing reads.
 	 */
-	public function test_the_icon_picker_lists_the_bundled_icons() {
-		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_icon' => 'printer_famfamfam.gif' ) ) );
-
+	public function test_the_screen_offers_no_icon_setting() {
 		$html = $this->render_screen();
 
-		$this->assertStringContainsString( 'value="print.gif"', $html );
-		$this->assertStringContainsString( 'value="printer_famfamfam.gif" checked', $html );
+		$this->assertStringNotContainsString( 'print_icon', $html );
+		$this->assertStringNotContainsString( 'images/', $html );
 	}
 
 	/**

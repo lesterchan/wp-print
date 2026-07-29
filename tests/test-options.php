@@ -30,7 +30,7 @@ class Test_Print_Options extends WP_UnitTestCase {
 	public function test_defaults_cover_every_key() {
 		$defaults = WP_Print_Options::get_defaults();
 
-		foreach ( array( 'post_text', 'page_text', 'print_icon', 'print_style', 'print_html', 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
+		foreach ( array( 'post_text', 'page_text', 'print_style', 'print_html', 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
 			$this->assertArrayHasKey( $key, $defaults, "Missing default for $key" );
 		}
 	}
@@ -46,7 +46,6 @@ class Test_Print_Options extends WP_UnitTestCase {
 
 		$this->assertSame( 3, (int) WP_Print_Options::get( 'print_style' ) );
 		$this->assertSame( WP_Print_Options::get_defaults()['post_text'], WP_Print_Options::get( 'post_text' ) );
-		$this->assertSame( 'print.gif', WP_Print_Options::get( 'print_icon' ) );
 		$this->assertSame( 0, WP_Print_Options::can( 'thumbnail' ) );
 	}
 
@@ -102,40 +101,21 @@ class Test_Print_Options extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The icon is a file name inside the plugin's own images directory and nothing
-	 * else, so the stored value can never become a path traversal.
+	 * The retired print_icon key is dropped on any write, however it got there.
 	 *
-	 * @dataProvider data_rejected_icons
-	 *
-	 * @param string $icon Submitted icon value.
+	 * It chose between two bundled GIFs; there is one inline SVG now, so a row
+	 * carrying it would be storing a setting nothing reads. The "keep what this
+	 * screen does not render" merge would otherwise preserve it for ever.
 	 */
-	public function test_sanitize_rejects_an_icon_outside_the_images_directory( $icon ) {
-		$this->assertSame( 'print.gif', WP_Print_Options::sanitize( array( 'print_icon' => $icon ) )['print_icon'] );
-	}
-
-	/**
-	 * Data provider.
-	 *
-	 * @return array
-	 */
-	public function data_rejected_icons() {
-		return array(
-			'traversal'     => array( '../../../wp-config.php' ),
-			'absolute path' => array( '/etc/passwd' ),
-			'absent file'   => array( 'no-such-icon.gif' ),
-			'empty'         => array( '' ),
-			'nested escape' => array( 'images/../../wp-config.php' ),
+	public function test_sanitize_drops_the_retired_icon_key() {
+		update_option(
+			WP_Print_Options::OPTION,
+			array_merge( WP_Print_Options::get_defaults(), array( 'print_icon' => 'print.gif' ) )
 		);
-	}
 
-	/**
-	 * A real icon is accepted.
-	 */
-	public function test_sanitize_accepts_a_bundled_icon() {
-		$this->assertSame(
-			'printer_famfamfam.gif',
-			WP_Print_Options::sanitize( array( 'print_icon' => 'printer_famfamfam.gif' ) )['print_icon']
-		);
+		$clean = WP_Print_Options::sanitize( array( 'post_text' => 'Anything' ) );
+
+		$this->assertArrayNotHasKey( 'print_icon', $clean );
 	}
 
 	/**
@@ -252,7 +232,6 @@ class Test_Print_Options extends WP_UnitTestCase {
 					'disclaimer'  => 'MY DISCLAIMER',
 					'print_html'  => '<a href="%PRINT_URL%">mine</a>',
 					'post_text'   => 'My Post Text',
-					'print_icon'  => 'printer_famfamfam.gif',
 					'print_style' => 4,
 				)
 			)
@@ -263,7 +242,6 @@ class Test_Print_Options extends WP_UnitTestCase {
 		$this->assertSame( 'MY DISCLAIMER', $clean['disclaimer'] );
 		$this->assertSame( '<a href="%PRINT_URL%">mine</a>', $clean['print_html'] );
 		$this->assertSame( 'My Post Text', $clean['post_text'] );
-		$this->assertSame( 'printer_famfamfam.gif', $clean['print_icon'] );
 		$this->assertSame( 4, $clean['print_style'] );
 		$this->assertSame( 1, $clean['comments'] );
 	}
@@ -328,6 +306,52 @@ class Test_Print_Options extends WP_UnitTestCase {
 			),
 			get_option( WP_Print_Options::VERSION )
 		);
+	}
+
+	/**
+	 * A custom template built around the old icon URL keeps working.
+	 *
+	 * %PRINT_ICON_URL% had a URL to give it; the inline glyph has not, so the
+	 * whole <img> is replaced rather than its src, which would otherwise have
+	 * become <img src="<svg ...>">.
+	 */
+	public function test_migration_rewrites_an_icon_placeholder_inside_an_image_tag() {
+		update_option(
+			WP_Print_Options::LEGACY_OPTION,
+			array( 'print_html' => '<a href="%PRINT_URL%"><img src="%PRINT_ICON_URL%" alt="%PRINT_TEXT%" /> %PRINT_TEXT%</a>' )
+		);
+
+		WP_Print_Options::maybe_upgrade();
+
+		$this->assertSame(
+			'<a href="%PRINT_URL%">%PRINT_ICON% %PRINT_TEXT%</a>',
+			WP_Print_Options::get( 'print_html' )
+		);
+	}
+
+	/**
+	 * A bare one outside an image tag is simply renamed.
+	 */
+	public function test_migration_renames_a_bare_icon_placeholder() {
+		update_option(
+			WP_Print_Options::LEGACY_OPTION,
+			array( 'print_html' => '<a href="%PRINT_URL%">%PRINT_ICON_URL%</a>' )
+		);
+
+		WP_Print_Options::maybe_upgrade();
+
+		$this->assertSame( '<a href="%PRINT_URL%">%PRINT_ICON%</a>', WP_Print_Options::get( 'print_html' ) );
+	}
+
+	/**
+	 * And the setting the placeholder went with is taken off the row.
+	 */
+	public function test_migration_removes_the_stored_icon_setting() {
+		update_option( WP_Print_Options::LEGACY_OPTION, array( 'print_icon' => 'printer_famfamfam.gif' ) );
+
+		WP_Print_Options::maybe_upgrade();
+
+		$this->assertArrayNotHasKey( 'print_icon', (array) get_option( WP_Print_Options::OPTION ) );
 	}
 
 	/**

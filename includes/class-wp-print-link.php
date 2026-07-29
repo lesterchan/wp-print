@@ -36,7 +36,89 @@ class WP_Print_Link {
 	const STYLE_CUSTOM = 4;
 
 	/**
+	 * The printer glyph.
+	 *
+	 * An inline SVG rather than the two GIFs the plugin used to ship and let a
+	 * site choose between. It inherits the surrounding text colour through
+	 * `fill="currentColor"`, so it matches whatever the theme paints its links,
+	 * and it scales with the text instead of blurring on a high-density screen.
+	 * There is nothing left to choose between, which is why the Print Icon
+	 * setting is gone.
+	 *
+	 * The WP-PrintIcon class comes along unchanged: themes have styled it by that
+	 * name for twenty years.
+	 *
+	 * @return string
+	 */
+	public static function icon() {
+		return '<svg class="WP-PrintIcon wp-print-icon" width="16" height="16" viewBox="0 0 20 20"'
+			. ' fill="currentColor" aria-hidden="true" focusable="false">'
+			. '<path d="M6 2h8v4H6z" />'
+			. '<path d="M3 7h14v7h-3v-3H6v3H3z" />'
+			. '<path d="M6 12h8v6H6z" />'
+			. '</svg>';
+	}
+
+	/**
+	 * The tags and attributes the link may contain.
+	 *
+	 * A closed list rather than wp_kses_post(): that one has never allowed
+	 * `svg`, so it would quietly strip the glyph out of styles 1 and 2. Used at
+	 * the point the link is echoed.
+	 *
+	 * @return array
+	 */
+	public static function allowed_html() {
+		return array(
+			'a'      => array(
+				'href'       => true,
+				'title'      => true,
+				'rel'        => true,
+				'class'      => true,
+				'id'         => true,
+				'target'     => true,
+				'aria-label' => true,
+			),
+			'img'    => array(
+				'src'    => true,
+				'alt'    => true,
+				'title'  => true,
+				'class'  => true,
+				'width'  => true,
+				'height' => true,
+				'id'     => true,
+			),
+			'span'   => array(
+				'class' => true,
+				'id'    => true,
+				'dir'   => true,
+			),
+			'strong' => array( 'class' => true ),
+			'em'     => array( 'class' => true ),
+			'br'     => array(),
+			'svg'    => array(
+				'class'       => true,
+				'width'       => true,
+				'height'      => true,
+				'viewbox'     => true,
+				'fill'        => true,
+				'aria-hidden' => true,
+				'focusable'   => true,
+				'role'        => true,
+			),
+			'path'   => array(
+				'd'    => true,
+				'fill' => true,
+			),
+		);
+	}
+
+	/**
 	 * Build the print link for the current post or page.
+	 *
+	 * Returns the markup rather than printing it, and does not filter it: the
+	 * caller escapes at the point of output, exactly as get_the_title() leaves
+	 * that to the_title(). print_link() does it for you.
 	 *
 	 * @param string $post_text Optional override for the post link text.
 	 * @param string $page_text Optional override for the page link text.
@@ -49,27 +131,27 @@ class WP_Print_Link {
 			? ( '' !== $page_text ? $page_text : $options['page_text'] )
 			: ( '' !== $post_text ? $post_text : $options['post_text'] );
 
-		$url  = self::url();
-		$icon = WP_Print_Template::plugin_url( 'images/' . $options['print_icon'] );
-
-		$url_esc  = esc_url( $url );
-		$icon_esc = esc_url( $icon );
+		$url_esc  = esc_url( self::url() );
 		$text_esc = esc_attr( $text );
+		$icon     = self::icon();
 
 		switch ( (int) $options['print_style'] ) {
 			case self::STYLE_ICON_TEXT:
-				return '<a href="' . $url_esc . '" title="' . $text_esc . '" rel="nofollow"><img class="WP-PrintIcon" src="' . $icon_esc . '" alt="' . $text_esc . '" title="' . $text_esc . '" style="border: 0px;" /></a>&nbsp;<a href="' . $url_esc . '" title="' . $text_esc . '" rel="nofollow">' . $text . '</a>';
+				return '<a href="' . $url_esc . '" title="' . $text_esc . '" rel="nofollow">' . $icon . '</a>&nbsp;<a href="' . $url_esc . '" title="' . $text_esc . '" rel="nofollow">' . $text . '</a>';
 
 			case self::STYLE_ICON:
-				return '<a href="' . $url_esc . '" title="' . $text_esc . '" rel="nofollow"><img class="WP-PrintIcon" src="' . $icon_esc . '" alt="' . $text_esc . '" title="' . $text_esc . '" style="border: 0px;" /></a>';
+				// aria-label as well as title: with the glyph hidden from
+				// assistive technology and no text beside it, the link would
+				// otherwise have no accessible name at all.
+				return '<a href="' . $url_esc . '" title="' . $text_esc . '" aria-label="' . $text_esc . '" rel="nofollow">' . $icon . '</a>';
 
 			case self::STYLE_TEXT:
 				return '<a href="' . $url_esc . '" title="' . $text_esc . '" rel="nofollow">' . $text . '</a>';
 
 			case self::STYLE_CUSTOM:
 				return str_replace(
-					array( '%PRINT_URL%', '%PRINT_TEXT%', '%PRINT_ICON_URL%' ),
-					array( $url_esc, $text, $icon_esc ),
+					array( '%PRINT_URL%', '%PRINT_TEXT%', '%PRINT_ICON%' ),
+					array( $url_esc, $text, $icon ),
 					$options['print_html']
 				);
 		}
@@ -102,11 +184,13 @@ class WP_Print_Link {
 	/**
 	 * The [print_link] shortcode.
 	 *
-	 * @param array $atts Shortcode attributes. Unused; the link is configured in
-	 *                     the settings screen rather than per shortcode.
+	 * Declares no parameters: the link is configured on the settings screen
+	 * rather than per shortcode, and PHP is happy to call a callback with more
+	 * arguments than it takes.
+	 *
 	 * @return string
 	 */
-	public static function shortcode( $atts = array() ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Signature is fixed by add_shortcode().
+	public static function shortcode() {
 		if ( is_feed() ) {
 			return __( 'Note: There is a print link embedded within this post, please visit this post to print it.', 'wp-print' );
 		}
@@ -124,7 +208,7 @@ class WP_Print_Link {
 	 * @param string|null $content Enclosed content.
 	 * @return string
 	 */
-	public static function donotprint_shortcode( $atts = array(), $content = null ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found -- Signature is fixed by add_shortcode().
+	public static function donotprint_shortcode( $atts = array(), $content = null ) {
 		return do_shortcode( (string) $content );
 	}
 }

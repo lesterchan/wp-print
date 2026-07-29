@@ -15,19 +15,24 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Display or return the print link for the current post or page.
  *
+ * The third parameter is $display, matching the other tags here and core's own
+ * the_title(). It was $echo up to 2.58.3, which only matters to a caller passing
+ * it by name -- print_link( echo: false ) -- and PHP had no named arguments for
+ * most of the years that spelling was in use.
+ *
  * @param string $print_post_text Optional. Link text on a post. Default the stored option.
  * @param string $print_page_text Optional. Link text on a page. Default the stored option.
- * @param bool   $echo            Optional. Whether to print. Default true.
- * @return string|void The markup when $echo is false.
+ * @param bool   $display         Optional. Whether to print. Default true.
+ * @return string|void The markup when $display is false.
  */
-function print_link( $print_post_text = '', $print_page_text = '', $echo = true ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase, Universal.NamingConventions.NoReservedKeywordParameterNames.echoFound -- Named $echo since the plugin's first release; renaming it would break named arguments.
+function print_link( $print_post_text = '', $print_page_text = '', $display = true ) {
 	$output = WP_Print_Link::render( $print_post_text, $print_page_text );
 
-	if ( ! $echo ) {
+	if ( ! $display ) {
 		return $output;
 	}
 
-	echo $output . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped at each sink in WP_Print_Link::render().
+	echo wp_kses( $output, WP_Print_Link::allowed_html() ) . "\n";
 }
 
 /**
@@ -43,7 +48,7 @@ function print_content( $display = true ) {
 		return $content;
 	}
 
-	echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Post content, already through the_content and escaped at each sink.
+	echo wp_kses( $content, WP_Print_Content::allowed_html( 'post' ) );
 }
 
 /**
@@ -59,7 +64,7 @@ function print_comments_content( $display = true ) {
 		return $content;
 	}
 
-	echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Comment content, already through comment_text and escaped at each sink.
+	echo wp_kses( $content, WP_Print_Content::allowed_html( 'comment' ) );
 }
 
 /**
@@ -70,7 +75,9 @@ function print_comments_content( $display = true ) {
  * @return void
  */
 function print_categories( $before = '', $after = '' ) {
-	echo WP_Print_Content::categories( $before, $after ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Category names are stripped of tags; $before and $after are the caller's markup.
+	// The names have already had their tags stripped; $before and $after are the
+	// caller's own markup, which is why this is filtered rather than escaped.
+	echo wp_kses_post( WP_Print_Content::categories( $before, $after ) );
 }
 
 /**
@@ -99,7 +106,9 @@ function print_links( $text_links = '' ) {
 		$text_links = __( 'URLs in this post:', 'wp-print' );
 	}
 
-	echo $text_links . $links_text; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Heading is the caller's markup; URLs are escaped as they are collected.
+	// The URLs were escaped as they were collected; the heading is the caller's
+	// markup. wp_kses_post() keeps every tag either can legitimately carry.
+	echo wp_kses_post( $text_links . $links_text );
 }
 
 /**

@@ -67,12 +67,12 @@ class Test_Print_Link extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The icon URL, as the plugin builds it.
+	 * The printer glyph, as the plugin builds it.
 	 *
 	 * @return string
 	 */
-	private function icon_url() {
-		return plugins_url( 'images/print.gif', WP_PRINT_MAIN_FILE );
+	private function icon() {
+		return WP_Print_Link::icon();
 	}
 
 	/**
@@ -85,11 +85,11 @@ class Test_Print_Link extends WP_UnitTestCase {
 		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 1 ) ) );
 
 		$url  = esc_url( get_permalink( self::$post_id ) . 'print/' );
-		$icon = esc_url( $this->icon_url() );
+		$icon = $this->icon();
 		$text = 'Print This Post';
 
 		$this->assertSame(
-			'<a href="' . $url . '" title="' . $text . '" rel="nofollow"><img class="WP-PrintIcon" src="' . $icon . '" alt="' . $text . '" title="' . $text . '" style="border: 0px;" /></a>&nbsp;<a href="' . $url . '" title="' . $text . '" rel="nofollow">' . $text . '</a>',
+			'<a href="' . $url . '" title="' . $text . '" rel="nofollow">' . $icon . '</a>&nbsp;<a href="' . $url . '" title="' . $text . '" rel="nofollow">' . $text . '</a>',
 			print_link( '', '', false )
 		);
 	}
@@ -140,13 +140,13 @@ class Test_Print_Link extends WP_UnitTestCase {
 				WP_Print_Options::get_defaults(),
 				array(
 					'print_style' => 4,
-					'print_html'  => '[%PRINT_URL%][%PRINT_TEXT%][%PRINT_ICON_URL%]',
+					'print_html'  => '[%PRINT_URL%][%PRINT_TEXT%][%PRINT_ICON%]',
 				)
 			)
 		);
 
 		$this->assertSame(
-			'[' . esc_url( get_permalink( self::$post_id ) . 'print/' ) . '][Print This Post][' . esc_url( $this->icon_url() ) . ']',
+			'[' . esc_url( get_permalink( self::$post_id ) . 'print/' ) . '][Print This Post][' . $this->icon() . ']',
 			print_link( '', '', false )
 		);
 	}
@@ -195,6 +195,86 @@ class Test_Print_Link extends WP_UnitTestCase {
 
 		$this->assertNull( $returned );
 		$this->assertSame( $expected . "\n", $echoed );
+	}
+
+	/**
+	 * The glyph is an inline SVG that takes the surrounding text colour.
+	 *
+	 * Inheriting the colour is the whole point of dropping the two GIFs: an icon
+	 * that matches whatever the theme paints its links, at whatever size the
+	 * text is, on whatever pixel density. A GIF could do none of the three.
+	 */
+	public function test_the_icon_is_an_inline_svg_that_inherits_its_colour() {
+		$icon = WP_Print_Link::icon();
+
+		$this->assertStringStartsWith( '<svg', $icon );
+		$this->assertStringContainsString( 'fill="currentColor"', $icon );
+		$this->assertStringContainsString( 'aria-hidden="true"', $icon );
+		$this->assertStringNotContainsString( '.gif', $icon, 'The glyph must not reference a raster file.' );
+	}
+
+	/**
+	 * Icon-only leaves the link with no visible text, so it needs a name of its
+	 * own or a screen reader announces the URL.
+	 */
+	public function test_the_icon_only_style_carries_an_accessible_name() {
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 2 ) ) );
+
+		$this->assertStringContainsString( 'aria-label="Print This Post"', print_link( '', '', false ) );
+	}
+
+	/**
+	 * Echoing and returning produce the same markup, in every style.
+	 *
+	 * The echoing half filters on the way out with a closed tag list, and that is
+	 * the only place the plugin prints markup it has built itself. Should the
+	 * list ever stop covering what the link contains -- the glyph is svg, and
+	 * wp_kses_post() has never allowed svg -- the icon styles would quietly lose
+	 * their icon, and only in the half of the API that prints.
+	 *
+	 * @dataProvider data_styles
+	 *
+	 * @param int $style Print style.
+	 */
+	public function test_the_echoed_link_matches_the_returned_one( $style ) {
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		update_option(
+			WP_Print_Options::OPTION,
+			array_merge(
+				WP_Print_Options::get_defaults(),
+				array(
+					'print_style' => $style,
+					'print_html'  => '<a href="%PRINT_URL%" rel="nofollow">%PRINT_ICON% %PRINT_TEXT%</a>',
+				)
+			)
+		);
+
+		$returned = print_link( '', '', false );
+
+		ob_start();
+		print_link();
+		$echoed = ob_get_clean();
+
+		$this->assertSame( $returned . "\n", $echoed, "Style {$style} does not survive the output filter intact." );
+	}
+
+	/**
+	 * Data provider.
+	 *
+	 * @return array
+	 */
+	public function data_styles() {
+		return array(
+			'icon and text' => array( WP_Print_Link::STYLE_ICON_TEXT ),
+			'icon only'     => array( WP_Print_Link::STYLE_ICON ),
+			'text only'     => array( WP_Print_Link::STYLE_TEXT ),
+			'custom'        => array( WP_Print_Link::STYLE_CUSTOM ),
+		);
 	}
 
 	/**
@@ -264,7 +344,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 		$output = print_link( '', '', false );
 
 		$this->assertStringContainsString( 'Print This Post', $output );
-		$this->assertStringContainsString( 'print.gif', $output );
+		$this->assertStringContainsString( 'WP-PrintIcon', $output );
 	}
 
 	/**

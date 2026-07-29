@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-if ( ! empty( $comments ) ) :
+if ( have_comments() ) :
 	$print_comment_count = 1;
 	?>
 	<span style="float: <?php echo is_rtl() ? 'left' : 'right'; ?>;" id="comments_controls">
@@ -23,11 +23,14 @@ if ( ! empty( $comments ) ) :
 		<p id="CommentTitle"><?php print_comments_number(); ?> <?php esc_html_e( 'To', 'wp-print' ); ?> "<?php the_title(); ?>"</p>
 		<?php
 		/*
-		 * comments_template() globalises $comment, and comment_author(),
-		 * comment_date() and comment_type() all read that global, so the loop
-		 * variable has to be it rather than a local under another name.
+		 * comment_author(), comment_date() and comment_type() all read the
+		 * $comment global, so the loop has to be the one that sets it.
+		 * the_comment() does, which is why this is core's comment loop rather
+		 * than a foreach over the $comments array -- assigning that global by
+		 * hand is what the coding standard rightly objects to.
 		 */
-		foreach ( $comments as $comment ) : // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited -- See above.
+		while ( have_comments() ) :
+			the_comment();
 			?>
 			<p class="CommentDate">
 				<strong>#<?php echo esc_html( number_format_i18n( $print_comment_count ) ); ?>
@@ -52,7 +55,7 @@ if ( ! empty( $comments ) ) :
 				<?php print_comments_content(); ?>
 			</div>
 			<?php ++$print_comment_count; ?>
-		<?php endforeach; ?>
-		<hr class="Divider" style="text-align: center;" />
+		<?php endwhile; ?>
+		<hr class="Divider" />
 	</div>
 <?php endif; ?>

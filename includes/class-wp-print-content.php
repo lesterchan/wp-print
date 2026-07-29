@@ -72,6 +72,98 @@ class WP_Print_Content {
 	}
 
 	/**
+	 * The tags the printed document may carry.
+	 *
+	 * The wp_kses_post() list, plus the four tags an embed arrives in -- the
+	 * Print Videos option exists to keep those in the document -- plus the inline
+	 * SVG the print link uses. Everything a post body plausibly contains is in
+	 * one of the three.
+	 *
+	 * A block whose markup this drops can be given its tag back through the
+	 * filter below rather than going without: none of this is a security
+	 * boundary the theme does not already cross when it echoes the same content.
+	 *
+	 * @param string $context Where the content came from: 'post' or 'comment'.
+	 * @return array
+	 */
+	public static function allowed_html( $context = 'post' ) {
+		$allowed = wp_kses_allowed_html( 'post' );
+
+		$media = array(
+			'class'  => true,
+			'id'     => true,
+			'style'  => true,
+			'title'  => true,
+			'width'  => true,
+			'height' => true,
+		);
+
+		$allowed['iframe'] = array_merge(
+			$media,
+			array(
+				'src'             => true,
+				'name'            => true,
+				'allow'           => true,
+				'allowfullscreen' => true,
+				'frameborder'     => true,
+				'loading'         => true,
+				'referrerpolicy'  => true,
+				'sandbox'         => true,
+				'scrolling'       => true,
+			)
+		);
+
+		$allowed['object'] = array_merge(
+			$media,
+			array(
+				'data' => true,
+				'type' => true,
+			)
+		);
+		$allowed['embed']  = array_merge(
+			$media,
+			array(
+				'src'             => true,
+				'type'            => true,
+				'allowfullscreen' => true,
+			)
+		);
+		$allowed['param']  = array(
+			'name'  => true,
+			'value' => true,
+		);
+
+		$allowed['svg']  = array(
+			'class'       => true,
+			'width'       => true,
+			'height'      => true,
+			'viewbox'     => true,
+			'fill'        => true,
+			'aria-hidden' => true,
+			'focusable'   => true,
+			'role'        => true,
+		);
+		$allowed['path'] = array(
+			'd'    => true,
+			'fill' => true,
+		);
+
+		/**
+		 * Filters the tags and attributes the printed document may carry.
+		 *
+		 * The print view is the one place WP-Print echoes somebody else's HTML,
+		 * so this is the escape hatch for a block or a shortcode whose markup
+		 * the default list does not cover.
+		 *
+		 * @since 3.0.0
+		 *
+		 * @param array  $allowed Allowed tags, in wp_kses() form.
+		 * @param string $context Where the content came from: 'post' or 'comment'.
+		 */
+		return (array) apply_filters( 'wp_print_allowed_html', $allowed, $context );
+	}
+
+	/**
 	 * The post content, prepared for printing.
 	 *
 	 * @return string

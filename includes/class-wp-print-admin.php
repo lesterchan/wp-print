@@ -223,14 +223,6 @@ class WP_Print_Admin {
 		);
 
 		add_settings_field(
-			'print_icon',
-			__( 'Print Icon', 'wp-print' ),
-			array( __CLASS__, 'field_icon' ),
-			self::PAGE,
-			self::SECTION_STYLES
-		);
-
-		add_settings_field(
 			'print_style',
 			__( 'Print Text Link Style', 'wp-print' ),
 			array( __CLASS__, 'field_style' ),
@@ -319,47 +311,6 @@ class WP_Print_Admin {
 	}
 
 	/**
-	 * The icon picker: one radio per file in the plugin's images directory.
-	 *
-	 * @return void
-	 */
-	public static function field_icon() {
-		$selected = WP_Print_Options::get( 'print_icon' );
-		$dir      = WP_PRINT_DIR . 'images/';
-
-		// One glob per extension rather than a {a,b} brace pattern: GLOB_BRACE is
-		// not available on every platform - it is absent from musl-based builds, so
-		// the whole picker would vanish there - and glob() silently returns nothing
-		// when the flag is unsupported.
-		$files = array();
-		foreach ( array( 'gif', 'png', 'jpg', 'jpeg', 'svg', 'webp' ) as $extension ) {
-			$files = array_merge( $files, (array) glob( $dir . '*.' . $extension ) );
-		}
-
-		$files = array_filter( $files );
-
-		if ( ! $files ) {
-			esc_html_e( 'No print icons were found.', 'wp-print' );
-
-			return;
-		}
-
-		sort( $files );
-
-		foreach ( $files as $file ) {
-			$name = basename( $file );
-
-			printf(
-				'<p><label><input type="radio" name="%1$s" value="%2$s"%3$s />&nbsp;&nbsp;&nbsp;<img src="%4$s" alt="%2$s" />&nbsp;&nbsp;&nbsp;(%2$s)</label></p>',
-				esc_attr( self::name( 'print_icon' ) ),
-				esc_attr( $name ),
-				checked( $selected, $name, false ),
-				esc_url( WP_PRINT_URL . 'images/' . $name )
-			);
-		}
-	}
-
-	/**
 	 * The style dropdown, plus the custom HTML template it reveals.
 	 *
 	 * @return void
@@ -397,7 +348,7 @@ class WP_Print_Admin {
 			<ul>
 				<li><code>%PRINT_URL%</code> &mdash; <?php esc_html_e( 'URL to the printable post/page.', 'wp-print' ); ?></li>
 				<li><code>%PRINT_TEXT%</code> &mdash; <?php esc_html_e( 'Print text link of the post/page that you have typed in above.', 'wp-print' ); ?></li>
-				<li><code>%PRINT_ICON_URL%</code> &mdash; <?php esc_html_e( 'URL to the print icon you have chosen above.', 'wp-print' ); ?></li>
+				<li><code>%PRINT_ICON%</code> &mdash; <?php esc_html_e( 'The printer glyph, as an inline SVG that takes its colour from your theme.', 'wp-print' ); ?></li>
 			</ul>
 			<p>
 				<button type="button" class="button" data-print-restore="print_html" data-print-target="wp-print-html">
