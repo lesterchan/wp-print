@@ -166,8 +166,11 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 
 		$this->assertStringContainsString( '<code>%PRINT_URL%</code>', $html );
 		$this->assertStringContainsString( '<code>%PRINT_TEXT%</code>', $html );
-		$this->assertStringContainsString( '<code>%PRINT_ICON_URL%</code>', $html );
+		$this->assertStringContainsString( '<code>%PRINT_ICON%</code>', $html );
 		$this->assertStringNotContainsString( '%1$PRINT', $html );
+
+		// The retired one is not offered: it named a URL, and the glyph is inline.
+		$this->assertStringNotContainsString( '%PRINT_ICON_URL%', $html );
 	}
 
 	/**
