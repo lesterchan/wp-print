@@ -34,27 +34,47 @@
 	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 */
 
-// Prevent direct access.
 defined( 'ABSPATH' ) || exit;
 
-// Plugin version.
+/**
+ * WP-Print version. The last-run value is kept in the wp_print_version row.
+ */
 define( 'WP_PRINT_VERSION', '3.0.0' );
 
-// Stored option schema version. Bump when a migration is needed.
+/**
+ * Schema counter. Bumped only when the stored rows need reshaping.
+ */
 define( 'WP_PRINT_DB_VERSION', '1' );
 
-// Main plugin file, for resolving paths and URLs from the includes.
+/**
+ * WP-Print slug, which is also the text domain.
+ */
+define( 'WP_PRINT_SLUG', 'wp-print' );
+
+/**
+ * WP-Print main file.
+ */
 define( 'WP_PRINT_MAIN_FILE', __FILE__ );
 
-require_once __DIR__ . '/includes/class-print-options.php';
-require_once __DIR__ . '/includes/class-print-content.php';
-require_once __DIR__ . '/includes/class-print-template.php';
-require_once __DIR__ . '/includes/class-print-link.php';
-require_once __DIR__ . '/includes/class-print-core.php';
-require_once __DIR__ . '/includes/template-tags.php';
+/**
+ * WP-Print directory, with a trailing slash.
+ */
+define( 'WP_PRINT_DIR', plugin_dir_path( __FILE__ ) );
+
+/**
+ * WP-Print URL, with a trailing slash.
+ */
+define( 'WP_PRINT_URL', plugin_dir_url( __FILE__ ) );
+
+require_once WP_PRINT_DIR . 'includes/class-wp-print-options.php';
+require_once WP_PRINT_DIR . 'includes/class-wp-print-content.php';
+require_once WP_PRINT_DIR . 'includes/class-wp-print-template.php';
+require_once WP_PRINT_DIR . 'includes/class-wp-print-link.php';
+require_once WP_PRINT_DIR . 'includes/class-wp-print.php';
+require_once WP_PRINT_DIR . 'includes/template-tags.php';
 
 if ( is_admin() ) {
-	require_once __DIR__ . '/includes/class-print-admin.php';
+	require_once WP_PRINT_DIR . 'includes/class-wp-print-admin.php';
 }
 
-Print_Core::get_instance();
+WP_Print::get_instance();

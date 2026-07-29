@@ -21,13 +21,13 @@ defined( 'ABSPATH' ) || exit;
  * @return string|void The markup when $echo is false.
  */
 function print_link( $print_post_text = '', $print_page_text = '', $echo = true ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.VariableNotSnakeCase, Universal.NamingConventions.NoReservedKeywordParameterNames.echoFound -- Named $echo since the plugin's first release; renaming it would break named arguments.
-	$output = Print_Link::render( $print_post_text, $print_page_text );
+	$output = WP_Print_Link::render( $print_post_text, $print_page_text );
 
 	if ( ! $echo ) {
 		return $output;
 	}
 
-	echo $output . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped at each sink in Print_Link::render().
+	echo $output . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped at each sink in WP_Print_Link::render().
 }
 
 /**
@@ -37,7 +37,7 @@ function print_link( $print_post_text = '', $print_page_text = '', $echo = true 
  * @return string|void The content when $display is false.
  */
 function print_content( $display = true ) {
-	$content = Print_Content::post_content();
+	$content = WP_Print_Content::post_content();
 
 	if ( ! $display ) {
 		return $content;
@@ -53,7 +53,7 @@ function print_content( $display = true ) {
  * @return string|void The content when $display is false.
  */
 function print_comments_content( $display = true ) {
-	$content = Print_Content::comment_content();
+	$content = WP_Print_Content::comment_content();
 
 	if ( ! $display ) {
 		return $content;
@@ -70,7 +70,7 @@ function print_comments_content( $display = true ) {
  * @return void
  */
 function print_categories( $before = '', $after = '' ) {
-	echo Print_Content::categories( $before, $after ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Category names are stripped of tags; $before and $after are the caller's markup.
+	echo WP_Print_Content::categories( $before, $after ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Category names are stripped of tags; $before and $after are the caller's markup.
 }
 
 /**
@@ -79,7 +79,7 @@ function print_categories( $before = '', $after = '' ) {
  * @return void
  */
 function print_comments_number() {
-	echo esc_html( Print_Content::comments_number() );
+	echo esc_html( WP_Print_Content::comments_number() );
 }
 
 /**
@@ -89,7 +89,7 @@ function print_comments_number() {
  * @return void
  */
 function print_links( $text_links = '' ) {
-	$links_text = Print_Content::links_text();
+	$links_text = WP_Print_Content::links_text();
 
 	if ( '' === $links_text ) {
 		return;
@@ -108,7 +108,7 @@ function print_links( $text_links = '' ) {
  * @return void
  */
 function print_disclaimer() {
-	echo wp_kses_post( Print_Options::get( 'disclaimer' ) );
+	echo wp_kses_post( WP_Print_Options::get( 'disclaimer' ) );
 }
 
 /**
@@ -118,7 +118,7 @@ function print_disclaimer() {
  * @return int 1 or 0.
  */
 function print_can( $type ) {
-	return Print_Options::can( $type );
+	return WP_Print_Options::can( $type );
 }
 
 /**
@@ -127,7 +127,7 @@ function print_can( $type ) {
  * @return array
  */
 function print_get_options() {
-	return Print_Options::get();
+	return WP_Print_Options::get();
 }
 
 /**
@@ -136,7 +136,7 @@ function print_get_options() {
  * @return array
  */
 function print_default_options() {
-	return Print_Options::get_defaults();
+	return WP_Print_Options::get_defaults();
 }
 
 /**
@@ -145,7 +145,7 @@ function print_default_options() {
  * @return string
  */
 function print_template_comments() {
-	return Print_Template::comments_template();
+	return WP_Print_Template::comments_template();
 }
 
 /**
@@ -155,7 +155,7 @@ function print_template_comments() {
  * @return string
  */
 function print_pagetitle( $page_title ) {
-	return Print_Template::page_title( $page_title );
+	return WP_Print_Template::page_title( $page_title );
 }
 
 /**
@@ -168,5 +168,5 @@ function print_pagetitle( $page_title ) {
  * @return void
  */
 function wp_print() {
-	Print_Core::maybe_render();
+	WP_Print::maybe_render();
 }

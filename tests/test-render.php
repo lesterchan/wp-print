@@ -2,7 +2,7 @@
 /**
  * The rendered print document.
  *
- * Print_Template::render() ends in exit(), so it cannot be called from a test.
+ * WP_Print_Template::render() ends in exit(), so it cannot be called from a test.
  * These tests set the query up the way it does and require the same template, so
  * the assertions are against the document a reader actually gets.
  *
@@ -12,7 +12,7 @@
 /**
  * Tests for the rendered print document.
  *
- * @covers Print_Template
+ * @covers WP_Print_Template
  */
 class Test_Print_Render extends WP_UnitTestCase {
 
@@ -29,9 +29,9 @@ class Test_Print_Render extends WP_UnitTestCase {
 		$this->set_permalink_structure( '/%postname%/' );
 
 		update_option(
-			Print_Options::OPTION_NAME,
+			WP_Print_Options::OPTION,
 			array_merge(
-				Print_Options::get_defaults(),
+				WP_Print_Options::get_defaults(),
 				array(
 					'comments'   => 1,
 					'links'      => 1,
@@ -52,22 +52,22 @@ class Test_Print_Render extends WP_UnitTestCase {
 	private function render_document( $post_id ) {
 		$this->go_to( get_permalink( $post_id ) );
 
-		Print_Content::reset();
+		WP_Print_Content::reset();
 		$this->register_assets();
 
-		add_filter( 'wp_title', array( 'Print_Template', 'page_title' ) );
-		add_filter( 'comments_template', array( 'Print_Template', 'comments_template' ) );
+		add_filter( 'wp_title', array( 'WP_Print_Template', 'page_title' ) );
+		add_filter( 'comments_template', array( 'WP_Print_Template', 'comments_template' ) );
 
 		// The template reads $print_options directly for the disclaimer, so it has
-		// to be in scope for the require - exactly as Print_Template::render() does.
-		$print_options = Print_Options::get();
+		// to be in scope for the require - exactly as WP_Print_Template::render() does.
+		$print_options = WP_Print_Options::get();
 
 		ob_start();
-		require Print_Template::locate( 'print-posts.php' );
+		require WP_Print_Template::locate( 'print-posts.php' );
 		$html = ob_get_clean();
 
-		remove_filter( 'wp_title', array( 'Print_Template', 'page_title' ) );
-		remove_filter( 'comments_template', array( 'Print_Template', 'comments_template' ) );
+		remove_filter( 'wp_title', array( 'WP_Print_Template', 'page_title' ) );
+		remove_filter( 'comments_template', array( 'WP_Print_Template', 'comments_template' ) );
 
 		return $html;
 	}
@@ -86,7 +86,7 @@ class Test_Print_Render extends WP_UnitTestCase {
 		$GLOBALS['wp_styles']  = null;
 		$GLOBALS['wp_scripts'] = null;
 
-		Print_Template::register_assets();
+		WP_Print_Template::register_assets();
 	}
 
 	/**
@@ -215,8 +215,8 @@ class Test_Print_Render extends WP_UnitTestCase {
 		$this->assertStringContainsString( 'data-print-action="open"', $with );
 
 		update_option(
-			Print_Options::OPTION_NAME,
-			array_merge( Print_Options::get(), array( 'comments' => 0 ) )
+			WP_Print_Options::OPTION,
+			array_merge( WP_Print_Options::get(), array( 'comments' => 0 ) )
 		);
 
 		$without = $this->render_document( $post_id );
@@ -331,10 +331,10 @@ class Test_Print_Render extends WP_UnitTestCase {
 		);
 		set_post_thumbnail( $post_id, $attachment_id );
 
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get(), array( 'thumbnail' => 0 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get(), array( 'thumbnail' => 0 ) ) );
 		$this->assertStringNotContainsString( 'class="thumbnail"', $this->render_document( $post_id ) );
 
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get(), array( 'thumbnail' => 1 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get(), array( 'thumbnail' => 1 ) ) );
 		$this->assertStringContainsString( 'class="thumbnail"', $this->render_document( $post_id ) );
 	}
 
@@ -345,12 +345,12 @@ class Test_Print_Render extends WP_UnitTestCase {
 	public function test_an_empty_query_renders_the_fallback() {
 		$this->go_to( home_url( '/?p=999999' ) );
 
-		Print_Content::reset();
+		WP_Print_Content::reset();
 		$this->register_assets();
-		$print_options = Print_Options::get();
+		$print_options = WP_Print_Options::get();
 
 		ob_start();
-		require Print_Template::locate( 'print-posts.php' );
+		require WP_Print_Template::locate( 'print-posts.php' );
 		$html = ob_get_clean();
 
 		$this->assertStringContainsString( 'No posts matched your criteria.', $html );

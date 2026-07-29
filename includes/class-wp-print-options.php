@@ -8,36 +8,34 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Reads, writes and sanitizes the plugin's single option row.
+ * Reads, writes and sanitizes the plugin's option rows.
  *
- * The option key is deliberately unchanged from every previous release, so an
- * existing install carries its settings over. What did change is the shape of the
- * stored strings: before 3.0.0 the admin screen slashed values on the way in and
- * every reader called stripslashes() on the way out. Values are now stored clean
- * and read as-is, which is why Print_Options::maybe_upgrade() exists.
- *
- * The class name is Print_Options rather than the collection's usual bare-slug
- * main class name, because `print` is a reserved word in PHP and `class Print`
- * will not parse. Print_Core carries the main class for the same reason.
+ * The shape of the stored strings changed in 3.0.0: before it the admin screen
+ * slashed values on the way in and every reader called stripslashes() on the way
+ * out. Values are now stored clean and read as-is, which is what
+ * WP_Print_Options::maybe_upgrade() exists to fix up.
  */
-class Print_Options {
+class WP_Print_Options {
 
 	/**
-	 * The option key. Unchanged since the plugin's first release.
+	 * Settings row, holding every user-editable setting and nothing else.
+	 * Autoloaded.
 	 *
 	 * @var string
 	 */
-	const OPTION_NAME = 'print_options';
+	const OPTION = 'print_options';
 
 	/**
-	 * Schema version, in its own row.
+	 * Upgrade markers row, holding 'plugin' and 'db'. Autoloaded.
 	 *
-	 * It is read to decide whether the main row needs migrating, so it cannot
-	 * live inside the thing being migrated.
+	 * The markers live outside the settings array on purpose: a sanitize
+	 * callback is a function from what the form posted to what gets stored, and
+	 * the settings form never posts a version marker. Keeping them apart means a
+	 * settings save and an upgrade cannot overwrite each other.
 	 *
 	 * @var string
 	 */
-	const DB_VERSION_NAME = 'print_db_version';
+	const VERSION = 'print_db_version';
 
 	/**
 	 * Keys whose values are rendered as HTML.
@@ -118,7 +116,7 @@ class Print_Options {
 	 * @return mixed The full option array, or one value, or null for an unknown key.
 	 */
 	public static function get( $key = null ) {
-		$stored  = get_option( self::OPTION_NAME, array() );
+		$stored  = get_option( self::OPTION, array() );
 		$options = array_merge( self::get_defaults(), is_array( $stored ) ? $stored : array() );
 
 		if ( null === $key ) {
@@ -135,7 +133,7 @@ class Print_Options {
 	 * @return bool Whether the option row changed.
 	 */
 	public static function update( array $options ) {
-		return update_option( self::OPTION_NAME, $options );
+		return update_option( self::OPTION, $options );
 	}
 
 	/**
@@ -237,7 +235,7 @@ class Print_Options {
 		if ( isset( $input['print_icon'] ) && is_scalar( $input['print_icon'] ) ) {
 			$icon = basename( trim( (string) $input['print_icon'] ) );
 
-			if ( '' !== $icon && is_file( plugin_dir_path( WP_PRINT_MAIN_FILE ) . 'images/' . $icon ) ) {
+			if ( '' !== $icon && is_file( WP_PRINT_DIR . 'images/' . $icon ) ) {
 				$clean['print_icon'] = $icon;
 			}
 		}
@@ -260,13 +258,13 @@ class Print_Options {
 	 * @return void
 	 */
 	public static function maybe_upgrade() {
-		$stored = get_option( self::DB_VERSION_NAME, '0' );
+		$stored = get_option( self::VERSION, '0' );
 
 		if ( version_compare( (string) $stored, WP_PRINT_DB_VERSION, '>=' ) ) {
 			return;
 		}
 
-		$options = get_option( self::OPTION_NAME );
+		$options = get_option( self::OPTION );
 
 		if ( is_array( $options ) ) {
 			// Before 3.0.0 these four were stored slashed and unslashed again by
@@ -277,9 +275,9 @@ class Print_Options {
 				}
 			}
 
-			update_option( self::OPTION_NAME, $options );
+			update_option( self::OPTION, $options );
 		}
 
-		update_option( self::DB_VERSION_NAME, WP_PRINT_DB_VERSION );
+		update_option( self::VERSION, WP_PRINT_DB_VERSION );
 	}
 }

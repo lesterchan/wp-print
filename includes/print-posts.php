@@ -31,14 +31,14 @@ if ( false !== $print_dash ) {
 	<meta charset="<?php bloginfo( 'charset' ); ?>" />
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 	<meta name="robots" content="noindex, nofollow" />
-	<?php // The print suffix comes from the wp_title filter Print_Template::render() adds; appending it here as well would print it twice. ?>
+	<?php // The print suffix comes from the wp_title filter WP_Print_Template::render() adds; appending it here as well would print it twice. ?>
 	<title><?php bloginfo( 'name' ); ?> <?php wp_title(); ?></title>
 	<?php
 	/*
 	 * Printed by handle rather than enqueued for wp_head(): this document has no
 	 * wp_head() call, on purpose, so that printing a page does not drag in the
 	 * theme's stylesheets and every other plugin's assets. The handles are
-	 * registered by Print_Template::register_assets().
+	 * registered by WP_Print_Template::register_assets().
 	 */
 	wp_print_styles( is_rtl() ? array( 'wp-print', 'wp-print-rtl' ) : array( 'wp-print' ) );
 	?>

@@ -8,7 +8,7 @@
 /**
  * Tests for the printable content pipeline.
  *
- * @covers Print_Content
+ * @covers WP_Print_Content
  * @covers ::print_content
  * @covers ::print_comments_content
  */
@@ -29,9 +29,9 @@ class Test_Print_Content extends WP_UnitTestCase {
 		$this->set_permalink_structure( '/%postname%/' );
 
 		update_option(
-			Print_Options::OPTION_NAME,
+			WP_Print_Options::OPTION,
 			array_merge(
-				Print_Options::get_defaults(),
+				WP_Print_Options::get_defaults(),
 				array(
 					'links'  => 1,
 					'images' => 1,
@@ -40,14 +40,14 @@ class Test_Print_Content extends WP_UnitTestCase {
 			)
 		);
 
-		Print_Content::reset();
+		WP_Print_Content::reset();
 
 		// print_content() swaps [donotprint] and [print_link] for callbacks that
 		// render nothing, and never swaps them back - on a real request the print
 		// view exits immediately afterwards, so it never needs to. Inside a suite
 		// that leaks into the next test, so restore them here.
-		add_shortcode( 'donotprint', array( 'Print_Link', 'donotprint_shortcode' ) );
-		add_shortcode( 'print_link', array( 'Print_Link', 'shortcode' ) );
+		add_shortcode( 'donotprint', array( 'WP_Print_Link', 'donotprint_shortcode' ) );
+		add_shortcode( 'print_link', array( 'WP_Print_Link', 'shortcode' ) );
 	}
 
 	/**
@@ -62,7 +62,7 @@ class Test_Print_Content extends WP_UnitTestCase {
 		$this->go_to( get_permalink( $post_id ) );
 		the_post();
 
-		Print_Content::reset();
+		WP_Print_Content::reset();
 
 		return print_content( false );
 	}
@@ -90,7 +90,7 @@ class Test_Print_Content extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( 'First</a> <sup>[1]</sup>', $out );
 		$this->assertStringContainsString( 'Again</a> <sup>[1]</sup>', $out );
-		$this->assertSame( 1, substr_count( Print_Content::links_text(), 'https://example.com/one<' ) );
+		$this->assertSame( 1, substr_count( WP_Print_Content::links_text(), 'https://example.com/one<' ) );
 	}
 
 	/**
@@ -150,7 +150,7 @@ class Test_Print_Content extends WP_UnitTestCase {
 		// tested here - that the path was expanded rather than treated as absolute.
 		$this->assertStringContainsString(
 			esc_html( get_option( 'home' ) . '/go?to=https://example.com' ),
-			Print_Content::links_text()
+			WP_Print_Content::links_text()
 		);
 	}
 
@@ -187,7 +187,7 @@ class Test_Print_Content extends WP_UnitTestCase {
 	public function test_an_image_link_is_labelled() {
 		$this->render( '<a href="https://example.com/img"><img src="https://example.com/p.png" /></a>' );
 
-		$this->assertStringContainsString( 'Image: <strong>', Print_Content::links_text() );
+		$this->assertStringContainsString( 'Image: <strong>', WP_Print_Content::links_text() );
 	}
 
 	/**
@@ -214,7 +214,7 @@ class Test_Print_Content extends WP_UnitTestCase {
 	 * Images are stripped when the option is off.
 	 */
 	public function test_images_are_stripped_when_switched_off() {
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'images' => 0 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'images' => 0 ) ) );
 
 		$this->assertStringNotContainsString( '<img', $this->render( '<img src="https://example.com/p.png" alt="x" />' ) );
 	}
@@ -228,7 +228,7 @@ class Test_Print_Content extends WP_UnitTestCase {
 	 * @param string $tag    Tag that must be gone.
 	 */
 	public function test_video_is_stripped_when_switched_off( $markup, $tag ) {
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'videos' => 0 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'videos' => 0 ) ) );
 
 		$this->assertStringNotContainsString( $tag, $this->render( $markup ) );
 	}
@@ -250,12 +250,12 @@ class Test_Print_Content extends WP_UnitTestCase {
 	 * With links off, nothing is numbered and nothing is collected.
 	 */
 	public function test_links_are_not_numbered_when_switched_off() {
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'links' => 0 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'links' => 0 ) ) );
 
 		$out = $this->render( '<a href="https://example.com/one">One</a>' );
 
 		$this->assertStringNotContainsString( '<sup>[', $out );
-		$this->assertSame( '', Print_Content::links_text() );
+		$this->assertSame( '', WP_Print_Content::links_text() );
 	}
 
 	/**
@@ -309,7 +309,7 @@ class Test_Print_Content extends WP_UnitTestCase {
 
 		unset( $GLOBALS['pages'], $GLOBALS['multipage'], $GLOBALS['numpages'] );
 
-		Print_Content::reset();
+		WP_Print_Content::reset();
 
 		$this->assertSame( '', print_content( false ) );
 	}
@@ -370,7 +370,7 @@ class Test_Print_Content extends WP_UnitTestCase {
 		$this->go_to( get_permalink( $post_id ) );
 		the_post();
 
-		Print_Content::reset();
+		WP_Print_Content::reset();
 		print_content( false );
 
 		$GLOBALS['comment'] = get_comment( $comment_id );
@@ -378,7 +378,7 @@ class Test_Print_Content extends WP_UnitTestCase {
 
 		$this->assertStringContainsString( '<sup>[2]</sup>', $out );
 		$this->assertStringNotContainsString( '<sup>[1]</sup>', $out );
-		$this->assertStringContainsString( 'https://example.com/two', Print_Content::links_text() );
+		$this->assertStringContainsString( 'https://example.com/two', WP_Print_Content::links_text() );
 	}
 
 	/**
@@ -390,6 +390,6 @@ class Test_Print_Content extends WP_UnitTestCase {
 		$out = $this->render( '<a href="https://example.com/other">Other</a>' );
 
 		$this->assertStringContainsString( '<sup>[1]</sup>', $out );
-		$this->assertSame( 1, substr_count( Print_Content::links_text(), '<p style=' ) );
+		$this->assertSame( 1, substr_count( WP_Print_Content::links_text(), '<p style=' ) );
 	}
 }

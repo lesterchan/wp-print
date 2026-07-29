@@ -12,7 +12,7 @@
 /**
  * Tests for the settings screen.
  *
- * @covers Print_Admin
+ * @covers WP_Print_Admin
  */
 class Test_Print_Admin extends WP_UnitTestCase {
 
@@ -24,10 +24,10 @@ class Test_Print_Admin extends WP_UnitTestCase {
 
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 
-		update_option( Print_Options::OPTION_NAME, Print_Options::get_defaults() );
+		update_option( WP_Print_Options::OPTION, WP_Print_Options::get_defaults() );
 
 		require_once ABSPATH . 'wp-admin/includes/template.php';
-		Print_Admin::register_settings();
+		WP_Print_Admin::register_settings();
 	}
 
 	/**
@@ -37,12 +37,12 @@ class Test_Print_Admin extends WP_UnitTestCase {
 	public function test_the_setting_is_registered_in_the_right_group() {
 		global $wp_registered_settings;
 
-		$this->assertArrayHasKey( Print_Options::OPTION_NAME, $wp_registered_settings );
+		$this->assertArrayHasKey( WP_Print_Options::OPTION, $wp_registered_settings );
 
-		$registered = $wp_registered_settings[ Print_Options::OPTION_NAME ];
+		$registered = $wp_registered_settings[ WP_Print_Options::OPTION ];
 
-		$this->assertSame( Print_Admin::OPTION_GROUP, $registered['group'] );
-		$this->assertSame( array( 'Print_Options', 'sanitize' ), $registered['sanitize_callback'] );
+		$this->assertSame( WP_Print_Admin::GROUP, $registered['group'] );
+		$this->assertSame( array( 'WP_Print_Options', 'sanitize' ), $registered['sanitize_callback'] );
 	}
 
 	/**
@@ -51,11 +51,11 @@ class Test_Print_Admin extends WP_UnitTestCase {
 	 */
 	public function test_the_form_posts_the_registered_group() {
 		ob_start();
-		settings_fields( Print_Admin::OPTION_GROUP );
+		settings_fields( WP_Print_Admin::GROUP );
 		$fields = ob_get_clean();
 
 		// settings_fields() emits single-quoted attributes, so match the value alone.
-		$this->assertStringContainsString( Print_Admin::OPTION_GROUP, $fields );
+		$this->assertStringContainsString( WP_Print_Admin::GROUP, $fields );
 		$this->assertStringContainsString( "name='option_page'", $fields );
 		$this->assertStringContainsString( '_wpnonce', $fields );
 	}
@@ -67,7 +67,7 @@ class Test_Print_Admin extends WP_UnitTestCase {
 	 */
 	public function test_writing_the_option_runs_the_sanitizer() {
 		update_option(
-			Print_Options::OPTION_NAME,
+			WP_Print_Options::OPTION,
 			array(
 				'print_style' => '99',
 				'post_text'   => "Tom & Jerry's",
@@ -75,9 +75,9 @@ class Test_Print_Admin extends WP_UnitTestCase {
 			)
 		);
 
-		$this->assertSame( 1, (int) Print_Options::get( 'print_style' ) );
-		$this->assertSame( 'print.gif', Print_Options::get( 'print_icon' ) );
-		$this->assertStringNotContainsString( '\\', Print_Options::get( 'post_text' ) );
+		$this->assertSame( 1, (int) WP_Print_Options::get( 'print_style' ) );
+		$this->assertSame( 'print.gif', WP_Print_Options::get( 'print_icon' ) );
+		$this->assertStringNotContainsString( '\\', WP_Print_Options::get( 'post_text' ) );
 	}
 
 	/**
@@ -88,14 +88,14 @@ class Test_Print_Admin extends WP_UnitTestCase {
 
 		foreach ( array( 'post_text', 'page_text', 'print_icon', 'print_style', 'print_html', 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
 			$this->assertStringContainsString(
-				Print_Options::OPTION_NAME . '[' . $key . ']',
+				WP_Print_Options::OPTION . '[' . $key . ']',
 				$html,
 				"Field $key is missing from the screen"
 			);
 		}
 
 		$this->assertStringContainsString( 'action="options.php"', $html );
-		$this->assertStringContainsString( Print_Admin::OPTION_GROUP, $html );
+		$this->assertStringContainsString( WP_Print_Admin::GROUP, $html );
 	}
 
 	/**
@@ -117,9 +117,9 @@ class Test_Print_Admin extends WP_UnitTestCase {
 	 */
 	public function test_stored_markup_is_escaped_into_the_form() {
 		update_option(
-			Print_Options::OPTION_NAME,
+			WP_Print_Options::OPTION,
 			array_merge(
-				Print_Options::get_defaults(),
+				WP_Print_Options::get_defaults(),
 				array(
 					'post_text'  => 'Quote " and <b>bold</b>',
 					'disclaimer' => '</textarea><script>alert(1)</script>',
@@ -140,7 +140,7 @@ class Test_Print_Admin extends WP_UnitTestCase {
 	public function test_the_custom_block_is_hidden_unless_selected() {
 		$this->assertStringContainsString( 'wp-print-custom hidden', $this->render_screen() );
 
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 4 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 4 ) ) );
 
 		$this->assertStringNotContainsString( 'wp-print-custom hidden', $this->render_screen() );
 	}
@@ -149,7 +149,7 @@ class Test_Print_Admin extends WP_UnitTestCase {
 	 * The icon picker offers the bundled icons, and marks the stored one.
 	 */
 	public function test_the_icon_picker_lists_the_bundled_icons() {
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_icon' => 'printer_famfamfam.gif' ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_icon' => 'printer_famfamfam.gif' ) ) );
 
 		$html = $this->render_screen();
 
@@ -175,9 +175,9 @@ class Test_Print_Admin extends WP_UnitTestCase {
 	 * The Plugins screen gains a Settings link pointing at the new slug.
 	 */
 	public function test_a_settings_action_link_is_added() {
-		$links = Print_Admin::action_links( array( 'Deactivate' ) );
+		$links = WP_Print_Admin::action_links( array( 'Deactivate' ) );
 
-		$this->assertStringContainsString( 'page=' . Print_Admin::PAGE_SLUG, $links[0] );
+		$this->assertStringContainsString( 'page=' . WP_Print_Admin::PAGE, $links[0] );
 		$this->assertStringContainsString( 'Settings', $links[0] );
 		$this->assertContains( 'Deactivate', $links );
 	}
@@ -189,11 +189,11 @@ class Test_Print_Admin extends WP_UnitTestCase {
 	 */
 	private function render_screen() {
 		ob_start();
-		Print_Admin::render_page();
+		WP_Print_Admin::render_page();
 		$page = ob_get_clean();
 
 		ob_start();
-		do_settings_sections( Print_Admin::PAGE_SLUG );
+		do_settings_sections( WP_Print_Admin::PAGE );
 		$sections = ob_get_clean();
 
 		return $page . $sections;

@@ -11,7 +11,7 @@
 /**
  * Tests for the print link.
  *
- * @covers Print_Link
+ * @covers WP_Print_Link
  * @covers ::print_link
  */
 class Test_Print_Link extends WP_UnitTestCase {
@@ -58,12 +58,12 @@ class Test_Print_Link extends WP_UnitTestCase {
 		parent::set_up();
 
 		$this->set_permalink_structure( '/%postname%/' );
-		update_option( Print_Options::OPTION_NAME, Print_Options::get_defaults() );
+		update_option( WP_Print_Options::OPTION, WP_Print_Options::get_defaults() );
 
 		// A print_content() call in another test leaves the print-view stand-in
 		// registered for [print_link]; restore the real callback. See the note in
 		// Test_Print_Content::set_up().
-		add_shortcode( 'print_link', array( 'Print_Link', 'shortcode' ) );
+		add_shortcode( 'print_link', array( 'WP_Print_Link', 'shortcode' ) );
 	}
 
 	/**
@@ -82,7 +82,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
 
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 1 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 1 ) ) );
 
 		$url  = esc_url( get_permalink( self::$post_id ) . 'print/' );
 		$icon = esc_url( $this->icon_url() );
@@ -101,7 +101,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
 
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 2 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 2 ) ) );
 
 		$output = print_link( '', '', false );
 
@@ -117,7 +117,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
 
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
 
 		$url = esc_url( get_permalink( self::$post_id ) . 'print/' );
 
@@ -135,9 +135,9 @@ class Test_Print_Link extends WP_UnitTestCase {
 		the_post();
 
 		update_option(
-			Print_Options::OPTION_NAME,
+			WP_Print_Options::OPTION,
 			array_merge(
-				Print_Options::get_defaults(),
+				WP_Print_Options::get_defaults(),
 				array(
 					'print_style' => 4,
 					'print_html'  => '[%PRINT_URL%][%PRINT_TEXT%][%PRINT_ICON_URL%]',
@@ -155,7 +155,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 	 * A page uses the page text; a post uses the post text.
 	 */
 	public function test_page_uses_the_page_text() {
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
 
 		$this->go_to( get_permalink( self::$page_id ) );
 		the_post();
@@ -167,7 +167,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 	 * Explicit arguments win over the stored options.
 	 */
 	public function test_explicit_text_overrides_the_option() {
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
 
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
@@ -182,7 +182,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 	 * Echo mode appends exactly one newline, and returns nothing.
 	 */
 	public function test_echo_mode_appends_one_newline() {
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
 
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
@@ -206,7 +206,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
 
-		$this->assertStringContainsString( 'print=1', Print_Link::url() );
+		$this->assertStringContainsString( 'print=1', WP_Print_Link::url() );
 	}
 
 	/**
@@ -217,7 +217,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
 
-		$url = Print_Link::url();
+		$url = WP_Print_Link::url();
 
 		$this->assertStringEndsWith( '/print/', $url );
 		$this->assertStringNotContainsString( '//print/', str_replace( array( 'http://', 'https://' ), '', $url ) );
@@ -242,7 +242,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 		$this->go_to( home_url( '/' ) );
 		the_post();
 
-		$url = Print_Link::url();
+		$url = WP_Print_Link::url();
 
 		update_option( 'show_on_front', 'posts' );
 		update_option( 'page_on_front', 0 );
@@ -256,7 +256,7 @@ class Test_Print_Link extends WP_UnitTestCase {
 	 * rather than an empty one, and raises no diagnostic.
 	 */
 	public function test_link_survives_a_row_missing_keys() {
-		update_option( Print_Options::OPTION_NAME, array( 'print_style' => 1 ) );
+		update_option( WP_Print_Options::OPTION, array( 'print_style' => 1 ) );
 
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();

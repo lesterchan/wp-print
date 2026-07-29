@@ -21,7 +21,7 @@ defined( 'ABSPATH' ) || exit;
  * index.php and uninstall.php. The theme-side names deliberately did not move
  * with them, so an existing override still wins.
  */
-class Print_Template {
+class WP_Print_Template {
 
 	/**
 	 * Where the plugin keeps each overridable file, keyed by the name a theme
@@ -64,7 +64,7 @@ class Print_Template {
 			return $template;
 		}
 
-		return plugin_dir_path( WP_PRINT_MAIN_FILE ) . self::bundled( $file );
+		return WP_PRINT_DIR . self::bundled( $file );
 	}
 
 	/**
@@ -82,7 +82,7 @@ class Print_Template {
 			return get_template_directory_uri() . '/' . $file;
 		}
 
-		return plugins_url( self::bundled( $file ), WP_PRINT_MAIN_FILE );
+		return WP_PRINT_URL . self::bundled( $file );
 	}
 
 	/**
@@ -92,7 +92,7 @@ class Print_Template {
 	 * @return string
 	 */
 	public static function plugin_url( $file ) {
-		return plugins_url( $file, WP_PRINT_MAIN_FILE );
+		return WP_PRINT_URL . $file;
 	}
 
 	/**
@@ -101,7 +101,7 @@ class Print_Template {
 	 * @return void
 	 */
 	public static function render() {
-		Print_Content::reset();
+		WP_Print_Content::reset();
 
 		self::register_assets();
 
@@ -111,7 +111,7 @@ class Print_Template {
 		// The bundled print-posts.php reads $print_options directly for the
 		// disclaimer, and a theme's copy of it may do the same, so the variable has
 		// to be in scope for the include.
-		$print_options = Print_Options::get();
+		$print_options = WP_Print_Options::get();
 
 		require self::locate( 'print-posts.php' );
 

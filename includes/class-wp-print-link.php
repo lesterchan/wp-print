@@ -13,7 +13,7 @@ defined( 'ABSPATH' ) || exit;
  * The markup of all four styles is byte-for-byte what previous releases emitted,
  * because it is the plugin's most visible output and themes style it by class.
  */
-class Print_Link {
+class WP_Print_Link {
 
 	/**
 	 * Style: icon followed by a text link.
@@ -43,14 +43,14 @@ class Print_Link {
 	 * @return string
 	 */
 	public static function render( $post_text = '', $page_text = '' ) {
-		$options = Print_Options::get();
+		$options = WP_Print_Options::get();
 
 		$text = is_page()
 			? ( '' !== $page_text ? $page_text : $options['page_text'] )
 			: ( '' !== $post_text ? $post_text : $options['post_text'] );
 
 		$url  = self::url();
-		$icon = Print_Template::plugin_url( 'images/' . $options['print_icon'] );
+		$icon = WP_Print_Template::plugin_url( 'images/' . $options['print_icon'] );
 
 		$url_esc  = esc_url( $url );
 		$icon_esc = esc_url( $icon );
@@ -118,7 +118,7 @@ class Print_Link {
 	 * The [donotprint] shortcode, outside a print view.
 	 *
 	 * The content is kept: it is only dropped when the print view replaces this
-	 * callback. See Print_Content::suppress_shortcodes().
+	 * callback. See WP_Print_Content::suppress_shortcodes().
 	 *
 	 * @param array       $atts    Shortcode attributes. Unused.
 	 * @param string|null $content Enclosed content.

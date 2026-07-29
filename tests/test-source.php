@@ -120,7 +120,7 @@ class Test_Print_Source extends WP_UnitTestCase {
 	 * The same three properties hold for the activation fan-out.
 	 */
 	public function test_activation_fan_out_matches_uninstall() {
-		$code = $this->code( 'includes/class-print-core.php' );
+		$code = $this->code( 'includes/class-wp-print.php' );
 
 		$this->assertMatchesRegularExpression( "/'number'\s*=>\s*0/", $code );
 		$this->assertMatchesRegularExpression( "/'fields'\s*=>\s*'ids'/", $code );

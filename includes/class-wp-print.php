@@ -10,13 +10,20 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Wires the plugin into WordPress.
  *
- * Named Print_Core rather than the collection's usual bare-slug main class name
- * because `print` is a reserved word in PHP: `class Print` does not parse.
+ * Everything the plugin declares is prefixed WP_Print_, which is what the
+ * prefix is for: `Print_Core`, `Print_Link` and friends were unprefixed globals
+ * built on one of the commonest words in the language, and a second plugin
+ * declaring `Print_Link` would have fatalled the site.
  */
-class Print_Core {
+class WP_Print {
 
 	/**
 	 * The query var, and the rewrite endpoint's name.
+	 *
+	 * Deliberately unprefixed. It is the public URL of every printable page --
+	 * /a-post/print/ and ?print=1 -- documented since the plugin's first release
+	 * and linked to from other people's sites. Prefixing it would 404 every one
+	 * of those links, which is a far worse collision than the one it would fix.
 	 *
 	 * @var string
 	 */
@@ -25,14 +32,14 @@ class Print_Core {
 	/**
 	 * Singleton instance.
 	 *
-	 * @var Print_Core|null
+	 * @var WP_Print|null
 	 */
 	private static $instance = null;
 
 	/**
 	 * Get the instance, creating it on first call.
 	 *
-	 * @return Print_Core
+	 * @return WP_Print
 	 */
 	public static function get_instance() {
 		if ( null === self::$instance ) {
@@ -57,12 +64,12 @@ class Print_Core {
 		// Priority 5, ahead of redirect_canonical at 10.
 		add_action( 'template_redirect', array( __CLASS__, 'maybe_render' ), 5 );
 
-		add_shortcode( 'print_link', array( 'Print_Link', 'shortcode' ) );
-		add_shortcode( 'donotprint', array( 'Print_Link', 'donotprint_shortcode' ) );
+		add_shortcode( 'print_link', array( 'WP_Print_Link', 'shortcode' ) );
+		add_shortcode( 'donotprint', array( 'WP_Print_Link', 'donotprint_shortcode' ) );
 
 		// Activation does not fire when a plugin is updated, so the migration also
 		// runs on the first admin request after an upgrade.
-		add_action( 'admin_init', array( 'Print_Options', 'maybe_upgrade' ) );
+		add_action( 'admin_init', array( 'WP_Print_Options', 'maybe_upgrade' ) );
 	}
 
 	/**
@@ -99,7 +106,7 @@ class Print_Core {
 		global $wp_query;
 
 		if ( $wp_query instanceof WP_Query && array_key_exists( self::QUERY_VAR, $wp_query->query_vars ) ) {
-			Print_Template::render();
+			WP_Print_Template::render();
 		}
 	}
 
@@ -142,9 +149,9 @@ class Print_Core {
 	 * @return void
 	 */
 	private static function activate_site() {
-		add_option( Print_Options::OPTION_NAME, Print_Options::get_defaults() );
+		add_option( WP_Print_Options::OPTION, WP_Print_Options::get_defaults() );
 
-		Print_Options::maybe_upgrade();
+		WP_Print_Options::maybe_upgrade();
 
 		// The endpoint is registered on init, which has already run by the time an
 		// activation request reaches this point, so the rules can be rebuilt now.

@@ -15,21 +15,54 @@ defined( 'ABSPATH' ) || exit;
  * submitted field names now nest under print_options[...] because
  * register_setting() hands the whole array to one sanitize callback.
  */
-class Print_Admin {
+class WP_Print_Admin {
 
 	/**
 	 * Settings group passed to register_setting() and settings_fields().
 	 *
 	 * @var string
 	 */
-	const OPTION_GROUP = 'print_options_group';
+	const GROUP = 'print_options_group';
 
 	/**
 	 * The page slug.
 	 *
 	 * @var string
 	 */
-	const PAGE_SLUG = 'wp-print';
+	const PAGE = 'wp-print';
+
+	/**
+	 * The capability the screen requires.
+	 *
+	 * A settings screen, so manage_options and nothing more specific: WP-Print
+	 * has no data of its own to manage and so has never shipped a custom
+	 * capability.
+	 *
+	 * @var string
+	 */
+	const CAPABILITY = 'manage_options';
+
+	/**
+	 * The capability required for a given part of the screen.
+	 *
+	 * Every capability check in the plugin goes through here, so a site that
+	 * wants its editors to reach the print settings has one filter to hook
+	 * rather than a list of checks to find.
+	 *
+	 * @param string $context What the capability is being checked for.
+	 * @return string
+	 */
+	public static function capability( $context = 'settings' ) {
+		/**
+		 * Filters the capability required to reach the WP-Print settings screen.
+		 *
+		 * @since 3.0.0
+		 *
+		 * @param string $capability The required capability.
+		 * @param string $context    What the capability is being checked for.
+		 */
+		return (string) apply_filters( 'wp_print_capability', self::CAPABILITY, $context );
+	}
 
 	/**
 	 * Hook the admin screen into WordPress.
@@ -52,8 +85,8 @@ class Print_Admin {
 		add_options_page(
 			__( 'Print Options', 'wp-print' ),
 			__( 'Print', 'wp-print' ),
-			'manage_options',
-			self::PAGE_SLUG,
+			self::capability( 'menu' ),
+			self::PAGE,
 			array( __CLASS__, 'render_page' )
 		);
 	}
@@ -71,7 +104,7 @@ class Print_Admin {
 
 		array_unshift(
 			$links,
-			'<a href="' . esc_url( admin_url( 'options-general.php?page=' . self::PAGE_SLUG ) ) . '">' . esc_html__( 'Settings', 'wp-print' ) . '</a>'
+			'<a href="' . esc_url( admin_url( 'options-general.php?page=' . self::PAGE ) ) . '">' . esc_html__( 'Settings', 'wp-print' ) . '</a>'
 		);
 
 		return $links;
@@ -80,29 +113,33 @@ class Print_Admin {
 	/**
 	 * Load the screen's script.
 	 *
-	 * No jQuery dependency: the two behaviours here are a class toggle and setting
-	 * a textarea's value. in_footer rather than the $args array, because the
-	 * strategy key needs WordPress 6.3 and this plugin supports 6.0.
+	 * Vanilla, and with an empty dependency array: the two behaviours here are a
+	 * class toggle and setting a textarea's value. The loading strategy goes in
+	 * the $args array, which needs WordPress 6.3 and so is available on the 6.8
+	 * floor.
 	 *
 	 * @param string $hook_suffix Current admin page.
 	 * @return void
 	 */
 	public static function enqueue( $hook_suffix ) {
-		if ( 'settings_page_' . self::PAGE_SLUG !== $hook_suffix ) {
+		if ( 'settings_page_' . self::PAGE !== $hook_suffix ) {
 			return;
 		}
 
 		wp_enqueue_script(
 			'wp-print-admin',
-			plugins_url( 'js/wp-print-admin.js', WP_PRINT_MAIN_FILE ),
+			WP_PRINT_URL . 'js/wp-print-admin.js',
 			array(),
 			WP_PRINT_VERSION,
-			true
+			array(
+				'strategy'  => 'defer',
+				'in_footer' => true,
+			)
 		);
 
 		$defaults = array(
-			'print_html' => Print_Options::get_defaults()['print_html'],
-			'disclaimer' => Print_Options::default_disclaimer(),
+			'print_html' => WP_Print_Options::get_defaults()['print_html'],
+			'disclaimer' => WP_Print_Options::default_disclaimer(),
 		);
 
 		// wp_add_inline_script(), not wp_localize_script(): the latter runs
@@ -123,12 +160,12 @@ class Print_Admin {
 	 */
 	public static function register_settings() {
 		register_setting(
-			self::OPTION_GROUP,
-			Print_Options::OPTION_NAME,
+			self::GROUP,
+			WP_Print_Options::OPTION,
 			array(
 				'type'              => 'array',
-				'sanitize_callback' => array( 'Print_Options', 'sanitize' ),
-				'default'           => Print_Options::get_defaults(),
+				'sanitize_callback' => array( 'WP_Print_Options', 'sanitize' ),
+				'default'           => WP_Print_Options::get_defaults(),
 			)
 		);
 
@@ -136,14 +173,14 @@ class Print_Admin {
 			'wp_print_styles',
 			__( 'Print Styles', 'wp-print' ),
 			'__return_empty_string',
-			self::PAGE_SLUG
+			self::PAGE
 		);
 
 		add_settings_field(
 			'post_text',
 			__( 'Print Text Link For Post', 'wp-print' ),
 			array( __CLASS__, 'field_text' ),
-			self::PAGE_SLUG,
+			self::PAGE,
 			'wp_print_styles',
 			array( 'key' => 'post_text' )
 		);
@@ -152,7 +189,7 @@ class Print_Admin {
 			'page_text',
 			__( 'Print Text Link For Page', 'wp-print' ),
 			array( __CLASS__, 'field_text' ),
-			self::PAGE_SLUG,
+			self::PAGE,
 			'wp_print_styles',
 			array( 'key' => 'page_text' )
 		);
@@ -161,7 +198,7 @@ class Print_Admin {
 			'print_icon',
 			__( 'Print Icon', 'wp-print' ),
 			array( __CLASS__, 'field_icon' ),
-			self::PAGE_SLUG,
+			self::PAGE,
 			'wp_print_styles'
 		);
 
@@ -169,7 +206,7 @@ class Print_Admin {
 			'print_style',
 			__( 'Print Text Link Style', 'wp-print' ),
 			array( __CLASS__, 'field_style' ),
-			self::PAGE_SLUG,
+			self::PAGE,
 			'wp_print_styles'
 		);
 
@@ -177,7 +214,7 @@ class Print_Admin {
 			'wp_print_options',
 			__( 'Print Options', 'wp-print' ),
 			'__return_empty_string',
-			self::PAGE_SLUG
+			self::PAGE
 		);
 
 		$toggles = array(
@@ -193,7 +230,7 @@ class Print_Admin {
 				$key,
 				$label,
 				array( __CLASS__, 'field_toggle' ),
-				self::PAGE_SLUG,
+				self::PAGE,
 				'wp_print_options',
 				array( 'key' => $key )
 			);
@@ -203,7 +240,7 @@ class Print_Admin {
 			'disclaimer',
 			__( 'Disclaimer/Copyright Text?', 'wp-print' ),
 			array( __CLASS__, 'field_disclaimer' ),
-			self::PAGE_SLUG,
+			self::PAGE,
 			'wp_print_options'
 		);
 	}
@@ -215,7 +252,7 @@ class Print_Admin {
 	 * @return string
 	 */
 	private static function name( $key ) {
-		return Print_Options::OPTION_NAME . '[' . $key . ']';
+		return WP_Print_Options::OPTION . '[' . $key . ']';
 	}
 
 	/**
@@ -229,7 +266,7 @@ class Print_Admin {
 			'<input type="text" name="%1$s" id="%2$s" value="%3$s" class="regular-text" />',
 			esc_attr( self::name( $args['key'] ) ),
 			esc_attr( 'wp-print-' . $args['key'] ),
-			esc_attr( Print_Options::get( $args['key'] ) )
+			esc_attr( WP_Print_Options::get( $args['key'] ) )
 		);
 	}
 
@@ -240,7 +277,7 @@ class Print_Admin {
 	 * @return void
 	 */
 	public static function field_toggle( $args ) {
-		$value = Print_Options::can( $args['key'] );
+		$value = WP_Print_Options::can( $args['key'] );
 
 		printf(
 			'<select name="%1$s" id="%2$s"><option value="1"%3$s>%4$s</option><option value="0"%5$s>%6$s</option></select>',
@@ -259,8 +296,8 @@ class Print_Admin {
 	 * @return void
 	 */
 	public static function field_icon() {
-		$selected = Print_Options::get( 'print_icon' );
-		$dir      = plugin_dir_path( WP_PRINT_MAIN_FILE ) . 'images/';
+		$selected = WP_Print_Options::get( 'print_icon' );
+		$dir      = WP_PRINT_DIR . 'images/';
 
 		// One glob per extension rather than a {a,b} brace pattern: GLOB_BRACE is
 		// not available on every platform - it is absent from musl-based builds, so
@@ -289,7 +326,7 @@ class Print_Admin {
 				esc_attr( self::name( 'print_icon' ) ),
 				esc_attr( $name ),
 				checked( $selected, $name, false ),
-				esc_url( plugins_url( 'images/' . $name, WP_PRINT_MAIN_FILE ) )
+				esc_url( WP_PRINT_URL . 'images/' . $name )
 			);
 		}
 	}
@@ -300,13 +337,13 @@ class Print_Admin {
 	 * @return void
 	 */
 	public static function field_style() {
-		$style = (int) Print_Options::get( 'print_style' );
+		$style = (int) WP_Print_Options::get( 'print_style' );
 
 		$choices = array(
-			Print_Link::STYLE_ICON_TEXT => __( 'Print Icon With Text Link', 'wp-print' ),
-			Print_Link::STYLE_ICON      => __( 'Print Icon Only', 'wp-print' ),
-			Print_Link::STYLE_TEXT      => __( 'Print Text Link Only', 'wp-print' ),
-			Print_Link::STYLE_CUSTOM    => __( 'Custom', 'wp-print' ),
+			WP_Print_Link::STYLE_ICON_TEXT => __( 'Print Icon With Text Link', 'wp-print' ),
+			WP_Print_Link::STYLE_ICON      => __( 'Print Icon Only', 'wp-print' ),
+			WP_Print_Link::STYLE_TEXT      => __( 'Print Text Link Only', 'wp-print' ),
+			WP_Print_Link::STYLE_CUSTOM    => __( 'Custom', 'wp-print' ),
 		);
 
 		echo '<select name="' . esc_attr( self::name( 'print_style' ) ) . '" id="wp-print-style" data-print-toggle="wp-print-custom">';
@@ -320,11 +357,11 @@ class Print_Admin {
 		}
 		echo '</select>';
 
-		$hidden = Print_Link::STYLE_CUSTOM === $style ? '' : ' hidden';
+		$hidden = WP_Print_Link::STYLE_CUSTOM === $style ? '' : ' hidden';
 		?>
 		<div id="wp-print-custom" class="wp-print-custom<?php echo esc_attr( $hidden ); ?>">
 			<p>
-				<textarea rows="3" cols="80" class="large-text code" name="<?php echo esc_attr( self::name( 'print_html' ) ); ?>" id="wp-print-html"><?php echo esc_textarea( Print_Options::get( 'print_html' ) ); ?></textarea>
+				<textarea rows="3" cols="80" class="large-text code" name="<?php echo esc_attr( self::name( 'print_html' ) ); ?>" id="wp-print-html"><?php echo esc_textarea( WP_Print_Options::get( 'print_html' ) ); ?></textarea>
 			</p>
 			<p class="description">
 				<?php esc_html_e( 'HTML is allowed. These placeholders are replaced when the link is rendered:', 'wp-print' ); ?>
@@ -351,7 +388,7 @@ class Print_Admin {
 	public static function field_disclaimer() {
 		?>
 		<p>
-			<textarea rows="3" cols="80" class="large-text code" name="<?php echo esc_attr( self::name( 'disclaimer' ) ); ?>" id="wp-print-disclaimer"><?php echo esc_textarea( Print_Options::get( 'disclaimer' ) ); ?></textarea>
+			<textarea rows="3" cols="80" class="large-text code" name="<?php echo esc_attr( self::name( 'disclaimer' ) ); ?>" id="wp-print-disclaimer"><?php echo esc_textarea( WP_Print_Options::get( 'disclaimer' ) ); ?></textarea>
 		</p>
 		<p class="description"><?php esc_html_e( 'HTML is allowed.', 'wp-print' ); ?></p>
 		<p>
@@ -368,7 +405,7 @@ class Print_Admin {
 	 * @return void
 	 */
 	public static function render_page() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( self::capability( 'settings' ) ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wp-print' ) );
 		}
 		?>
@@ -377,8 +414,8 @@ class Print_Admin {
 			<style>.wp-print-custom.hidden { display: none; } .wp-print-custom { margin-top: 1em; }</style>
 			<form method="post" action="options.php">
 				<?php
-				settings_fields( self::OPTION_GROUP );
-				do_settings_sections( self::PAGE_SLUG );
+				settings_fields( self::GROUP );
+				do_settings_sections( self::PAGE );
 				submit_button();
 				?>
 			</form>
@@ -387,4 +424,4 @@ class Print_Admin {
 	}
 }
 
-Print_Admin::init();
+WP_Print_Admin::init();

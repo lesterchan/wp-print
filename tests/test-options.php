@@ -8,7 +8,7 @@
 /**
  * Tests for the plugin options.
  *
- * @covers Print_Options
+ * @covers WP_Print_Options
  */
 class Test_Print_Options extends WP_UnitTestCase {
 
@@ -18,15 +18,15 @@ class Test_Print_Options extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
-		delete_option( Print_Options::OPTION_NAME );
-		delete_option( Print_Options::DB_VERSION_NAME );
+		delete_option( WP_Print_Options::OPTION );
+		delete_option( WP_Print_Options::VERSION );
 	}
 
 	/**
 	 * Every documented key has a default.
 	 */
 	public function test_defaults_cover_every_key() {
-		$defaults = Print_Options::get_defaults();
+		$defaults = WP_Print_Options::get_defaults();
 
 		foreach ( array( 'post_text', 'page_text', 'print_icon', 'print_style', 'print_html', 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
 			$this->assertArrayHasKey( $key, $defaults, "Missing default for $key" );
@@ -40,21 +40,21 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * key" and rendered a print link with no text and no icon.
 	 */
 	public function test_missing_keys_fall_back_to_defaults() {
-		update_option( Print_Options::OPTION_NAME, array( 'print_style' => 3 ) );
+		update_option( WP_Print_Options::OPTION, array( 'print_style' => 3 ) );
 
-		$this->assertSame( 3, (int) Print_Options::get( 'print_style' ) );
-		$this->assertSame( Print_Options::get_defaults()['post_text'], Print_Options::get( 'post_text' ) );
-		$this->assertSame( 'print.gif', Print_Options::get( 'print_icon' ) );
-		$this->assertSame( 0, Print_Options::can( 'thumbnail' ) );
+		$this->assertSame( 3, (int) WP_Print_Options::get( 'print_style' ) );
+		$this->assertSame( WP_Print_Options::get_defaults()['post_text'], WP_Print_Options::get( 'post_text' ) );
+		$this->assertSame( 'print.gif', WP_Print_Options::get( 'print_icon' ) );
+		$this->assertSame( 0, WP_Print_Options::can( 'thumbnail' ) );
 	}
 
 	/**
 	 * A corrupt row does not take the plugin down with it.
 	 */
 	public function test_a_non_array_row_reads_as_defaults() {
-		update_option( Print_Options::OPTION_NAME, 'not an array' );
+		update_option( WP_Print_Options::OPTION, 'not an array' );
 
-		$this->assertSame( Print_Options::get_defaults(), Print_Options::get() );
+		$this->assertSame( WP_Print_Options::get_defaults(), WP_Print_Options::get() );
 	}
 
 	/**
@@ -62,10 +62,10 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * string '0' an older row may hold is truthy.
 	 */
 	public function test_can_returns_an_int() {
-		update_option( Print_Options::OPTION_NAME, array( 'links' => '0' ) );
+		update_option( WP_Print_Options::OPTION, array( 'links' => '0' ) );
 
-		$this->assertSame( 0, Print_Options::can( 'links' ) );
-		$this->assertSame( 0, Print_Options::can( 'no_such_key' ) );
+		$this->assertSame( 0, WP_Print_Options::can( 'links' ) );
+		$this->assertSame( 0, WP_Print_Options::can( 'no_such_key' ) );
 	}
 
 	/**
@@ -73,9 +73,9 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * what an unchecked control sends - reads as off rather than "leave alone".
 	 */
 	public function test_sanitize_normalizes_toggles() {
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'images' => 1 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'images' => 1 ) ) );
 
-		$clean = Print_Options::sanitize(
+		$clean = WP_Print_Options::sanitize(
 			array(
 				'comments' => '1',
 				'images'   => '0',
@@ -90,13 +90,13 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * The style is clamped to one the renderer knows, or nothing renders at all.
 	 */
 	public function test_sanitize_clamps_the_style() {
-		$this->assertSame( 4, Print_Options::sanitize( array( 'print_style' => '4' ) )['print_style'] );
+		$this->assertSame( 4, WP_Print_Options::sanitize( array( 'print_style' => '4' ) )['print_style'] );
 
 		// An unknown style renders nothing at all, so the last valid one is kept.
-		update_option( Print_Options::OPTION_NAME, array_merge( Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'print_style' => 3 ) ) );
 
-		$this->assertSame( 3, Print_Options::sanitize( array( 'print_style' => '99' ) )['print_style'] );
-		$this->assertSame( 3, Print_Options::sanitize( array( 'print_style' => 'abc' ) )['print_style'] );
+		$this->assertSame( 3, WP_Print_Options::sanitize( array( 'print_style' => '99' ) )['print_style'] );
+		$this->assertSame( 3, WP_Print_Options::sanitize( array( 'print_style' => 'abc' ) )['print_style'] );
 	}
 
 	/**
@@ -108,7 +108,7 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * @param string $icon Submitted icon value.
 	 */
 	public function test_sanitize_rejects_an_icon_outside_the_images_directory( $icon ) {
-		$this->assertSame( 'print.gif', Print_Options::sanitize( array( 'print_icon' => $icon ) )['print_icon'] );
+		$this->assertSame( 'print.gif', WP_Print_Options::sanitize( array( 'print_icon' => $icon ) )['print_icon'] );
 	}
 
 	/**
@@ -132,7 +132,7 @@ class Test_Print_Options extends WP_UnitTestCase {
 	public function test_sanitize_accepts_a_bundled_icon() {
 		$this->assertSame(
 			'printer_famfamfam.gif',
-			Print_Options::sanitize( array( 'print_icon' => 'printer_famfamfam.gif' ) )['print_icon']
+			WP_Print_Options::sanitize( array( 'print_icon' => 'printer_famfamfam.gif' ) )['print_icon']
 		);
 	}
 
@@ -146,7 +146,7 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * quote in it does not catch this, which is why this test uses one.
 	 */
 	public function test_sanitize_does_not_slash_link_text() {
-		$clean = Print_Options::sanitize(
+		$clean = WP_Print_Options::sanitize(
 			array(
 				'post_text' => "Tom & Jerry's \"Post\"",
 				'page_text' => "O'Brien & Co",
@@ -168,7 +168,7 @@ class Test_Print_Options extends WP_UnitTestCase {
 	public function test_sanitize_does_not_slash_html_values() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 
-		$clean = Print_Options::sanitize( array( 'disclaimer' => "O'Reilly & Sons <strong>2026</strong>" ) );
+		$clean = WP_Print_Options::sanitize( array( 'disclaimer' => "O'Reilly & Sons <strong>2026</strong>" ) );
 
 		$this->assertSame( "O'Reilly & Sons <strong>2026</strong>", $clean['disclaimer'] );
 	}
@@ -178,9 +178,9 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * link that a reader cannot see or click.
 	 */
 	public function test_sanitize_falls_back_for_empty_link_text() {
-		$clean = Print_Options::sanitize( array( 'post_text' => '   ' ) );
+		$clean = WP_Print_Options::sanitize( array( 'post_text' => '   ' ) );
 
-		$this->assertSame( Print_Options::get_defaults()['post_text'], $clean['post_text'] );
+		$this->assertSame( WP_Print_Options::get_defaults()['post_text'], $clean['post_text'] );
 	}
 
 	/**
@@ -190,7 +190,7 @@ class Test_Print_Options extends WP_UnitTestCase {
 	public function test_sanitize_strips_script_without_unfiltered_html() {
 		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
 
-		$clean = Print_Options::sanitize(
+		$clean = WP_Print_Options::sanitize(
 			array(
 				'disclaimer' => '<strong>ok</strong><script>alert(1)</script>',
 				'print_html' => '<a href="%PRINT_URL%" onclick="alert(1)">x</a>',
@@ -208,11 +208,11 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 */
 	public function test_sanitize_keeps_stored_keys_it_does_not_render() {
 		update_option(
-			Print_Options::OPTION_NAME,
-			array_merge( Print_Options::get_defaults(), array( 'third_party' => 'keep me' ) )
+			WP_Print_Options::OPTION,
+			array_merge( WP_Print_Options::get_defaults(), array( 'third_party' => 'keep me' ) )
 		);
 
-		$clean = Print_Options::sanitize( array( 'post_text' => 'Anything' ) );
+		$clean = WP_Print_Options::sanitize( array( 'post_text' => 'Anything' ) );
 
 		$this->assertSame( 'keep me', $clean['third_party'] );
 	}
@@ -222,7 +222,7 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * becomes a dumping ground for whatever a request carries.
 	 */
 	public function test_sanitize_drops_an_unexpected_posted_key() {
-		$clean = Print_Options::sanitize(
+		$clean = WP_Print_Options::sanitize(
 			array(
 				'post_text'    => 'Anything',
 				'injected_key' => 'nope',
@@ -243,9 +243,9 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 */
 	public function test_a_partial_update_keeps_everything_else() {
 		update_option(
-			Print_Options::OPTION_NAME,
+			WP_Print_Options::OPTION,
 			array_merge(
-				Print_Options::get_defaults(),
+				WP_Print_Options::get_defaults(),
 				array(
 					'disclaimer'  => 'MY DISCLAIMER',
 					'print_html'  => '<a href="%PRINT_URL%">mine</a>',
@@ -256,7 +256,7 @@ class Test_Print_Options extends WP_UnitTestCase {
 			)
 		);
 
-		$clean = Print_Options::sanitize( array( 'comments' => 1 ) );
+		$clean = WP_Print_Options::sanitize( array( 'comments' => 1 ) );
 
 		$this->assertSame( 'MY DISCLAIMER', $clean['disclaimer'] );
 		$this->assertSame( '<a href="%PRINT_URL%">mine</a>', $clean['print_html'] );
@@ -272,11 +272,11 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 */
 	public function test_an_html_field_can_be_emptied_deliberately() {
 		update_option(
-			Print_Options::OPTION_NAME,
-			array_merge( Print_Options::get_defaults(), array( 'disclaimer' => 'MY DISCLAIMER' ) )
+			WP_Print_Options::OPTION,
+			array_merge( WP_Print_Options::get_defaults(), array( 'disclaimer' => 'MY DISCLAIMER' ) )
 		);
 
-		$this->assertSame( '', Print_Options::sanitize( array( 'disclaimer' => '' ) )['disclaimer'] );
+		$this->assertSame( '', WP_Print_Options::sanitize( array( 'disclaimer' => '' ) )['disclaimer'] );
 	}
 
 	/**
@@ -284,18 +284,18 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 */
 	public function test_migration_unslashes_a_legacy_row() {
 		update_option(
-			Print_Options::OPTION_NAME,
+			WP_Print_Options::OPTION,
 			array(
 				'post_text'  => "Tom & Jerry\\'s Post",
 				'disclaimer' => "Copyright \\'26",
 			)
 		);
 
-		Print_Options::maybe_upgrade();
+		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( "Tom & Jerry's Post", Print_Options::get( 'post_text' ) );
-		$this->assertSame( "Copyright '26", Print_Options::get( 'disclaimer' ) );
-		$this->assertSame( WP_PRINT_DB_VERSION, get_option( Print_Options::DB_VERSION_NAME ) );
+		$this->assertSame( "Tom & Jerry's Post", WP_Print_Options::get( 'post_text' ) );
+		$this->assertSame( "Copyright '26", WP_Print_Options::get( 'disclaimer' ) );
+		$this->assertSame( WP_PRINT_DB_VERSION, get_option( WP_Print_Options::VERSION ) );
 	}
 
 	/**
@@ -306,33 +306,33 @@ class Test_Print_Options extends WP_UnitTestCase {
 	 * is what makes this hold.
 	 */
 	public function test_migration_is_idempotent() {
-		update_option( Print_Options::OPTION_NAME, array( 'post_text' => 'Back\\\\slash kept' ) );
+		update_option( WP_Print_Options::OPTION, array( 'post_text' => 'Back\\\\slash kept' ) );
 
-		Print_Options::maybe_upgrade();
-		$once = Print_Options::get( 'post_text' );
+		WP_Print_Options::maybe_upgrade();
+		$once = WP_Print_Options::get( 'post_text' );
 
-		Print_Options::maybe_upgrade();
-		Print_Options::maybe_upgrade();
+		WP_Print_Options::maybe_upgrade();
+		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( $once, Print_Options::get( 'post_text' ) );
+		$this->assertSame( $once, WP_Print_Options::get( 'post_text' ) );
 	}
 
 	/**
 	 * A migrated install keeps its settings; the migration must not reset them.
 	 */
 	public function test_migration_does_not_overwrite_settings_with_defaults() {
-		update_option( Print_Options::DB_VERSION_NAME, WP_PRINT_DB_VERSION );
+		update_option( WP_Print_Options::VERSION, WP_PRINT_DB_VERSION );
 		update_option(
-			Print_Options::OPTION_NAME,
+			WP_Print_Options::OPTION,
 			array(
 				'post_text'   => 'Mine',
 				'print_style' => 3,
 			)
 		);
 
-		Print_Options::maybe_upgrade();
+		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( 'Mine', Print_Options::get( 'post_text' ) );
-		$this->assertSame( 3, (int) Print_Options::get( 'print_style' ) );
+		$this->assertSame( 'Mine', WP_Print_Options::get( 'post_text' ) );
+		$this->assertSame( 3, (int) WP_Print_Options::get( 'print_style' ) );
 	}
 }

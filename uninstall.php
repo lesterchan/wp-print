@@ -12,7 +12,7 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
  *
  * @return void
  */
-function print_uninstall_site() {
+function wp_print_uninstall_site() {
 	delete_option( 'print_options' );
 	delete_option( 'print_db_version' );
 }
@@ -31,11 +31,11 @@ if ( is_multisite() ) {
 
 	foreach ( $site_ids as $site_id ) {
 		switch_to_blog( (int) $site_id );
-		print_uninstall_site();
+		wp_print_uninstall_site();
 		// Inside the loop: switch_to_blog() pushes onto a stack, so restoring once
 		// after the loop would leave it unwound by all but one entry.
 		restore_current_blog();
 	}
 } else {
-	print_uninstall_site();
+	wp_print_uninstall_site();
 }

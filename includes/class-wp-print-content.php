@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
  * numbering is shared between the post body and its comments, and a URL that
  * appears more than once reuses its first number.
  */
-class Print_Content {
+class WP_Print_Content {
 
 	/**
 	 * Highest footnote number handed out so far.
@@ -126,15 +126,15 @@ class Print_Content {
 	 * @return string
 	 */
 	private static function prepare( $content ) {
-		if ( ! Print_Options::can( 'images' ) ) {
+		if ( ! WP_Print_Options::can( 'images' ) ) {
 			$content = self::remove_images( $content );
 		}
 
-		if ( ! Print_Options::can( 'videos' ) ) {
+		if ( ! WP_Print_Options::can( 'videos' ) ) {
 			$content = self::remove_videos( $content );
 		}
 
-		if ( Print_Options::can( 'links' ) ) {
+		if ( WP_Print_Options::can( 'links' ) ) {
 			$content = self::footnote_links( $content );
 		}
 

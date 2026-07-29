@@ -8,8 +8,8 @@
 /**
  * Tests for the print template and the endpoint.
  *
- * @covers Print_Template
- * @covers Print_Core
+ * @covers WP_Print_Template
+ * @covers WP_Print
  */
 class Test_Print_Template extends WP_UnitTestCase {
 
@@ -20,7 +20,7 @@ class Test_Print_Template extends WP_UnitTestCase {
 		parent::set_up();
 
 		$this->set_structure( '/%postname%/' );
-		update_option( Print_Options::OPTION_NAME, Print_Options::get_defaults() );
+		update_option( WP_Print_Options::OPTION, WP_Print_Options::get_defaults() );
 	}
 
 	/**
@@ -37,7 +37,7 @@ class Test_Print_Template extends WP_UnitTestCase {
 	private function set_structure( $structure ) {
 		$this->set_permalink_structure( $structure );
 
-		Print_Core::add_endpoint();
+		WP_Print::add_endpoint();
 		flush_rewrite_rules( false );
 	}
 
@@ -45,7 +45,7 @@ class Test_Print_Template extends WP_UnitTestCase {
 	 * With no theme override, the bundled templates are used.
 	 */
 	public function test_locate_falls_back_to_the_plugin_copy() {
-		$path = Print_Template::locate( 'print-posts.php' );
+		$path = WP_Print_Template::locate( 'print-posts.php' );
 
 		$this->assertFileExists( $path );
 		$this->assertStringContainsString( plugin_dir_path( WP_PRINT_MAIN_FILE ), $path );
@@ -80,10 +80,10 @@ class Test_Print_Template extends WP_UnitTestCase {
 		file_put_contents( $theme_css, '/* fixture */' );
 
 		try {
-			$this->assertSame( $theme_file, Print_Template::locate( 'print-posts.php' ) );
+			$this->assertSame( $theme_file, WP_Print_Template::locate( 'print-posts.php' ) );
 			$this->assertSame(
 				get_stylesheet_directory_uri() . '/print-css.css',
-				Print_Template::asset_url( 'print-css.css' )
+				WP_Print_Template::asset_url( 'print-css.css' )
 			);
 		} finally {
 			wp_delete_file( $theme_file );
@@ -97,7 +97,7 @@ class Test_Print_Template extends WP_UnitTestCase {
 	public function test_asset_url_falls_back_to_the_plugin() {
 		$this->assertSame(
 			plugins_url( 'css/wp-print.css', WP_PRINT_MAIN_FILE ),
-			Print_Template::asset_url( 'print-css.css' )
+			WP_Print_Template::asset_url( 'print-css.css' )
 		);
 	}
 
@@ -107,7 +107,7 @@ class Test_Print_Template extends WP_UnitTestCase {
 	public function test_plugin_url_resolves_inside_the_plugin() {
 		$this->assertSame(
 			plugins_url( 'js/wp-print.js', WP_PRINT_MAIN_FILE ),
-			Print_Template::plugin_url( 'js/wp-print.js' )
+			WP_Print_Template::plugin_url( 'js/wp-print.js' )
 		);
 	}
 
@@ -194,7 +194,7 @@ class Test_Print_Template extends WP_UnitTestCase {
 	 * The URL list prints its heading only when there is something to head.
 	 */
 	public function test_links_list_prints_only_when_populated() {
-		Print_Content::reset();
+		WP_Print_Content::reset();
 
 		ob_start();
 		print_links();
@@ -216,8 +216,8 @@ class Test_Print_Template extends WP_UnitTestCase {
 	 */
 	public function test_disclaimer_keeps_markup_but_not_script() {
 		update_option(
-			Print_Options::OPTION_NAME,
-			array_merge( Print_Options::get_defaults(), array( 'disclaimer' => '<strong>Mine</strong><script>alert(1)</script>' ) )
+			WP_Print_Options::OPTION,
+			array_merge( WP_Print_Options::get_defaults(), array( 'disclaimer' => '<strong>Mine</strong><script>alert(1)</script>' ) )
 		);
 
 		ob_start();
