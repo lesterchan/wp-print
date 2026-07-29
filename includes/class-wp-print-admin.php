@@ -160,19 +160,24 @@ class WP_Print_Admin {
 			)
 		);
 
-		$defaults = array(
-			'print_html' => WP_Print_Options::get_defaults()['print_html'],
-			'disclaimer' => WP_Print_Options::default_disclaimer(),
-		);
-
-		// wp_add_inline_script(), not wp_localize_script(): the latter runs
-		// html_entity_decode() over every scalar, so the disclaimer's &copy; reached
-		// the page as a literal ©. Both render identically, but Restore Default would
-		// then insert something other than the shipped default byte for byte.
-		wp_add_inline_script(
+		/*
+		 * Nested under a key rather than passed as two top-level strings.
+		 * wp_localize_script() runs html_entity_decode() over every *scalar* it
+		 * is given, which turned the disclaimer's &copy; into a literal © -- the
+		 * two render identically, but Restore Default would then have inserted
+		 * something other than the shipped default byte for byte. A value that
+		 * is an array is passed through untouched, so one level of nesting is
+		 * all it takes to keep the defaults exact.
+		 */
+		wp_localize_script(
 			'wp-print-admin',
-			'var wpPrintDefaults = ' . wp_json_encode( $defaults ) . ';',
-			'before'
+			'wpPrintL10n',
+			array(
+				'defaults' => array(
+					'print_html' => WP_Print_Options::get_defaults()['print_html'],
+					'disclaimer' => WP_Print_Options::default_disclaimer(),
+				),
+			)
 		);
 	}
 

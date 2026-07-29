@@ -1,10 +1,10 @@
 /**
  * WP-Print settings screen.
  *
- * Replaces the inline onchange/onclick attributes and the jQuery dependency the
- * screen carried before 3.0.0. One delegated listener handles both Restore
- * Default buttons, so neither the default strings nor the element ids have to be
- * interpolated into an attribute.
+ * Vanilla, with no dependencies at all. Replaces the inline onchange/onclick
+ * attributes and the framework the screen leaned on before 3.0.0. One delegated
+ * listener handles both Restore Default buttons, so neither the default strings
+ * nor the element ids have to be interpolated into an attribute.
  */
 ( function() {
 	function ready( callback ) {
@@ -42,7 +42,7 @@
 
 			event.preventDefault();
 
-			const defaults = window.wpPrintDefaults || {};
+			const defaults = ( window.wpPrintL10n && window.wpPrintL10n.defaults ) || {};
 			const key = button.getAttribute( 'data-print-restore' );
 			const target = document.getElementById( button.getAttribute( 'data-print-target' ) );
 
