@@ -11,6 +11,33 @@
 abstract class WP_Print_TestCase extends WP_UnitTestCase {
 
 	/**
+	 * Creates an administrator who still holds unfiltered_html on a network.
+	 *
+	 * On a single site an administrator has unfiltered_html. Under multisite core
+	 * grants it to super admins only, and that changes what these tests are
+	 * measuring rather than merely who may do it: wp_insert_post() runs the
+	 * fixture through wp_filter_post_kses(), so a post_content of
+	 * `<a href="/go?to=https://example.com">` is rewritten before the plugin ever
+	 * sees it — kses reads `/go?to=https` as a bogus protocol, strips through the
+	 * colon and leaves `//example.com`. The test then fails on kses's output
+	 * instead of the plugin's.
+	 *
+	 * Tests that mean to assert the *unprivileged* path set a subscriber
+	 * explicitly and are unaffected.
+	 *
+	 * @return int The new user's ID.
+	 */
+	protected function create_admin() {
+		$user_id = self::factory()->user->create( array( 'role' => 'administrator' ) );
+
+		if ( is_multisite() ) {
+			grant_super_admin( $user_id );
+		}
+
+		return $user_id;
+	}
+
+	/**
 	 * Clear the plugin's four option rows and the footnote accumulator.
 	 *
 	 * All four, not just the two the plugin writes today: a test that leaves a

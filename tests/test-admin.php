@@ -21,7 +21,7 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 	public function set_up() {
 		parent::set_up();
 
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		wp_set_current_user( $this->create_admin() );
 
 		$this->set_options();
 

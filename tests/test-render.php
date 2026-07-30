@@ -24,7 +24,7 @@ class WP_Print_Render_Test extends WP_Print_TestCase {
 
 		// Fixtures are written as a user who may post unfiltered HTML; see the note
 		// in WP_Print_Content_Test::set_up().
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		wp_set_current_user( $this->create_admin() );
 
 		$this->set_permalink_structure( '/%postname%/' );
 

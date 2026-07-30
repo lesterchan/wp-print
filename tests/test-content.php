@@ -24,7 +24,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 		// set, wp_insert_post() runs the content through KSES, which rewrites an
 		// href carrying a second scheme in its query string - so the fixture would
 		// never reach the code under test intact.
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		wp_set_current_user( $this->create_admin() );
 
 		$this->set_permalink_structure( '/%postname%/' );
 
