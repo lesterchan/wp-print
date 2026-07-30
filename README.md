@@ -208,7 +208,7 @@ No. The two bundled GIFs are one inline SVG that takes its colour from your them
 ### 3.0.0
 The first release since 2.58.3, and six things are worth knowing before you update.
 
-**Your site must be on WordPress 6.8 or later and PHP 8.2 or later.** Anything older will simply not be offered the update. If your host still runs PHP 7.4, ask to be moved to a supported version before updating — 7.4 stopped receiving security fixes in 2022.
+**Your site must be on WordPress 6.8 or later and PHP 8.2 or later.** Anything older will simply not be offered the update. Check `WP-Admin -> Tools -> Site Health -> Info -> Server` for your PHP version; if it is below 8.2, ask your host to move you up. PHP 8.1 and everything before it stopped receiving security fixes.
 
 **Re-save your permalinks after updating.** WP-Admin -> Settings -> Permalinks -> Save Changes. The `/print/` endpoint is unchanged, but the rewrite rules are only written out when you save that screen.
 
