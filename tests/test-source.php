@@ -35,8 +35,10 @@ class WP_Print_Source_Test extends WP_Print_TestCase {
 	}
 
 	/**
-	 * The removed wp_get_sites() is not called: it went in WordPress 5.1, so a call
-	 * fatals on a multisite uninstall rather than merely skipping sites.
+	 * The deprecated wp_get_sites() is not called.
+	 *
+	 * It was deprecated in WordPress 4.6 and is capped at 100 sites, so a call
+	 * uninstalls a larger network in part and still reports success.
 	 */
 	public function test_uninstall_does_not_call_wp_get_sites() {
 		$this->assertStringNotContainsString( 'wp_get_sites', wp_print_test_code( 'uninstall.php' ) );
