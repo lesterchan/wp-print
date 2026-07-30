@@ -149,9 +149,21 @@ class WP_Print {
 	 * @return void
 	 */
 	private static function activate_site() {
-		add_option( WP_Print_Options::OPTION, WP_Print_Options::get_defaults() );
-
+		/*
+		 * Migrate before seeding, not after.
+		 *
+		 * The migration lets a value already in wp_print_options win over the
+		 * legacy one, so that a run interrupted half way cannot undo itself on the
+		 * next. Seeding the defaults first makes every default look like such a
+		 * value, and the legacy settings of a site upgrading from 2.58.3 are then
+		 * silently thrown away -- the one case activation exists to handle. With
+		 * the order this way round a legacy install has its own row folded in and
+		 * add_option() finds the row already there and does nothing, while a fresh
+		 * install migrates nothing and gets the defaults.
+		 */
 		WP_Print_Options::maybe_upgrade();
+
+		add_option( WP_Print_Options::OPTION, WP_Print_Options::get_defaults() );
 
 		// The endpoint is registered on init, which has already run by the time an
 		// activation request reaches this point, so the rules can be rebuilt now.

@@ -233,7 +233,16 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 	 * the only place the plugin prints markup it has built itself. Should the
 	 * list ever stop covering what the link contains -- the glyph is svg, and
 	 * wp_kses_post() has never allowed svg -- the icon styles would quietly lose
-	 * their icon, and only in the half of the API that prints.
+	 * their icon, and only in the half of the API that prints. That loss is what
+	 * this asserts against.
+	 *
+	 * Compared element by element rather than byte for byte, because wp_kses() is
+	 * a normaliser and not a pass-through: among other things it lowercases every
+	 * attribute name, so the glyph's viewBox is printed as viewbox. Nothing is
+	 * lost by that -- an HTML parser maps the lowercase spelling back for SVG
+	 * attributes -- and it is not what this test is here to police. Every element
+	 * and every attribute still has to survive, so an allowlist that stops
+	 * covering svg, path or any attribute on either still fails here.
 	 *
 	 * @dataProvider data_styles
 	 *
@@ -260,7 +269,59 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 		print_link();
 		$echoed = ob_get_clean();
 
-		$this->assertSame( $returned . "\n", $echoed, "Style {$style} does not survive the output filter intact." );
+		$this->assertSame(
+			$this->elements( $returned ),
+			$this->elements( $echoed ),
+			"Style {$style} does not survive the output filter intact."
+		);
+		$this->assertSame(
+			trim( wp_strip_all_tags( $returned ) ),
+			trim( wp_strip_all_tags( $echoed ) ),
+			"Style {$style} loses text passing through the output filter."
+		);
+	}
+
+	/**
+	 * Every element in a fragment, as tag name plus attributes.
+	 *
+	 * Attribute names arrive lowercased because that is how DOMDocument's HTML
+	 * parser reports them, which is the one difference wp_kses() introduces and
+	 * the only one being tolerated. Values are compared as they are. Names and
+	 * values are asked of XPath rather than read off the node as ->nodeValue,
+	 * because DOM spells its properties in camel case and the coding standard
+	 * requires snake_case for every property read.
+	 *
+	 * @param string $html Markup fragment.
+	 * @return array List of arrays keyed tag and attributes.
+	 */
+	private function elements( $html ) {
+		$doc = new DOMDocument();
+		$use = libxml_use_internal_errors( true );
+		$doc->loadHTML( '<?xml encoding="utf-8" ?><div id="print-link-root">' . $html . '</div>' );
+		libxml_clear_errors();
+		libxml_use_internal_errors( $use );
+
+		$xpath = new DOMXPath( $doc );
+		$found = array();
+
+		foreach ( $xpath->query( '//*[@id="print-link-root"]//*' ) as $element ) {
+			$attributes = array();
+
+			foreach ( $xpath->query( '@*', $element ) as $attribute ) {
+				$name = (string) $xpath->evaluate( 'name(.)', $attribute );
+
+				$attributes[ $name ] = (string) $xpath->evaluate( 'string(.)', $attribute );
+			}
+
+			ksort( $attributes );
+
+			$found[] = array(
+				'tag'        => (string) $xpath->evaluate( 'name(.)', $element ),
+				'attributes' => $attributes,
+			);
+		}
+
+		return $found;
 	}
 
 	/**

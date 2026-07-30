@@ -322,11 +322,33 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	 * so a save cannot silently drop a third party's or a filter's addition.
 	 */
 	public function test_sanitize_keeps_stored_keys_it_does_not_render() {
+		/*
+		 * Seeded with the sanitiser detached, which is the only way to get an
+		 * unrendered key into the row at all. register_setting() hangs
+		 * WP_Print_Settings::sanitize() on sanitize_option_wp_print_options, so it
+		 * runs on every update_option() for that row and not merely on a form
+		 * save -- and dropping a posted key this screen does not render is exactly
+		 * what it is supposed to do, as the next test asserts. So writing the key
+		 * through set_options() would have it stripped on the way in, and the
+		 * assertion below would be reading a row that never held it. In real life
+		 * such a key gets there by a filter or an older version writing it
+		 * directly, which is what detaching reproduces.
+		 */
+		$hook = 'sanitize_option_' . WP_Print_Options::OPTION;
+
+		remove_filter( $hook, array( 'WP_Print_Settings', 'sanitize' ) );
 		$this->set_options( array( 'third_party' => 'keep me' ) );
+		add_filter( $hook, array( 'WP_Print_Settings', 'sanitize' ) );
+
+		$this->assertSame(
+			'keep me',
+			WP_Print_Options::get( 'third_party' ),
+			'The fixture did not land, so the assertion below would prove nothing.'
+		);
 
 		$clean = WP_Print_Settings::sanitize( array( 'post_text' => 'Anything' ) );
 
-		$this->assertSame( 'keep me', $clean['third_party'] );
+		$this->assertSame( 'keep me', $clean['third_party'], 'A save dropped a stored key the screen does not render.' );
 	}
 
 	/**

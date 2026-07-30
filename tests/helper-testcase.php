@@ -22,6 +22,23 @@ abstract class WP_Print_TestCase extends WP_UnitTestCase {
 	public function set_up() {
 		parent::set_up();
 
+		/*
+		 * Put the template globals back.
+		 *
+		 * WP_UnitTestCase_Base::tear_down() sets $wp_stylesheet_path and
+		 * $wp_template_path to null on purpose, so a test that switches theme
+		 * cannot leak its template directory into the next one. On a real request
+		 * wp-settings.php populates both before any plugin loads and nothing
+		 * clears them again. locate_template() re-derives them when they are
+		 * unset, but comments_template() -- which print-posts.php calls to print
+		 * the thread -- reads $wp_stylesheet_path straight into trailingslashit(),
+		 * so under the harness alone it hands null to rtrim(). That is fatal here
+		 * because the shared phpunit.xml.dist converts deprecations into
+		 * exceptions. Restoring the invariant the harness broke is what makes the
+		 * render tests exercise the same path a reader's browser does.
+		 */
+		wp_set_template_globals();
+
 		delete_option( WP_Print_Options::OPTION );
 		delete_option( WP_Print_Options::VERSION );
 		delete_option( WP_Print_Options::LEGACY_OPTION );
