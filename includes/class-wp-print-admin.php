@@ -79,7 +79,7 @@ class WP_Print_Admin {
 	public static function add_page() {
 		add_options_page(
 			__( 'Print Options', 'wp-print' ),
-			__( 'Print', 'wp-print' ),
+			__( 'WP-Print', 'wp-print' ),
 			self::capability( 'menu' ),
 			self::PAGE,
 			array( __CLASS__, 'render_page' )
