@@ -149,60 +149,6 @@ No. The two bundled GIFs are one inline SVG that takes its colour from your them
 * NOTE: Support for the Polyglot plugin is removed. It has not been available for over a decade.
 * NOTE: Every documented template tag — `print_link()`, `print_content()`, `print_categories()`, `print_comments_content()`, `print_comments_number()`, `print_links()`, `print_can()` — keeps its name, arguments and behaviour, and `[print_link]` and `[donotprint]` are unchanged. So is the `/print/` URL of every printable page.
 
-### 2.58.3
-* NEW: Bump to WordPress 7.0
-* FIXED: Fixed XSS audit by Claude
-
-### 2.58.2
-* NEW: Use strong instead of b for bold
-* FIXED: Improve RTL
-
-### 2.58.1
-* FIXED: Strip iframe tags as well.
-
-### 2.58
-* NEW: Ability to print thumbnail. Props @MatthieuMota.
-
-### 2.57.2
-* FIXED: Check both parent and child theme
-
-### 2.57.1
-* NEW: Use translate.wordpress.org to translate the plugin
-* FIXED: Unable to update options
-
-### 2.57
-* FIXED: Notices
-
-### 2.56
-* NEW: Updated print HTML code. Props @Luanramos
-
-### 2.55
-* NEW: Bump to 4.1
-* FIXED: get_the_category_list() optional secondary argument
-* FIXED: Replace font with p
-
-### 2.54
-* NEW: Finally there is custom post type support. Props [nimmolo](https://andrewnimmo.org/ "nimmolo").
-* NEW: Allow Multisite Network Activate
-* NEW: Uses WordPress uninstall.php file to uninstall the plugin
-
-### 2.53
-* FIXED: Use get_stylesheet_directory() instead of TEMPLATEPATH
-
-### 2.52
-* FIXED: Added nonce to Options. Credits to Charlie Eriksen via Secunia SVCRP.
-
-### 2.51
-* NEW: Support for links that start with "//"
-* FIXED: Unable to load WP-Print on Password Protected posts
-
-### 2.50
-* NEW: Uses jQuery Framework
-* NEW: [donotprint][/donotprint] ShortCode Will Not Be Displayed As Well When Using WP-Email (Refer To Usage Tab)
-* NEW: Use _n() Instead Of __ngettext() And _n_noop() Instead Of __ngettext_noop()
-* FIXED: Uses $_SERVER['PHP_SELF'] With plugin_basename(__FILE__) Instead Of Just $_SERVER['REQUEST_URI']
-* FIXED: Nested ShortCode Issues
-
 ## Upgrade Notice
 
 ### 3.0.0
