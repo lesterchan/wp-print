@@ -158,7 +158,7 @@ class WP_Print_Settings {
 
 		add_settings_section(
 			self::SECTION_LINK,
-			__( 'Print Link', 'wp-print' ),
+			__( 'Link', 'wp-print' ),
 			'__return_empty_string',
 			$templates
 		);
