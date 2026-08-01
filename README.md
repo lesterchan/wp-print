@@ -119,7 +119,7 @@ No. The two bundled GIFs are one inline SVG that takes its colour from your them
 ## Changelog
 
 ### 3.0.0
-* BREAKING: Requires WordPress 6.8 and PHP 8.2 or newer, up from 6.0 and 7.4.
+* BREAKING: Requires WordPress 6.8 and PHP 8.2, up from 6.0 and 7.4.
 * BREAKING: The settings move from the `print_options` row to `wp_print_options`, and `print_db_version` is replaced by `wp_print_version`. Existing settings are migrated automatically on the first admin page load after upgrading.
 * BREAKING: The `Print_Admin`, `Print_Content`, `Print_Core`, `Print_Link`, `Print_Options` and `Print_Template` classes are renamed `WP_Print_Admin`, `WP_Print_Content`, `WP_Print`, `WP_Print_Link`, `WP_Print_Options` and `WP_Print_Template`.
 * BREAKING: The Print Icon setting and the two bundled GIFs are gone, replaced by one inline SVG. A custom link template using `%PRINT_ICON_URL%` is rewritten to `%PRINT_ICON%` automatically.
@@ -152,20 +152,19 @@ No. The two bundled GIFs are one inline SVG that takes its colour from your them
 ## Upgrade Notice
 
 ### 3.0.0
-The first release since 2.58.3, and six things are worth knowing before you update.
 
-**Your site must be on WordPress 6.8 or later and PHP 8.2 or later.** Anything older will simply not be offered the update. Check `WP-Admin -> Tools -> Site Health -> Info -> Server` for your PHP version; if it is below 8.2, ask your host to move you up. PHP 8.1 and everything before it stopped receiving security fixes.
+Requires WordPress 6.8 and PHP 8.2.
 
-**Re-save your permalinks after updating.** WP-Admin -> Settings -> Permalinks -> Save Changes. The `/print/` endpoint is unchanged, but the rewrite rules are only written out when you save that screen.
+**Re-save your permalinks after updating**, at `WP-Admin -> Settings -> Permalinks -> Save Changes`. The `/print/` endpoint is unchanged, but the rewrite rules are only written out when that screen is saved.
 
-**Your settings move to a new row and are migrated for you.** `print_options` becomes `wp_print_options` and `print_db_version` becomes `wp_print_version`, on the first admin page load after updating. There is nothing to do and nothing to lose, and deleting the plugin removes all four rows.
+**Settings migrate on the first admin page load.** `print_options` becomes `wp_print_options` and `print_db_version` becomes `wp_print_version`. Deleting the plugin removes all four rows.
 
-**The print icon is no longer a choice.** The two bundled GIFs are one inline SVG that takes its colour from your theme and stays sharp on any screen, so the Print Icon setting is gone. If you had built a custom link template around `%PRINT_ICON_URL%`, it is rewritten to `%PRINT_ICON%` for you — that placeholder inserts the glyph itself rather than a URL to an image.
+**The print icon is no longer a choice.** The two bundled GIFs are one inline SVG that takes its colour from your theme, so the Print Icon setting is gone. A custom link template built around `%PRINT_ICON_URL%` is rewritten to `%PRINT_ICON%`, which inserts the glyph itself rather than a URL to an image.
 
-**A right-to-left site stops calling out to Google.** The mirrored stylesheet pulled a webfont from `fonts.googleapis.com` on every print view, which meant every reader printing a page announced themselves to a third party. Deleting the sheet took the request with it, and the printable page now uses the fonts already on the reader's device.
+**A right-to-left site stops calling out to Google.** The mirrored stylesheet pulled a webfont from `fonts.googleapis.com` on every print view, so every reader printing a page announced themselves to a third party. The sheet is gone, and the printable page uses the fonts already on the reader's device.
 
-**If you copied `print-posts.php` into your theme, it needs one edit.** Change its `<body>` tag to `<body class="wp-print">`. Every rule in the new stylesheet is scoped to that class, so without it your printable page loads a stylesheet that matches nothing. While you are in there: `print-css-rtl.css` no longer exists, the plugin's own copies of the two templates moved to `includes/` and the stylesheet to `css/wp-print.css`, and the `<link>` and `<script>` tags in the head are now printed by `wp_print_styles( array( 'wp-print' ) )` and `wp_print_scripts( array( 'wp-print' ) )`. Your copy still takes precedence and still works; compare it against the new one to pick up this release's fixes.
+**If you copied `print-posts.php` into your theme, change its `<body>` tag to `<body class="wp-print">`.** Every rule in the new stylesheet is scoped to that class, so without it your printable page loads a stylesheet that matches nothing. Also: `print-css-rtl.css` no longer exists, the plugin's own templates moved to `includes/` and its stylesheet to `css/wp-print.css`, and the `<link>` and `<script>` tags in the head are printed by `wp_print_styles( array( 'wp-print' ) )` and `wp_print_scripts( array( 'wp-print' ) )`. Your copy still takes precedence; compare it against the new one to pick up this release's fixes.
 
-**If your code referred to the plugin's classes, they are all renamed.** `Print_Admin`, `Print_Content`, `Print_Core`, `Print_Link`, `Print_Options` and `Print_Template` become `WP_Print_Admin`, `WP_Print_Content`, `WP_Print`, `WP_Print_Link`, `WP_Print_Options` and `WP_Print_Template`. `Print_` was far too common a prefix to leave unclaimed in the global namespace.
+**Classes are renamed.** `Print_Admin`, `Print_Content`, `Print_Core`, `Print_Link`, `Print_Options` and `Print_Template` become `WP_Print_Admin`, `WP_Print_Content`, `WP_Print`, `WP_Print_Link`, `WP_Print_Options` and `WP_Print_Template`. `Print_` was far too common a prefix to leave unclaimed in the global namespace.
 
-Every documented template tag keeps its name, arguments and behaviour, `[print_link]` and `[donotprint]` are unchanged, and so is the `/print/` URL of every printable page — nothing anyone has linked to will break. The one exception is the third argument to `print_link()`, renamed from `$echo` to `$display`, which matters only if you were passing it by name.
+Every documented template tag keeps its name, arguments and behaviour, `[print_link]` and `[donotprint]` are unchanged, and so is the `/print/` URL of every printable page. The one exception is the third argument to `print_link()`, renamed from `$echo` to `$display`, which matters only if you were passing it by name.
