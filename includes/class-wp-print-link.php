@@ -10,30 +10,18 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Builds the link that takes a reader to the print view.
  *
- * The markup of all four styles is byte-for-byte what previous releases emitted,
- * because it is the plugin's most visible output and themes style it by class.
+ * One HTML template, held in `print_html`, with three placeholders substituted
+ * into it. Up to 3.0.0 there were three fixed markups and two link labels as
+ * well; the template could express all of them and the four settings could not
+ * express anything else, so the template is all that is left. What each of the
+ * three used to render is now what the migration writes into a template.
+ *
+ * A placeholder the plugin does not know is left in the markup exactly as the
+ * site wrote it. That is deliberate: a template still carrying the retired
+ * %PRINT_TEXT% is visibly wrong on the page rather than silently missing its
+ * words, and the difference is whether anybody notices.
  */
 class WP_Print_Link {
-
-	/**
-	 * Style: icon followed by a text link.
-	 */
-	const STYLE_ICON_TEXT = 1;
-
-	/**
-	 * Style: icon only.
-	 */
-	const STYLE_ICON = 2;
-
-	/**
-	 * Style: text link only.
-	 */
-	const STYLE_TEXT = 3;
-
-	/**
-	 * Style: the custom HTML template.
-	 */
-	const STYLE_CUSTOM = 4;
 
 	/**
 	 * The printer glyph.
@@ -63,8 +51,8 @@ class WP_Print_Link {
 	 * The tags and attributes the link may contain.
 	 *
 	 * A closed list rather than wp_kses_post(): that one has never allowed
-	 * `svg`, so it would quietly strip the glyph out of styles 1 and 2. Used at
-	 * the point the link is echoed.
+	 * `svg`, so it would quietly strip the glyph the template substitutes in.
+	 * Used at the point the link is echoed.
 	 *
 	 * @return array
 	 */
@@ -120,43 +108,39 @@ class WP_Print_Link {
 	 * caller escapes at the point of output, exactly as get_the_title() leaves
 	 * that to the_title(). print_link() does it for you.
 	 *
-	 * @param string $post_text Optional override for the post link text.
-	 * @param string $page_text Optional override for the page link text.
 	 * @return string
 	 */
-	public static function render( $post_text = '', $page_text = '' ) {
-		$options = WP_Print_Options::get();
+	public static function render() {
+		return str_replace(
+			array( '%PRINT_URL%', '%PRINT_ICON%', '%POST_TYPE%' ),
+			array( esc_url( self::url() ), self::icon(), self::post_type_label() ),
+			(string) WP_Print_Options::get( 'print_html' )
+		);
+	}
 
-		$text = is_page()
-			? ( '' !== $page_text ? $page_text : $options['page_text'] )
-			: ( '' !== $post_text ? $post_text : $options['post_text'] );
+	/**
+	 * What %POST_TYPE% stands for on the post being rendered.
+	 *
+	 * The post type's own singular label, so one template says "Print This Post"
+	 * on a post, "Print This Page" on a page and "Print This Recipe" on a site
+	 * whose recipes are a post type of their own -- which is a sentence the two
+	 * labels this replaced could not produce between them.
+	 *
+	 * Outside the loop there is no post to ask, and the shipped wording has said
+	 * "Post" there since the plugin's first release.
+	 *
+	 * @return string
+	 */
+	public static function post_type_label() {
+		$post_type = get_post_type_object( get_post_type() );
 
-		$url_esc  = esc_url( self::url() );
-		$text_esc = esc_attr( $text );
-		$icon     = self::icon();
-
-		switch ( (int) $options['print_style'] ) {
-			case self::STYLE_ICON_TEXT:
-				return '<a href="' . $url_esc . '" title="' . $text_esc . '" rel="nofollow">' . $icon . '</a>&nbsp;<a href="' . $url_esc . '" title="' . $text_esc . '" rel="nofollow">' . $text . '</a>';
-
-			case self::STYLE_ICON:
-				// aria-label as well as title: with the glyph hidden from
-				// assistive technology and no text beside it, the link would
-				// otherwise have no accessible name at all.
-				return '<a href="' . $url_esc . '" title="' . $text_esc . '" aria-label="' . $text_esc . '" rel="nofollow">' . $icon . '</a>';
-
-			case self::STYLE_TEXT:
-				return '<a href="' . $url_esc . '" title="' . $text_esc . '" rel="nofollow">' . $text . '</a>';
-
-			case self::STYLE_CUSTOM:
-				return str_replace(
-					array( '%PRINT_URL%', '%PRINT_TEXT%', '%PRINT_ICON%' ),
-					array( $url_esc, $text, $icon ),
-					$options['print_html']
-				);
+		if ( $post_type instanceof WP_Post_Type
+			&& isset( $post_type->labels->singular_name )
+			&& '' !== (string) $post_type->labels->singular_name ) {
+			return (string) $post_type->labels->singular_name;
 		}
 
-		return '';
+		return __( 'Post', 'wp-print' );
 	}
 
 	/**

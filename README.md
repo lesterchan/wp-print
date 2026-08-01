@@ -45,7 +45,7 @@ if ( function_exists( 'wp_print' ) ) {
 }
 ```
 
-`print_link( $post_text, $page_text, $display )` takes the link text for a post, the link text for a page, and whether to print or return. All three are optional; the two labels default to what you set on the settings screen.
+`print_link( $post_text, $page_text, $display )` takes whether to print or return as its third argument. The first two used to override the link text and no longer do anything: the link is one HTML template on the settings screen, under Templates, and `%POST_TYPE%` in it becomes Post, Page or the name of whatever custom post type is being printed. They stay in the signature so that a theme still passing them keeps working.
 
 If you would rather not have the link on every post, leave your theme alone and type `[print_link]` into the one post or page that needs it.
 
@@ -56,7 +56,7 @@ If you would rather not have the link on every post, leave your theme alone and 
 
 ### Template Tags
 
-* `print_link( $post_text, $page_text, $display )` — the print link.
+* `print_link( $post_text, $page_text, $display )` — the print link. Only the third argument does anything.
 * `print_content( $display )` — the post content, prepared for printing.
 * `print_comments_content( $display )` — the current comment's content.
 * `print_categories( $before, $after )` — the categories, each wrapped in your markup.
@@ -64,6 +64,16 @@ If you would rather not have the link on every post, leave your theme alone and 
 * `print_links( $heading )` — the collected list of URLs.
 * `print_can( $type )` — whether one of the options is on.
 * `print_disclaimer()` — the disclaimer or copyright line.
+
+### The Print Link
+
+The print link is one HTML template, at WP-Admin -> Settings -> WP-Print -> Templates. Three placeholders are replaced when it is rendered:
+
+* `%PRINT_URL%` — the URL of the printable version.
+* `%POST_TYPE%` — what is being printed, in the singular: Post, Page, or the name of a custom post type.
+* `%PRINT_ICON%` — the printer glyph, as an inline SVG that takes its colour from your theme.
+
+Anything else is left in the markup exactly as you typed it. Restore Default Template puts the shipped one back.
 
 ### Custom Template
 
@@ -110,9 +120,17 @@ Yes, two ways. Copy `print-css.css` into your theme to replace the stylesheet ou
 
 No. The two bundled GIFs are one inline SVG that takes its colour from your theme and stays sharp at any size, so there is nothing left to choose between and the Print Icon setting is gone.
 
+### Where did Print Text Link For Post, For Page and Print Text Link Style go?
+
+They are one HTML template, on the Templates tab. The style dropdown offered three fixed markups and a custom template; the three were templates too, written in PHP rather than in the box, so all four are now the box. Write the wording you want into it and use `%POST_TYPE%` where the words Post or Page used to differ. Your existing settings are converted on upgrade.
+
+### What replaced %PRINT_TEXT%?
+
+Nothing, because there is nothing left for it to stand for: it inserted whichever of the two link labels applied, and the wording now lives in the template itself. Use `%POST_TYPE%` for the part that changes between a post and a page. A template still containing `%PRINT_TEXT%` renders it on the page as written, which is deliberate — it is how you find the ones that need editing.
+
 ## Screenshots
 
-1. Admin Print Options
+1. Admin Print Settings
 2. Print Post Link
 3. Print Page
 
@@ -123,6 +141,7 @@ No. The two bundled GIFs are one inline SVG that takes its colour from your them
 * BREAKING: The settings move from the `print_options` row to `wp_print_options`, and `print_db_version` is replaced by `wp_print_version`. Existing settings are migrated automatically on the first admin page load after upgrading.
 * BREAKING: The `Print_Admin`, `Print_Content`, `Print_Core`, `Print_Link`, `Print_Options` and `Print_Template` classes are renamed `WP_Print_Admin`, `WP_Print_Content`, `WP_Print`, `WP_Print_Link`, `WP_Print_Options` and `WP_Print_Template`.
 * BREAKING: The Print Icon setting and the two bundled GIFs are gone, replaced by one inline SVG. A custom link template using `%PRINT_ICON_URL%` is rewritten to `%PRINT_ICON%` automatically.
+* BREAKING: Print Text Link For Post, Print Text Link For Page and Print Text Link Style are gone. The print link is one HTML template with a new `%POST_TYPE%` placeholder, and existing settings are converted into it automatically. `%PRINT_TEXT%` is retired, and the first two arguments to `print_link()` no longer do anything.
 * BREAKING: `print-css-rtl.css` is deleted. The one stylesheet now serves both text directions.
 * BREAKING: A theme's copy of `print-posts.php` needs `class="wp-print"` on its `<body>` tag to pick up the new stylesheet.
 * NEW: The print icon is an inline SVG that inherits your theme's link colour and stays sharp on any screen.
@@ -130,6 +149,7 @@ No. The two bundled GIFs are one inline SVG that takes its colour from your them
 * NEW: The stylesheet is tunable through CSS custom properties rather than by forking it.
 * NEW: `wp_print_capability` filters the capability the settings screen requires; `wp_print_allowed_html` filters the tags the printed document may carry.
 * NEW: Rewritten as classes under `includes/`, following the Plugin Handbook's folder structure.
+* NEW: The settings screen is two tabs, Settings and Templates, over the same option row.
 * NEW: The options screen now uses the WordPress Settings API. Its address changes from `options-general.php?page=wp-print/print-options.php` to `options-general.php?page=wp-print` — the Settings -> Print menu item is unaffected, and there is now a Settings link on the Plugins screen. Update any bookmark.
 * NEW: No more jQuery. The settings screen and the print view use plain JavaScript, and every inline `onclick` attribute is gone.
 * NEW: Print options are stored unslashed. An existing install is migrated once, automatically, on the first admin page load after upgrading.
@@ -160,6 +180,10 @@ Requires WordPress 6.8 and PHP 8.2.
 **Settings migrate on the first admin page load.** `print_options` becomes `wp_print_options` and `print_db_version` becomes `wp_print_version`. Deleting the plugin removes all four rows.
 
 **The print icon is no longer a choice.** The two bundled GIFs are one inline SVG that takes its colour from your theme, so the Print Icon setting is gone. A custom link template built around `%PRINT_ICON_URL%` is rewritten to `%PRINT_ICON%`, which inserts the glyph itself rather than a URL to an image.
+
+**The print link is one template now, and it is on its own tab.** Print Text Link For Post, Print Text Link For Page and Print Text Link Style are gone; the screen is Settings and Templates, and the template is under Templates. Your four settings are converted into a template on the first admin page load: the style you chose decides the markup, so an icon-only link stays icon-only, and the wording is carried across. Where both labels were still the shipped "Print This Post" and "Print This Page" they collapse to the new `%POST_TYPE%` placeholder, which resolves to Post, Page or a custom post type's own name. Where you had customised them and the two said different things, the post wording is used for both and the page wording is lost — one template cannot hold two arbitrary strings. A link template you had already written is left exactly as it is.
+
+`%PRINT_TEXT%` is retired with the settings it drew on. It is not blanked: a template still containing it renders it on the page as written, so an install that needs editing says so rather than losing its words silently. The first two arguments to `print_link()` are ignored for the same reason and stay in the signature so existing theme code does not fatal.
 
 **A right-to-left site stops calling out to Google.** The mirrored stylesheet pulled a webfont from `fonts.googleapis.com` on every print view, so every reader printing a page announced themselves to a third party. The sheet is gone, and the printable page uses the fonts already on the reader's device.
 

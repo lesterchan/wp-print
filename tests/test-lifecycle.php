@@ -34,7 +34,7 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 		$stored = get_option( WP_Print_Options::OPTION );
 
 		$this->assertIsArray( $stored );
-		$this->assertSame( 1, (int) $stored['print_style'] );
+		$this->assertSame( WP_Print_Options::default_template(), $stored['print_html'] );
 		$this->assertSame(
 			array(
 				'plugin' => WP_PRINT_VERSION,
@@ -54,16 +54,16 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 			array_merge(
 				WP_Print_Options::get_defaults(),
 				array(
-					'post_text'   => 'Mine',
-					'print_style' => 3,
+					'disclaimer' => 'Mine',
+					'links'      => 0,
 				)
 			)
 		);
 
 		WP_Print::activate();
 
-		$this->assertSame( 'Mine', WP_Print_Options::get( 'post_text' ) );
-		$this->assertSame( 3, (int) WP_Print_Options::get( 'print_style' ) );
+		$this->assertSame( 'Mine', WP_Print_Options::get( 'disclaimer' ) );
+		$this->assertSame( 0, WP_Print_Options::can( 'links' ) );
 	}
 
 	/**
@@ -71,11 +71,11 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 	 * is fixed up whichever way it gets there.
 	 */
 	public function test_activation_runs_the_migration() {
-		update_option( WP_Print_Options::LEGACY_OPTION, array( 'post_text' => "Tom & Jerry\\'s Post" ) );
+		update_option( WP_Print_Options::LEGACY_OPTION, array( 'disclaimer' => "Tom & Jerry\\'s Post" ) );
 
 		WP_Print::activate();
 
-		$this->assertSame( "Tom & Jerry's Post", WP_Print_Options::get( 'post_text' ) );
+		$this->assertSame( "Tom & Jerry's Post", WP_Print_Options::get( 'disclaimer' ) );
 		$this->assertFalse( get_option( WP_Print_Options::LEGACY_OPTION ) );
 		$this->assertSame( WP_PRINT_DB_VERSION, WP_Print_Options::markers()['db'] );
 	}

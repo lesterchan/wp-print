@@ -4,10 +4,10 @@
  * The link is the plugin's most visible output and the one themes style by
  * class, so its markup is byte-for-byte what earlier releases emitted. That
  * makes it exactly the sort of thing a unit test can pass while a browser gets
- * something else: the four styles differ only in which elements are present, the
- * glyph is an inline SVG that a stricter kses would silently eat, and the URL
- * takes two different shapes depending on a site-wide setting that has nothing
- * to do with this plugin.
+ * something else: the glyph is an inline SVG that a stricter kses would silently
+ * eat, %POST_TYPE% only resolves against a real request's post, and the URL takes
+ * two different shapes depending on a site-wide setting that has nothing to do
+ * with this plugin.
  *
  * Every test here ends at the far end -- either the rendered element or the
  * document the href actually leads to -- rather than at the stored row.
@@ -16,7 +16,6 @@
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const {
 	createPrintablePost,
-	defaultOptions,
 	deleteOptions,
 	permalinkStructure,
 	printUrl,
@@ -28,9 +27,6 @@ const {
 /** The permalink structure the environment started with, put back afterwards. */
 let originalPermalinks;
 
-/** The shipped defaults, which two tests compare rendered text against. */
-let defaults;
-
 test.describe( 'The print link', () => {
 	test.beforeAll( async ( { requestUtils } ) => {
 		await requestUtils.deleteAllPosts();
@@ -38,7 +34,6 @@ test.describe( 'The print link', () => {
 		deleteOptions();
 
 		originalPermalinks = permalinkStructure();
-		defaults = defaultOptions();
 	} );
 
 	test.afterEach( async () => {
@@ -63,18 +58,16 @@ test.describe( 'The print link', () => {
 
 		const content = page.locator( '.entry-content' );
 
-		// The default is icon-and-text, which is two anchors to the same place.
-		await expect( content.locator( 'a[rel="nofollow"]' ) ).toHaveCount( 2 );
+		// The shipped template is one anchor carrying the glyph and the words.
+		await expect( content.locator( 'a[rel="nofollow"]' ) ).toHaveCount( 1 );
 		await expect( content.locator( 'svg.WP-PrintIcon' ) ).toHaveCount( 1 );
 
-		// The second of the two, which is the one carrying the words. Both have
-		// the same accessible name -- the glyph's link gets it from the title
-		// attribute, because the SVG inside it is aria-hidden -- so a query by
-		// name matches both and strict mode refuses to guess.
-		const link = content.locator( 'a[rel="nofollow"]' ).last();
+		const link = content.locator( 'a[rel="nofollow"]' );
 
-		await expect( link ).toHaveText( defaults.post_text );
-		await expect( link ).toHaveAttribute( 'title', defaults.post_text );
+		// %POST_TYPE% resolved against the post being viewed, in the anchor and in
+		// the title attribute both.
+		await expect( link ).toHaveText( 'Print This Post' );
+		await expect( link ).toHaveAttribute( 'title', 'Print This Post' );
 
 		// And the href is not merely well-formed: following it renders the print
 		// view. Without this half every other test in the file could be asserting
@@ -85,11 +78,15 @@ test.describe( 'The print link', () => {
 		await expect( page.locator( 'h1.entry-title' ) ).toHaveText( title );
 	} );
 
-	test( 'the icon-only style is one link with an accessible name and no visible text', async ( {
+	test( 'an icon-only template is one link with an accessible name and no visible text', async ( {
 		page,
 		requestUtils,
 	} ) => {
-		setOptions( { print_style: 2 } );
+		setOptions( {
+			print_html:
+				'<a href="%PRINT_URL%" rel="nofollow" title="Print This %POST_TYPE%"' +
+				' aria-label="Print This %POST_TYPE%">%PRINT_ICON%</a>',
+		} );
 
 		const post = await createPrintablePost( requestUtils );
 
@@ -101,17 +98,19 @@ test.describe( 'The print link', () => {
 		await expect( link.locator( 'svg.WP-PrintIcon' ) ).toHaveCount( 1 );
 
 		// The glyph is aria-hidden, so without the aria-label this link would have
-		// no accessible name at all -- which is the whole reason the style carries
-		// one and the others do not.
-		await expect( link ).toHaveAttribute( 'aria-label', defaults.post_text );
+		// no accessible name at all -- which is why the shape the migration writes
+		// for an icon-only site carries one.
+		await expect( link ).toHaveAttribute( 'aria-label', 'Print This Post' );
 		await expect( link ).toHaveText( '' );
 	} );
 
-	test( 'the text-only style drops the glyph and keeps the words', async ( {
+	test( 'a text-only template drops the glyph and keeps the words', async ( {
 		page,
 		requestUtils,
 	} ) => {
-		setOptions( { print_style: 3 } );
+		setOptions( {
+			print_html: '<a href="%PRINT_URL%" rel="nofollow" title="Print This %POST_TYPE%">Print This %POST_TYPE%</a>',
+		} );
 
 		const post = await createPrintablePost( requestUtils );
 
@@ -121,14 +120,13 @@ test.describe( 'The print link', () => {
 
 		await expect( content.locator( 'a[rel="nofollow"]' ) ).toHaveCount( 1 );
 		await expect( content.locator( 'svg.WP-PrintIcon' ) ).toHaveCount( 0 );
-		await expect( content.getByRole( 'link', { name: defaults.post_text } ) ).toBeVisible();
+		await expect( content.getByRole( 'link', { name: 'Print This Post' } ) ).toBeVisible();
 	} );
 
-	test( 'the custom style substitutes all three placeholders', async ( { page, requestUtils } ) => {
+	test( "a site's own template is rendered with its markup kept", async ( { page, requestUtils } ) => {
 		setOptions( {
-			print_style: 4,
 			print_html:
-				'<a class="my-print" href="%PRINT_URL%" title="%PRINT_TEXT%">%PRINT_ICON% %PRINT_TEXT%</a>',
+				'<a class="my-print" href="%PRINT_URL%" title="Print This %POST_TYPE%">%PRINT_ICON% Print This %POST_TYPE%</a>',
 		} );
 
 		const post = await createPrintablePost( requestUtils );
@@ -137,23 +135,40 @@ test.describe( 'The print link', () => {
 
 		const link = page.locator( '.entry-content a.my-print' );
 
-		// %PRINT_URL%, %PRINT_TEXT% and %PRINT_ICON% each replaced, and the
+		// %PRINT_URL%, %POST_TYPE% and %PRINT_ICON% each replaced, and the
 		// template's own markup kept -- the class is the proof that the plugin
-		// rendered the site's template rather than one of its own three styles.
+		// rendered the site's template rather than something of its own.
 		await expect( link ).toHaveAttribute( 'href', printUrl( post.link ) );
-		await expect( link ).toHaveAttribute( 'title', defaults.post_text );
-		await expect( link ).toContainText( defaults.post_text );
+		await expect( link ).toHaveAttribute( 'title', 'Print This Post' );
+		await expect( link ).toContainText( 'Print This Post' );
 		await expect( link.locator( 'svg.WP-PrintIcon' ) ).toHaveCount( 1 );
 	} );
 
-	test( 'a style the plugin does not know renders nothing, and a known one renders again', async ( {
+	test( 'a placeholder the plugin does not know is left on the page as written', async ( {
 		page,
 		requestUtils,
 	} ) => {
-		// Only reachable through a row the settings screen did not write: the
-		// sanitizer rejects anything outside 1-4. Rendering nothing is the right
-		// answer, but it must not be a state the plugin gets stuck in.
-		setOptions( { print_style: 9 } );
+		// %PRINT_TEXT% is retired, and a template that still carries it is a
+		// template the migration deliberately did not touch -- a site that was
+		// already writing its own. Leaving the placeholder standing is what makes
+		// that visible to the owner. Blanking it would leave a link with no words
+		// and nothing to say why.
+		setOptions( { print_html: '<a class="my-print" href="%PRINT_URL%">%PRINT_TEXT%</a>' } );
+
+		const post = await createPrintablePost( requestUtils );
+
+		await page.goto( post.link );
+
+		await expect( page.locator( '.entry-content a.my-print' ) ).toHaveText( '%PRINT_TEXT%' );
+	} );
+
+	test( 'an empty template renders nothing, and a template renders again', async ( {
+		page,
+		requestUtils,
+	} ) => {
+		// A site may genuinely want no link. Rendering nothing is the right answer,
+		// but it must not be a state the plugin gets stuck in.
+		setOptions( { print_html: '' } );
 
 		const post = await createPrintablePost( requestUtils );
 
@@ -162,18 +177,17 @@ test.describe( 'The print link', () => {
 		await expect( page.locator( '.entry-content a[rel="nofollow"]' ) ).toHaveCount( 0 );
 		await expect( page.locator( '.entry-content svg.WP-PrintIcon' ) ).toHaveCount( 0 );
 
-		setOptions( { print_style: 3 } );
+		setOptions( { print_html: '<a href="%PRINT_URL%" rel="nofollow">Print</a>' } );
 
 		await page.goto( post.link );
 
 		await expect( page.locator( '.entry-content a[rel="nofollow"]' ) ).toHaveCount( 1 );
 	} );
 
-	test( 'a post uses the post text and a page uses the page text', async ( {
-		page,
-		requestUtils,
-	} ) => {
-		setOptions( { print_style: 3, post_text: 'Print the post', page_text: 'Print the page' } );
+	test( '%POST_TYPE% says Post on a post and Page on a page', async ( { page, requestUtils } ) => {
+		setOptions( {
+			print_html: '<a href="%PRINT_URL%" rel="nofollow">Print this %POST_TYPE%</a>',
+		} );
 
 		const post = await createPrintablePost( requestUtils );
 		const pageFixture = await requestUtils.createPage( {
@@ -183,15 +197,15 @@ test.describe( 'The print link', () => {
 		} );
 
 		await page.goto( post.link );
-		await expect( page.locator( '.entry-content' ) ).toContainText( 'Print the post' );
-		await expect( page.locator( '.entry-content' ) ).not.toContainText( 'Print the page' );
+		await expect( page.locator( '.entry-content' ) ).toContainText( 'Print this Post' );
+		await expect( page.locator( '.entry-content' ) ).not.toContainText( 'Print this Page' );
 
-		// The two texts are separate settings precisely so a site can say "Print
-		// this page" on pages, and the branch that chooses between them is
-		// is_page() -- which only means anything in a real request.
+		// One template where there used to be two labels, and this is the half that
+		// only a real request can answer: the placeholder resolves against the post
+		// type of whatever is being viewed.
 		await page.goto( pageFixture.link );
-		await expect( page.locator( '.entry-content' ) ).toContainText( 'Print the page' );
-		await expect( page.locator( '.entry-content' ) ).not.toContainText( 'Print the post' );
+		await expect( page.locator( '.entry-content' ) ).toContainText( 'Print this Page' );
+		await expect( page.locator( '.entry-content' ) ).not.toContainText( 'Print this Post' );
 	} );
 
 	test( 'the link works under plain permalinks too, as a query argument', async ( {
@@ -261,15 +275,11 @@ test.describe( 'The print link', () => {
 		// untouched. That list exists because wp_kses_post() has never allowed
 		// <svg>, so the wrong list here would silently drop the glyph and nothing
 		// else would notice.
-		await expect( tag.locator( 'a[rel="nofollow"]' ) ).toHaveCount( 2 );
+		await expect( tag.locator( 'a[rel="nofollow"]' ) ).toHaveCount( 1 );
 		await expect( tag.locator( 'svg.WP-PrintIcon' ) ).toHaveCount( 1 );
 		await expect( tag.locator( 'svg.WP-PrintIcon path' ) ).toHaveCount( 3 );
 
-		// The second anchor, the one carrying the words. Both have the same
-		// accessible name -- the glyph's link takes its from the title
-		// attribute, since the SVG inside is aria-hidden -- so a query by name
-		// matches both and strict mode refuses to guess.
-		await expect( tag.locator( 'a[rel="nofollow"]' ).last() ).toHaveAttribute(
+		await expect( tag.locator( 'a[rel="nofollow"]' ) ).toHaveAttribute(
 			'href',
 			printUrl( post.link ),
 		);

@@ -38,13 +38,21 @@ const LEGACY_OPTION = 'print_options';
 /** The schema counter every release up to 2.58.3 used. */
 const LEGACY_VERSION_OPTION = 'print_db_version';
 
-/** The four link styles, by the name the settings screen gives them. */
-const STYLE = {
-	iconAndText: '1',
-	iconOnly: '2',
-	textOnly: '3',
-	custom: '4',
+/** The two tabs the settings screen is split across. */
+const TAB = {
+	settings: 'settings',
+	templates: 'templates',
 };
+
+/**
+ * The URL of one tab of the settings screen.
+ *
+ * @param {string} tab Tab slug.
+ * @return {string} The admin URL for that tab.
+ */
+function tabUrl( tab ) {
+	return `${ SETTINGS_URL }&tab=${ tab }`;
+}
 
 /**
  * Run PHP inside the tests environment and hand back what it printed.
@@ -450,18 +458,26 @@ function printUrl( postLink ) {
 }
 
 /**
- * Open the settings screen.
+ * Open one tab of the settings screen.
+ *
+ * Defaults to the Settings tab, which is what a bare visit to the screen lands
+ * on. The Templates tab is a query argument on the same page, not a page of its
+ * own -- one option row, one registered setting, two tabs over it.
  *
  * @param {import('@playwright/test').Page} page Page under test.
+ * @param {string}                          tab  Tab slug.
  * @return {Promise<void>} Resolves once the screen is up.
  */
-async function openSettings( page ) {
-	await page.goto( SETTINGS_URL );
+async function openSettings( page, tab = TAB.settings ) {
+	await page.goto( tab === TAB.settings ? SETTINGS_URL : tabUrl( tab ) );
 
-	// The h1 specifically. "Print Options" is also the title of the second
-	// settings section, so a bare role query matches the page heading and an h2
-	// inside the form, and strict mode refuses to guess which was meant.
-	await expect( page.getByRole( 'heading', { level: 1, name: 'Print Options' } ) ).toBeVisible();
+	// The h1 specifically: a bare role query would also match the section
+	// headings inside the form, and strict mode refuses to guess which was meant.
+	await expect( page.getByRole( 'heading', { level: 1, name: 'Print Settings' } ) ).toBeVisible();
+
+	// And the tab that was asked for is the one drawn, or every assertion after
+	// this is about the other tab's fields being absent for the wrong reason.
+	await expect( page.locator( '.nav-tab-active' ) ).toHaveAttribute( 'href', new RegExp( `tab=${ tab }` ) );
 }
 
 /**
@@ -504,7 +520,7 @@ module.exports = {
 	OPTION,
 	PLUGINS_URL,
 	SETTINGS_URL,
-	STYLE,
+	TAB,
 	VERSION_OPTION,
 	attachThumbnail,
 	clearFixtureOption,
@@ -529,6 +545,7 @@ module.exports = {
 	setFixtureOption,
 	setOptions,
 	setPermalinkStructure,
+	tabUrl,
 	takeFixtureOption,
 	uniqueTitle,
 	wpEval,

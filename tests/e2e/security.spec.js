@@ -1,10 +1,15 @@
 /**
  * The stored XSS regressions, in a real browser.
  *
- * WP-Print echoes three things it read out of its own option row -- the two link
- * texts, the custom link template and the disclaimer -- and one thing it read
- * out of somebody else's: the post body, which it re-escapes on the way into the
- * printed document. All four are covered here.
+ * WP-Print echoes two things it read out of its own option row -- the link
+ * template and the disclaimer -- and one thing it read out of somebody else's:
+ * the post body, which it re-escapes on the way into the printed document. All
+ * three are covered here.
+ *
+ * The two link labels that used to be a third are gone: there is one template
+ * now, and the wording a site chooses lives inside it. So the payloads that used
+ * to be posted as a label are posted as part of a template instead, which is the
+ * same string reaching the same sinks by the route that still exists.
  *
  * The fixtures go straight into the option row rather than through the settings
  * screen. Sanitising on the way in is the assumption under test, not a step to
@@ -19,6 +24,7 @@
 
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const {
+	TAB,
 	createPrintablePost,
 	deleteOptions,
 	field,
@@ -50,8 +56,10 @@ test.describe( 'A hostile option row stays inert', () => {
 		deleteOptions();
 	} );
 
-	test( 'the shortcode renders a hostile link text as text', async ( { page, requestUtils } ) => {
-		setOptions( { print_style: 3, post_text: `Print ${ SCRIPT_PAYLOAD }` } );
+	test( 'the shortcode renders hostile link wording as text', async ( { page, requestUtils } ) => {
+		setOptions( {
+			print_html: `<a href="%PRINT_URL%" rel="nofollow">Print ${ SCRIPT_PAYLOAD }</a>`,
+		} );
 
 		const post = await createPrintablePost( requestUtils );
 
@@ -65,12 +73,11 @@ test.describe( 'A hostile option row stays inert', () => {
 
 		// This currently fails, and it is right to: the script runs.
 		//
-		// WP_Print_Link::render() interpolates the link text into its markup
-		// twice -- escaped into the title attribute, and raw as the anchor's
-		// contents. Its docblock says the caller escapes at the point of output,
-		// and print_link() does exactly that with wp_kses(). The shortcode does
-		// not: WP_Print_Link::shortcode() returns render()'s markup straight to
-		// the shortcode engine, which inserts it into the_content untouched.
+		// WP_Print_Link::render() substitutes into the stored template and hands
+		// the result back. Its docblock says the caller escapes at the point of
+		// output, and print_link() does exactly that with wp_kses(). The shortcode
+		// does not: WP_Print_Link::shortcode() returns render()'s markup straight
+		// to the shortcode engine, which inserts it into the_content untouched.
 		//
 		// So the same stored value is inert through the template tag and live
 		// through the shortcode, which is the one every documented install
@@ -81,11 +88,13 @@ test.describe( 'A hostile option row stays inert', () => {
 		await expect( content ).toContainText( 'window.__pwned' );
 	} );
 
-	test( 'the template tag renders the same hostile link text as text', async ( {
+	test( 'the template tag renders the same hostile link wording as text', async ( {
 		page,
 		requestUtils,
 	} ) => {
-		setOptions( { print_style: 3, post_text: `Print ${ SCRIPT_PAYLOAD }` } );
+		setOptions( {
+			print_html: `<a href="%PRINT_URL%" rel="nofollow">Print ${ SCRIPT_PAYLOAD }</a>`,
+		} );
 
 		const post = await createPrintablePost( requestUtils, { content: '[print_link_tag]' } );
 
@@ -107,13 +116,21 @@ test.describe( 'A hostile option row stays inert', () => {
 		await expect( tag ).toContainText( 'window.__pwned' );
 	} );
 
-	test( 'a hostile link text cannot break out of the title and aria-label', async ( {
+	test( 'wording escaped into a template attribute stays inside it', async ( {
 		page,
 		requestUtils,
 	} ) => {
 		const text = `Print ${ ATTR_PAYLOAD }`;
 
-		setOptions( { print_style: 2, post_text: text } );
+		// The shape the migration writes for a site that was on the icon-only
+		// style: the wording lands in two attributes and nowhere else, escaped as
+		// the template is written. A bare quote there would end the attribute and
+		// turn everything after it into markup on the anchor itself.
+		setOptions( {
+			print_html:
+				'<a href="%PRINT_URL%" rel="nofollow" title="Print &quot; onmouseover=&quot;window.__pwned = 1"' +
+				' aria-label="Print &quot; onmouseover=&quot;window.__pwned = 1">%PRINT_ICON%</a>',
+		} );
 
 		const post = await createPrintablePost( requestUtils );
 
@@ -121,9 +138,6 @@ test.describe( 'A hostile option row stays inert', () => {
 
 		const link = page.locator( '.entry-content a[rel="nofollow"]' );
 
-		// The icon-only style is the one that prints the text into two attributes
-		// and nowhere else, so a bare quote here would end the attribute and turn
-		// everything after it into markup on the anchor itself.
 		await expect( link ).toHaveAttribute( 'title', text );
 		await expect( link ).toHaveAttribute( 'aria-label', text );
 
@@ -133,7 +147,6 @@ test.describe( 'A hostile option row stays inert', () => {
 
 	test( 'a hostile custom template renders as text', async ( { page, requestUtils } ) => {
 		setOptions( {
-			print_style: 4,
 			print_html: `<a class="my-print" href="%PRINT_URL%">Print ${ IMG_PAYLOAD }</a>`,
 		} );
 
@@ -207,14 +220,9 @@ test.describe( 'A hostile option row stays inert', () => {
 		await expect( content.locator( 'img[onerror]' ) ).toHaveCount( 0 );
 	} );
 
-	test( 'the settings screen round-trips a hostile row without running or losing it', async ( {
-		page,
-	} ) => {
+	test( 'both tabs round-trip a hostile row without running or losing it', async ( { page } ) => {
 		const options = {
-			print_style: 4,
-			post_text: `Print ${ ATTR_PAYLOAD }`,
-			page_text: `Page ${ SCRIPT_PAYLOAD }`,
-			print_html: `<a href="%PRINT_URL%">${ IMG_PAYLOAD }</a>`,
+			print_html: `<a href="%PRINT_URL%" title="${ ATTR_PAYLOAD }">${ IMG_PAYLOAD }</a>`,
 			disclaimer: `Copyright ${ SCRIPT_PAYLOAD }`,
 		};
 
@@ -231,9 +239,16 @@ test.describe( 'A hostile option row stays inert', () => {
 		// dropped or double-escaped it corrupts the row the moment the owner
 		// presses Save Changes -- which is the first thing an owner does after
 		// finding a payload in their print link.
-		await expect( page.locator( field( 'post_text' ) ) ).toHaveValue( options.post_text );
-		await expect( page.locator( field( 'page_text' ) ) ).toHaveValue( options.page_text );
-		await expect( page.locator( field( 'html' ) ) ).toHaveValue( options.print_html );
 		await expect( page.locator( field( 'disclaimer' ) ) ).toHaveValue( options.disclaimer );
+
+		// The template is on the other tab, and a payload is no less live for being
+		// one query argument away.
+		await openSettings( page, TAB.templates );
+
+		expect( await pwned( page ) ).toBe( false );
+		await expect( page.locator( '#wpbody [onerror]' ) ).toHaveCount( 0 );
+		await expect( page.locator( '#wpbody [onmouseover]' ) ).toHaveCount( 0 );
+
+		await expect( page.locator( field( 'html' ) ) ).toHaveValue( options.print_html );
 	} );
 } );

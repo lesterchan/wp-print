@@ -5,37 +5,33 @@
  * why the defaults are nested one level deep: wp_localize_script() decodes HTML
  * entities in every scalar it is handed, and the shipped disclaimer contains
  * &copy;. A test that only ever used plain text would not notice.
+ *
+ * There is nothing else left for this script to do. The link template used to be
+ * revealed by a four-way style dropdown, and the dropdown went when the three
+ * styles that were not the template did.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { loadScript, resetDocument } from './helper-load.js';
 
 const SHIPPED_TEMPLATE =
-	'<a href="%PRINT_URL%" rel="nofollow" title="%PRINT_TEXT%">%PRINT_TEXT%</a>';
+	'<a href="%PRINT_URL%" rel="nofollow" title="Print This %POST_TYPE%">%PRINT_ICON% Print This %POST_TYPE%</a>';
 const SHIPPED_DISCLAIMER = 'Copyright &copy; 2026 Example. All rights reserved.';
 
 /**
  * The screen's markup, reduced to what the script touches.
  *
- * @param {string} style The selected print style.
+ * Both tabs' controls at once: the script is one delegated listener on the
+ * document, so which tab a button is drawn on makes no difference to it, and a
+ * fixture split in two would only prove that twice.
  */
-function renderSettingsScreen( style = '1' ) {
+function renderSettingsScreen() {
 	document.body.innerHTML = `
-		<select id="wp-print-style" data-print-toggle="wp-print-custom">
-			<option value="1">Print Icon With Text Link</option>
-			<option value="2">Print Icon Only</option>
-			<option value="3">Print Text Link Only</option>
-			<option value="4">Custom</option>
-		</select>
-		<div id="wp-print-custom" class="wp-print-custom hidden">
-			<textarea id="wp-print-html"></textarea>
-			<button type="button" data-print-restore="print_html" data-print-target="wp-print-html">Restore</button>
-		</div>
+		<textarea id="wp-print-html"></textarea>
+		<button type="button" data-print-restore="print_html" data-print-target="wp-print-html">Restore</button>
 		<textarea id="wp-print-disclaimer"></textarea>
 		<button type="button" data-print-restore="disclaimer" data-print-target="wp-print-disclaimer">Restore</button>
 	`;
-
-	document.getElementById( 'wp-print-style' ).value = style;
 
 	loadScript( 'wp-print-admin.js' );
 }
@@ -55,48 +51,8 @@ afterEach( () => {
 } );
 
 describe( 'the settings screen script', () => {
-	it( 'hides the custom template block for every style but Custom', () => {
-		renderSettingsScreen( '1' );
-
-		expect( document.getElementById( 'wp-print-custom' ).classList.contains( 'hidden' ) ).toBe(
-			true,
-		);
-	} );
-
-	it( 'reveals the custom template block as soon as Custom is selected', () => {
-		renderSettingsScreen( '1' );
-
-		const style = document.getElementById( 'wp-print-style' );
-		style.value = '4';
-		style.dispatchEvent( new window.Event( 'change' ) );
-
-		expect( document.getElementById( 'wp-print-custom' ).classList.contains( 'hidden' ) ).toBe(
-			false,
-		);
-	} );
-
-	it( 'reveals it on load when Custom is already the stored style', () => {
-		renderSettingsScreen( '4' );
-
-		expect( document.getElementById( 'wp-print-custom' ).classList.contains( 'hidden' ) ).toBe(
-			false,
-		);
-	} );
-
-	it( 'hides it again when the style is changed away from Custom', () => {
-		renderSettingsScreen( '4' );
-
-		const style = document.getElementById( 'wp-print-style' );
-		style.value = '2';
-		style.dispatchEvent( new window.Event( 'change' ) );
-
-		expect( document.getElementById( 'wp-print-custom' ).classList.contains( 'hidden' ) ).toBe(
-			true,
-		);
-	} );
-
 	it( 'restores the shipped link template byte for byte', () => {
-		renderSettingsScreen( '4' );
+		renderSettingsScreen();
 
 		document.querySelector( '[data-print-restore="print_html"]' ).click();
 
@@ -139,13 +95,13 @@ describe( 'the settings screen script', () => {
 		const field = document.getElementById( 'wp-print-disclaimer' );
 		field.value = 'Mine';
 
-		document.getElementById( 'wp-print-style' ).click();
+		document.getElementById( 'wp-print-html' ).click();
 
 		expect( field.value ).toBe( 'Mine' );
 	} );
 
-	it( 'does nothing on a screen that has no style dropdown', () => {
-		document.body.innerHTML = '<p>Nothing to toggle.</p>';
+	it( 'does nothing on a screen with no Restore buttons at all', () => {
+		document.body.innerHTML = '<p>Nothing to restore.</p>';
 
 		expect( () => loadScript( 'wp-print-admin.js' ) ).not.toThrow();
 	} );

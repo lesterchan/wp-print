@@ -13,8 +13,8 @@ defined( 'ABSPATH' ) || exit;
  * What the rows are called, what shape they hold and how one version's shape
  * becomes the next. The sanitize callback that guards writes from the settings
  * screen belongs to WP_Print_Settings, which is where register_setting() hangs
- * it; this class describes the keys it works on -- text_keys(), html_keys(),
- * bool_keys() and retired_keys().
+ * it; this class describes the keys it works on -- html_keys(), bool_keys() and
+ * retired_keys().
  *
  * The shape of the stored strings changed in 3.0.0: before it the admin screen
  * slashed values on the way in and every reader called stripslashes() on the way
@@ -65,6 +65,42 @@ class WP_Print_Options {
 	const LEGACY_VERSION = 'print_db_version';
 
 	/**
+	 * The pre-3.0.0 `print_style`: icon followed by a text link, and the default.
+	 *
+	 * The four are kept as constants rather than as bare numbers because the
+	 * migration has to reproduce what each of them rendered. They are no longer a
+	 * choice anybody can make: the settings screen offers one custom template and
+	 * `print_style` is retired.
+	 *
+	 * @var int
+	 */
+	const LEGACY_STYLE_ICON_TEXT = 1;
+
+	/**
+	 * The pre-3.0.0 `print_style`: icon only.
+	 *
+	 * @var int
+	 */
+	const LEGACY_STYLE_ICON = 2;
+
+	/**
+	 * The pre-3.0.0 `print_style`: text link only.
+	 *
+	 * @var int
+	 */
+	const LEGACY_STYLE_TEXT = 3;
+
+	/**
+	 * The pre-3.0.0 `print_style`: the custom HTML template.
+	 *
+	 * A row carrying this already holds the only thing 3.0.0 stores, so the
+	 * migration leaves its template exactly as the site wrote it.
+	 *
+	 * @var int
+	 */
+	const LEGACY_STYLE_CUSTOM = 4;
+
+	/**
 	 * Keys whose values are rendered as HTML.
 	 *
 	 * @return array
@@ -74,12 +110,17 @@ class WP_Print_Options {
 	}
 
 	/**
-	 * Keys whose values are rendered as plain text.
+	 * Keys the pre-3.0.0 row held as slashed strings.
+	 *
+	 * Not the same list as html_keys(): `post_text` and `page_text` are retired,
+	 * but the migration still reads them to synthesise a link template from, and a
+	 * value read out of the unprefixed row has to be unslashed first or the
+	 * template it lands in shows the backslashes to every visitor.
 	 *
 	 * @return array
 	 */
-	public static function text_keys() {
-		return array( 'post_text', 'page_text' );
+	private static function legacy_string_keys() {
+		return array( 'post_text', 'page_text', 'print_html', 'disclaimer' );
 	}
 
 	/**
@@ -96,12 +137,17 @@ class WP_Print_Options {
 	 *
 	 * Dropped by the sanitizer on every write, so a retired setting cannot come
 	 * back through the "keep what this screen does not render" merge below.
+	 *
 	 * `print_icon` chose between two bundled GIFs; there is one inline SVG now.
+	 * `print_style` chose between three fixed markups and a custom template; there
+	 * is only the template now, and `post_text` and `page_text` were the two link
+	 * labels the three fixed markups interpolated. One template with a
+	 * %POST_TYPE% placeholder says everything the four of them said between them.
 	 *
 	 * @return array
 	 */
 	public static function retired_keys() {
-		return array( 'print_icon' );
+		return array( 'print_icon', 'print_style', 'post_text', 'page_text' );
 	}
 
 	/**
@@ -114,17 +160,76 @@ class WP_Print_Options {
 	 */
 	public static function get_defaults() {
 		return array(
-			'post_text'   => __( 'Print This Post', 'wp-print' ),
-			'page_text'   => __( 'Print This Page', 'wp-print' ),
-			'print_style' => 1,
-			'print_html'  => '<a href="%PRINT_URL%" rel="nofollow" title="%PRINT_TEXT%">%PRINT_TEXT%</a>',
-			'comments'    => 0,
-			'links'       => 1,
-			'images'      => 1,
-			'thumbnail'   => 0,
-			'videos'      => 0,
-			'disclaimer'  => self::default_disclaimer(),
+			'print_html' => self::default_template(),
+			'comments'   => 0,
+			'links'      => 1,
+			'images'     => 1,
+			'thumbnail'  => 0,
+			'videos'     => 0,
+			'disclaimer' => self::default_disclaimer(),
 		);
+	}
+
+	/**
+	 * The shipped link template.
+	 *
+	 * Shared with the settings screen, whose Restore Default Template button has
+	 * to offer exactly the same string, and with the migration, which synthesises
+	 * this shape for a site that never left the shipped settings.
+	 *
+	 * One anchor carrying the glyph and the words, which is what the icon-and-text
+	 * style rendered as two. %POST_TYPE% is what makes one template enough for
+	 * every post type: the two labels it replaced could only ever say two things.
+	 *
+	 * @return string
+	 */
+	public static function default_template() {
+		return self::link_template( self::LEGACY_STYLE_ICON_TEXT, self::default_link_text() );
+	}
+
+	/**
+	 * The wording the shipped template uses.
+	 *
+	 * Kept out of the markup around it so that a translator is handed a sentence
+	 * rather than an anchor, and so that the migration can recognise a site still
+	 * on the stock wording and collapse it to this.
+	 *
+	 * @return string
+	 */
+	public static function default_link_text() {
+		return __( 'Print This %POST_TYPE%', 'wp-print' );
+	}
+
+	/**
+	 * One of the pre-3.0.0 markups, as a template.
+	 *
+	 * The three fixed styles are gone as a user choice, but their markup is what
+	 * the migration has to reproduce for the sites that chose them -- an icon-only
+	 * site stays icon-only -- so the shapes live on here as the templates they
+	 * always were underneath.
+	 *
+	 * @param int    $style One of the LEGACY_STYLE_* constants.
+	 * @param string $text  The link wording, which may itself hold %POST_TYPE%.
+	 * @return string
+	 */
+	public static function link_template( $style, $text ) {
+		// The wording is interpolated into an attribute as well as into the
+		// anchor's contents, so the attribute copy is escaped here rather than
+		// left for a reader of the row to remember.
+		$title = esc_attr( $text );
+
+		switch ( (int) $style ) {
+			case self::LEGACY_STYLE_ICON:
+				// aria-label as well as title: with the glyph hidden from assistive
+				// technology and no text beside it, the link would otherwise have no
+				// accessible name at all.
+				return '<a href="%PRINT_URL%" rel="nofollow" title="' . $title . '" aria-label="' . $title . '">%PRINT_ICON%</a>';
+
+			case self::LEGACY_STYLE_TEXT:
+				return '<a href="%PRINT_URL%" rel="nofollow" title="' . $title . '">' . $text . '</a>';
+		}
+
+		return '<a href="%PRINT_URL%" rel="nofollow" title="' . $title . '">%PRINT_ICON% ' . $text . '</a>';
 	}
 
 	/**
@@ -223,8 +328,22 @@ class WP_Print_Options {
 			return;
 		}
 
+		/*
+		 * Read the link settings before anything writes.
+		 *
+		 * `print_style`, `post_text` and `page_text` are retired, and every write
+		 * below drops a retired key -- both the folds here and the sanitize
+		 * callback, which register_setting() hangs on
+		 * sanitize_option_wp_print_options and which is therefore attached to
+		 * every update_option() this method makes on an admin request. Reading
+		 * the three first is what lets the template be synthesised from them
+		 * afterwards rather than from a row they have already been taken out of.
+		 */
+		$link = self::legacy_link_settings();
+
 		self::migrate_legacy_rows();
 		self::migrate_icon_placeholder();
+		self::migrate_link_template( $link );
 
 		// Both markers in one write, so an upgrade that dies half way never
 		// records itself as finished.
@@ -265,27 +384,157 @@ class WP_Print_Options {
 			return;
 		}
 
-		foreach ( array_merge( self::text_keys(), self::html_keys() ) as $key ) {
-			if ( isset( $legacy[ $key ] ) && is_string( $legacy[ $key ] ) ) {
-				$legacy[ $key ] = wp_unslash( $legacy[ $key ] );
-			}
-		}
-
+		$legacy = self::unslash_legacy( $legacy );
 		$stored = get_option( self::OPTION, array() );
+		$merged = array_merge( $legacy, is_array( $stored ) ? $stored : array() );
 
-		update_option( self::OPTION, array_merge( $legacy, is_array( $stored ) ? $stored : array() ) );
+		// Explicitly rather than by leaving it to the sanitize callback, which is
+		// only attached on an admin request: activation runs this method too, and
+		// the hook has already fired by the time the newly activated plugin's
+		// files are loaded. A retired key must go on both paths.
+		$merged = array_diff_key( $merged, array_flip( self::retired_keys() ) );
+
+		update_option( self::OPTION, $merged );
 
 		delete_option( self::LEGACY_OPTION );
 	}
 
 	/**
-	 * Retire the print_icon setting and the placeholder that went with it.
+	 * Unslash the string values a pre-3.0.0 row holds.
+	 *
+	 * @param array $legacy The unprefixed settings row.
+	 * @return array The same array, with its four strings unslashed.
+	 */
+	private static function unslash_legacy( array $legacy ) {
+		foreach ( self::legacy_string_keys() as $key ) {
+			if ( isset( $legacy[ $key ] ) && is_string( $legacy[ $key ] ) ) {
+				$legacy[ $key ] = wp_unslash( $legacy[ $key ] );
+			}
+		}
+
+		return $legacy;
+	}
+
+	/**
+	 * The three retired link settings, wherever they are still to be found.
+	 *
+	 * Both rows are consulted and the prefixed one wins, key by key, which is the
+	 * same precedence migrate_legacy_rows() applies to everything else. A value
+	 * coming from the unprefixed row is unslashed on the way, because that row was
+	 * written by a release that slashed on the way in and this one is going
+	 * straight into a template.
+	 *
+	 * @return array Whichever of print_style, post_text and page_text exist.
+	 */
+	private static function legacy_link_settings() {
+		$legacy = get_option( self::LEGACY_OPTION, false );
+		$stored = get_option( self::OPTION, array() );
+
+		$source = array_merge(
+			self::unslash_legacy( is_array( $legacy ) ? $legacy : array() ),
+			is_array( $stored ) ? $stored : array()
+		);
+
+		return array_intersect_key(
+			$source,
+			array_flip( array( 'print_style', 'post_text', 'page_text' ) )
+		);
+	}
+
+	/**
+	 * Turn the retired link settings into the one custom template that replaced
+	 * them.
+	 *
+	 * Up to 3.0.0 the link was a style out of four plus two labels; it is now a
+	 * single HTML template, so a site's four answers have to become one string
+	 * that renders what it rendered before. The style decides the markup -- an
+	 * icon-only site stays icon-only, a text-only site stays text-only -- and the
+	 * labels decide the wording:
+	 *
+	 * - both labels still the shipped pair: the wording collapses to
+	 *   "Print This %POST_TYPE%", which says on a post and on a page exactly what
+	 *   the two of them said separately, and says something sensible on a custom
+	 *   post type as well, which neither of them could.
+	 * - a customised label: `post_text` is used verbatim. Where the two labels
+	 *   differ this loses the page wording, and there is no way round it -- one
+	 *   template cannot hold two arbitrary strings. The readme's upgrade notice
+	 *   says so.
+	 * - already on the custom style: nothing happens at all. That row already
+	 *   holds the only thing 3.0.0 stores.
+	 *
+	 * Idempotent by construction: the settings it reads are retired, so a second
+	 * run finds none of them and returns before writing anything.
+	 *
+	 * @param array $source The retired settings, from legacy_link_settings().
+	 * @return void
+	 */
+	private static function migrate_link_template( array $source ) {
+		if ( array() === $source ) {
+			return;
+		}
+
+		$style = isset( $source['print_style'] ) ? (int) $source['print_style'] : self::LEGACY_STYLE_ICON_TEXT;
+
+		if ( self::LEGACY_STYLE_CUSTOM === $style ) {
+			return;
+		}
+
+		$stored = get_option( self::OPTION, array() );
+
+		if ( ! is_array( $stored ) ) {
+			$stored = array();
+		}
+
+		$stored['print_html'] = self::link_template( $style, self::migrated_link_text( $source ) );
+
+		update_option( self::OPTION, $stored );
+	}
+
+	/**
+	 * The wording a migrated template carries.
+	 *
+	 * The stock pair is recognised through __() rather than by its English
+	 * spelling, so a site running in another language and never having touched
+	 * either label is still recognised as being on the shipped wording.
+	 *
+	 * @param array $source The retired settings, from legacy_link_settings().
+	 * @return string
+	 */
+	private static function migrated_link_text( array $source ) {
+		$stock_post = __( 'Print This Post', 'wp-print' );
+		$stock_page = __( 'Print This Page', 'wp-print' );
+
+		$post_text = isset( $source['post_text'] ) && is_scalar( $source['post_text'] )
+			? trim( (string) $source['post_text'] )
+			: '';
+		$page_text = isset( $source['page_text'] ) && is_scalar( $source['page_text'] )
+			? trim( (string) $source['page_text'] )
+			: '';
+
+		// An absent label read as the shipped one, because that is what the site
+		// was rendering: get() merged the defaults in on every read.
+		$post_text = '' === $post_text ? $stock_post : $post_text;
+		$page_text = '' === $page_text ? $stock_page : $page_text;
+
+		if ( $stock_post === $post_text && $stock_page === $page_text ) {
+			return self::default_link_text();
+		}
+
+		return $post_text;
+	}
+
+	/**
+	 * Take every retired setting off the row, and rewrite the placeholder that
+	 * went with one of them.
 	 *
 	 * There were two bundled GIFs to choose between; there is now one inline SVG
 	 * that takes its colour from the theme, so the setting has nothing left to
 	 * choose. %PRINT_ICON_URL% goes with it -- an inline glyph has no URL -- and a
 	 * custom template carrying it is rewritten to %PRINT_ICON%, which substitutes
 	 * the glyph itself.
+	 *
+	 * The link settings retired alongside it go here too, after
+	 * migrate_link_template()'s source has already been read out of the row.
 	 *
 	 * The <img> wrapper is replaced whole where there is one, because
 	 * <img src="<svg ...>"> would be worse than either. A bare %PRINT_ICON_URL%
@@ -302,7 +551,7 @@ class WP_Print_Options {
 
 		$before = $stored;
 
-		unset( $stored['print_icon'] );
+		$stored = array_diff_key( $stored, array_flip( self::retired_keys() ) );
 
 		if ( isset( $stored['print_html'] ) && is_string( $stored['print_html'] ) ) {
 			$html = preg_replace( '#<img[^>]*%PRINT_ICON_URL%[^>]*>#i', '%PRINT_ICON%', $stored['print_html'] );

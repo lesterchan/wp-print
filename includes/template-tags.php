@@ -20,13 +20,22 @@ defined( 'ABSPATH' ) || exit;
  * it by name -- print_link( echo: false ) -- and PHP had no named arguments for
  * most of the years that spelling was in use.
  *
- * @param string $print_post_text Optional. Link text on a post. Default the stored option.
- * @param string $print_page_text Optional. Link text on a page. Default the stored option.
+ * The first two arguments no longer do anything. They overrode the two link
+ * labels, and there are no link labels: the wording lives in the one HTML
+ * template on the settings screen, where %POST_TYPE% says on each post type what
+ * the two of them said between them on two. They stay in the signature because
+ * every theme that has ever called this tag passes them, and dropping them would
+ * turn a settings change into a fatal error on somebody else's site.
+ *
+ * @param string $print_post_text Unused. Formerly the link text on a post.
+ * @param string $print_page_text Unused. Formerly the link text on a page.
  * @param bool   $display         Optional. Whether to print. Default true.
  * @return string|void The markup when $display is false.
  */
 function print_link( $print_post_text = '', $print_page_text = '', $display = true ) {
-	$output = WP_Print_Link::render( $print_post_text, $print_page_text );
+	unset( $print_post_text, $print_page_text );
+
+	$output = WP_Print_Link::render();
 
 	if ( ! $display ) {
 		return $output;

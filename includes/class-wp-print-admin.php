@@ -12,8 +12,9 @@ defined( 'ABSPATH' ) || exit;
  *
  * Admin owns the menu and the screens; WP_Print_Settings owns
  * register_setting(), the sections, the fields and the sanitiser. The two meet
- * at two constants: Settings registers its sections against this class's PAGE,
- * and render_page() below calls settings_fields( WP_Print_Settings::GROUP ).
+ * at the tabs: Settings registers each section against one tab's page, and
+ * render_page() below draws the tab that was asked for and calls
+ * settings_fields( WP_Print_Settings::GROUP ).
  *
  * A plugin whose only admin surface is settings gets add_options_page() and no
  * top-level menu.
@@ -78,7 +79,7 @@ class WP_Print_Admin {
 	 */
 	public static function add_page() {
 		add_options_page(
-			__( 'Print Options', 'wp-print' ),
+			__( 'Print Settings', 'wp-print' ),
 			__( 'WP-Print', 'wp-print' ),
 			self::capability( 'menu' ),
 			self::PAGE,
@@ -146,7 +147,7 @@ class WP_Print_Admin {
 			'wpPrintL10n',
 			array(
 				'defaults' => array(
-					'print_html' => WP_Print_Options::get_defaults()['print_html'],
+					'print_html' => WP_Print_Options::default_template(),
 					'disclaimer' => WP_Print_Options::default_disclaimer(),
 				),
 			)
@@ -156,19 +157,55 @@ class WP_Print_Admin {
 	/**
 	 * Render the settings page.
 	 *
+	 * Two tabs over one option row. settings_errors() is deliberately not called:
+	 * a page registered with add_options_page() has options-head.php run ahead of
+	 * it, and that file already prints the queued notices -- on whichever tab the
+	 * save came back to, because the tab is a query argument on the same screen.
+	 * Calling it here as well is how a plugin ends up showing "Settings saved."
+	 * twice, one under the other.
+	 *
 	 * @return void
 	 */
 	public static function render_page() {
 		if ( ! current_user_can( self::capability( 'settings' ) ) ) {
 			wp_die( esc_html__( 'You do not have sufficient permissions to access this page.', 'wp-print' ) );
 		}
+
+		$current = WP_Print_Settings::current_tab();
 		?>
 		<div class="wrap">
-			<h1><?php esc_html_e( 'Print Options', 'wp-print' ); ?></h1>
+			<h1><?php esc_html_e( 'Print Settings', 'wp-print' ); ?></h1>
+
+			<nav class="nav-tab-wrapper">
+				<?php foreach ( WP_Print_Settings::tabs() as $tab => $label ) : ?>
+					<a href="<?php echo esc_url( WP_Print_Settings::tab_url( $tab ) ); ?>"
+						class="nav-tab<?php echo $tab === $current ? ' nav-tab-active' : ''; ?>">
+						<?php echo esc_html( $label ); ?>
+					</a>
+				<?php endforeach; ?>
+			</nav>
+
 			<form method="post" action="options.php">
 				<?php
 				settings_fields( WP_Print_Settings::GROUP );
-				do_settings_sections( self::PAGE );
+
+				/*
+				 * The tab, carried through the save.
+				 *
+				 * options.php sends the browser back to wp_get_referer(), and
+				 * settings_fields() has already emitted one referer field holding
+				 * the current REQUEST_URI. This one is emitted after it and so wins,
+				 * and it names the tab explicitly rather than relying on whatever
+				 * query arguments the address bar happened to be carrying -- a save
+				 * that landed the owner back on the first tab would look like a save
+				 * that did not happen.
+				 */
+				printf(
+					'<input type="hidden" name="_wp_http_referer" value="%s" />',
+					esc_url( WP_Print_Settings::tab_url( $current ) )
+				);
+
+				do_settings_sections( WP_Print_Settings::tab_page( $current ) );
 				submit_button();
 				?>
 			</form>

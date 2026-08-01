@@ -3,21 +3,26 @@
  *
  * This screen replaced a hand-rolled form that posted to itself and did its own
  * nonce and capability handling, so every field here is new plumbing over old
- * storage: the keys did not change, the way they are written did. That is
- * exactly the change a unit test on the sanitiser cannot vouch for, because the
- * sanitiser is only reached if the form posts what it expects.
+ * storage. That is exactly the change a unit test on the sanitiser cannot vouch
+ * for, because the sanitiser is only reached if the form posts what it expects.
+ *
+ * It is now two tabs -- Settings and Templates -- over one option row, and the
+ * tabs are what make the browser half indispensable. The Settings API hands the
+ * sanitize callback only the fields the submitting form posted, so each tab's
+ * save is a partial write, and a partial write that goes wrong takes the other
+ * tab's values with it. Nothing but a real save through a real form proves it
+ * does not.
  *
  * So each test saves through the form, reads the row back, and where the setting
- * is visible to a reader, goes and looks at the page. And two of the controls are
- * pure JavaScript -- the custom template reveal and the two Restore Default
- * buttons -- which exist nowhere else at all.
+ * is visible to a reader, goes and looks at the page. And the two Restore Default
+ * buttons are pure JavaScript, which exists nowhere else at all.
  */
 
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const {
 	PLUGINS_URL,
 	SETTINGS_URL,
-	STYLE,
+	TAB,
 	clearFixtureOption,
 	createPrintablePost,
 	defaultOptions,
@@ -30,6 +35,7 @@ const {
 	saveSettings,
 	setFixtureOption,
 	setOptions,
+	tabUrl,
 } = require( './helpers.js' );
 
 /** The shipped defaults, which several tests compare the screen against. */
@@ -52,7 +58,7 @@ test.describe( 'The settings screen', () => {
 		deleteOptions();
 	} );
 
-	test( 'the fixture really is a fresh install, and the screen shows the shipped defaults', async ( {
+	test( 'the fixture really is a fresh install, and both tabs show the shipped defaults', async ( {
 		page,
 	} ) => {
 		// The precondition the rest of the file leans on. With a row already in
@@ -61,12 +67,6 @@ test.describe( 'The settings screen', () => {
 
 		await openSettings( page );
 
-		await expect( page.locator( field( 'post_text' ) ) ).toHaveValue( defaults.post_text );
-		await expect( page.locator( field( 'page_text' ) ) ).toHaveValue( defaults.page_text );
-		await expect( page.locator( field( 'style' ) ) ).toHaveValue( STYLE.iconAndText );
-		await expect( page.locator( field( 'html' ) ) ).toHaveValue( defaults.print_html );
-		await expect( page.locator( field( 'disclaimer' ) ) ).toHaveValue( defaults.disclaimer );
-
 		// Links and images on, comments, thumbnail and videos off: the shipped
 		// answer to "what belongs on paper".
 		await expect( page.locator( field( 'links' ) ) ).toHaveValue( '1' );
@@ -74,36 +74,110 @@ test.describe( 'The settings screen', () => {
 		await expect( page.locator( field( 'comments' ) ) ).toHaveValue( '0' );
 		await expect( page.locator( field( 'thumbnail' ) ) ).toHaveValue( '0' );
 		await expect( page.locator( field( 'videos' ) ) ).toHaveValue( '0' );
+		await expect( page.locator( field( 'disclaimer' ) ) ).toHaveValue( defaults.disclaimer );
+
+		// And the template is not on this tab at all, which is the point of there
+		// being two of them.
+		await expect( page.locator( field( 'html' ) ) ).toHaveCount( 0 );
+
+		await openSettings( page, TAB.templates );
+
+		await expect( page.locator( field( 'html' ) ) ).toHaveValue( defaults.print_html );
+		await expect( page.locator( field( 'disclaimer' ) ) ).toHaveCount( 0 );
+		await expect( page.locator( field( 'comments' ) ) ).toHaveCount( 0 );
 	} );
 
-	test( 'the link texts and the style save, and the link changes', async ( {
+	test( 'the tabs are Settings and Templates, and each one leads to the other', async ( {
+		page,
+	} ) => {
+		await page.goto( SETTINGS_URL );
+
+		const tabs = page.locator( '.nav-tab-wrapper .nav-tab' );
+
+		// Exactly these two, spelled exactly this way. The h1 above them already
+		// says which plugin this is, so a tab called "Print Templates" would be
+		// saying it twice and would not match the eighteen other plugins.
+		await expect( tabs ).toHaveText( [ 'Settings', 'Templates' ] );
+
+		await tabs.filter( { hasText: 'Templates' } ).click();
+
+		await expect( page.locator( field( 'html' ) ) ).toBeVisible();
+		await expect( page.locator( '.nav-tab-active' ) ).toHaveText( 'Templates' );
+	} );
+
+	test( 'the link template saves, and the link on the page changes with it', async ( {
 		page,
 		requestUtils,
 	} ) => {
 		const post = await createPrintablePost( requestUtils );
 
+		await openSettings( page, TAB.templates );
+
+		await page
+			.locator( field( 'html' ) )
+			.fill( '<a class="mine" href="%PRINT_URL%">Take this %POST_TYPE% away with you</a>' );
+
+		await saveSettings( page );
+
+		expect( getStoredOptions().print_html ).toBe(
+			'<a class="mine" href="%PRINT_URL%">Take this %POST_TYPE% away with you</a>',
+		);
+
+		// The far end. A stored value that never reaches the page is the failure a
+		// screenshot of this screen cannot distinguish from success -- and
+		// %POST_TYPE% only resolves where there is a post to resolve it against.
+		await page.goto( post.link );
+
+		await expect(
+			page.locator( '.entry-content' ).getByRole( 'link', { name: 'Take this Post away with you' } ),
+		).toBeVisible();
+		await expect( page.locator( '.entry-content svg.WP-PrintIcon' ) ).toHaveCount( 0 );
+	} );
+
+	test( 'saving one tab leaves the other tab alone', async ( { page } ) => {
+		// The regression the tabs introduce, and the one that costs a site
+		// something it cannot get back. Each tab posts only its own fields, so a
+		// sanitizer returning just what it was handed would blank a customised
+		// link template the first time anybody flipped a toggle -- silently, with
+		// no notice and nothing in the row to say what used to be there.
+		setOptions( {
+			print_html: '<a class="mine" href="%PRINT_URL%">My own %POST_TYPE% link</a>',
+			disclaimer: 'My own notice',
+			comments: 0,
+		} );
+
 		await openSettings( page );
+		await page.locator( field( 'comments' ) ).selectOption( '1' );
+		await saveSettings( page );
 
-		await page.locator( field( 'post_text' ) ).fill( 'Take this away with you' );
-		await page.locator( field( 'page_text' ) ).fill( 'Take this page away' );
-		await page.locator( field( 'style' ) ).selectOption( STYLE.textOnly );
+		expect( getStoredOptions().print_html ).toBe(
+			'<a class="mine" href="%PRINT_URL%">My own %POST_TYPE% link</a>',
+		);
+		expect( getStoredOptions().comments ).toBe( 1 );
 
+		// And the other direction: the Templates tab posts print_html and nothing
+		// else, so everything the Settings tab owns has to survive its save.
+		await openSettings( page, TAB.templates );
+		await page.locator( field( 'html' ) ).fill( '<a href="%PRINT_URL%">Print</a>' );
 		await saveSettings( page );
 
 		const stored = getStoredOptions();
 
-		expect( stored.post_text ).toBe( 'Take this away with you' );
-		expect( stored.page_text ).toBe( 'Take this page away' );
-		expect( stored.print_style ).toBe( 3 );
+		expect( stored.print_html ).toBe( '<a href="%PRINT_URL%">Print</a>' );
+		expect( stored.disclaimer ).toBe( 'My own notice' );
+		expect( stored.comments ).toBe( 1 );
+	} );
 
-		// The far end. A stored value that never reaches the page is the failure a
-		// screenshot of this screen cannot distinguish from success.
-		await page.goto( post.link );
+	test( 'a save comes back to the tab it was made from', async ( { page } ) => {
+		await openSettings( page, TAB.templates );
+		await saveSettings( page );
 
-		await expect(
-			page.locator( '.entry-content' ).getByRole( 'link', { name: 'Take this away with you' } ),
-		).toBeVisible();
-		await expect( page.locator( '.entry-content svg.WP-PrintIcon' ) ).toHaveCount( 0 );
+		// options.php sends the browser to wp_get_referer(), so a screen that does
+		// not carry its tab through the save drops the owner back on the first tab
+		// and looks like it lost the change.
+		expect( page.url() ).toContain( 'tab=templates' );
+		await expect( page.locator( '.nav-tab-active' ) ).toHaveText( 'Templates' );
+		await expect( page.locator( field( 'html' ) ) ).toBeVisible();
 	} );
 
 	test( 'all five content toggles save, and one of them is checked on paper', async ( {
@@ -156,69 +230,33 @@ test.describe( 'The settings screen', () => {
 		await requestUtils.deleteAllComments();
 	} );
 
-	test( 'an emptied link text falls back to the shipped default', async ( { page } ) => {
-		await openSettings( page );
+	test( 'an emptied template is stored empty rather than refilled', async ( { page } ) => {
+		await openSettings( page, TAB.templates );
 
-		await page.locator( field( 'post_text' ) ).fill( '' );
-		await page.locator( field( 'page_text' ) ).fill( '   ' );
-
+		await page.locator( field( 'html' ) ).fill( '' );
 		await saveSettings( page );
 
-		// A link with no text is a link with nothing to click, so an empty
-		// submission means "give me the shipped wording back" rather than "store
-		// an empty string". Whitespace counts as empty.
-		//
-		// Read as the plugin reads it rather than off the raw row. The result of
-		// this particular save is the defaults exactly, and update_option()
-		// declines to write a value it already answers with -- so there is no
-		// row afterwards, and that is the correct outcome rather than a missing
-		// setting. What matters is what the link will say.
-		const options = effectiveOptions();
-
-		expect( options.post_text ).toBe( defaults.post_text );
-		expect( options.page_text ).toBe( defaults.page_text );
+		// A site may genuinely not want a link -- it has [print_link] and the
+		// template tag either way -- so an empty box means empty, and Restore
+		// Default Template is how the shipped one comes back.
+		expect( effectiveOptions().print_html ).toBe( '' );
 	} );
 
-	test( 'the custom template is revealed only for the custom style', async ( { page } ) => {
-		await openSettings( page );
-
-		const custom = page.locator( '#wp-print-custom' );
-
-		// Hidden to begin with, because the shipped style is not Custom. The
-		// server prints the hidden class and the script keeps it in step, so this
-		// is the pair: neither half alone would show the box at the right moment.
-		await expect( custom ).toBeHidden();
-
-		await page.locator( field( 'style' ) ).selectOption( STYLE.custom );
-		await expect( custom ).toBeVisible();
-
-		await page.locator( field( 'style' ) ).selectOption( STYLE.textOnly );
-		await expect( custom ).toBeHidden();
-
-		// And on the way back in: saving as Custom has to leave the box open when
-		// the screen is next opened, or the setting looks like it did not save.
-		await page.locator( field( 'style' ) ).selectOption( STYLE.custom );
-		await saveSettings( page );
-
-		await openSettings( page );
-		await expect( page.locator( '#wp-print-custom' ) ).toBeVisible();
-	} );
-
-	test( 'Restore Default Template puts back exactly the shipped strings', async ( { page } ) => {
+	test( 'Restore Default Template puts back exactly the shipped strings, on both tabs', async ( {
+		page,
+	} ) => {
 		setOptions( {
-			print_style: 4,
 			print_html: '<a href="%PRINT_URL%">something else entirely</a>',
 			disclaimer: 'Some other notice',
 		} );
 
-		await openSettings( page );
+		await openSettings( page, TAB.templates );
 
 		await expect( page.locator( field( 'html' ) ) ).toHaveValue(
 			'<a href="%PRINT_URL%">something else entirely</a>',
 		);
 
-		await page.getByRole( 'button', { name: 'Restore Default Template' } ).first().click();
-		await page.getByRole( 'button', { name: 'Restore Default Template' } ).last().click();
+		await page.getByRole( 'button', { name: 'Restore Default Template' } ).click();
 
 		// Byte for byte, not merely similar. The defaults reach the page through
 		// wp_localize_script(), which runs html_entity_decode() over every scalar
@@ -227,42 +265,29 @@ test.describe( 'The settings screen', () => {
 		// nesting that avoids that is invisible from PHP and this is what checks
 		// it survived.
 		await expect( page.locator( field( 'html' ) ) ).toHaveValue( defaults.print_html );
-		await expect( page.locator( field( 'disclaimer' ) ) ).toHaveValue( defaults.disclaimer );
 
 		// Restoring fills the box; saving is what stores it.
 		await saveSettings( page );
 
-		expect( getStoredOptions().disclaimer ).toBe( defaults.disclaimer );
-	} );
-
-	test( 'a style outside the four keeps the last valid one', async ( { page } ) => {
-		setOptions( { print_style: 3 } );
-
 		await openSettings( page );
 
-		// The select cannot offer this, which is the point: the sanitiser is what
-		// a hand-made POST, a WP-CLI call or another plugin meets, and an unknown
-		// style renders no link at all. Keeping the last valid one is the
-		// difference between a rejected write and a site with no print link.
-		await page.locator( field( 'style' ) ).evaluate( ( select ) => {
-			const option = document.createElement( 'option' );
-
-			option.value = '99';
-			option.selected = true;
-			select.appendChild( option );
-		} );
+		await page.getByRole( 'button', { name: 'Restore Default Template' } ).click();
+		await expect( page.locator( field( 'disclaimer' ) ) ).toHaveValue( defaults.disclaimer );
 
 		await saveSettings( page );
 
-		expect( getStoredOptions().print_style ).toBe( 3 );
+		expect( effectiveOptions().disclaimer ).toBe( defaults.disclaimer );
+		expect( effectiveOptions().print_html ).toBe( defaults.print_html );
 	} );
 
-	test( 'a save keeps a key this screen does not render and drops a retired one', async ( {
+	test( 'a save keeps a key this screen does not render and drops every retired one', async ( {
 		page,
 	} ) => {
 		setOptions( {
-			print_style: 1,
 			print_icon: 'printer.gif',
+			print_style: 1,
+			post_text: 'Print This Post',
+			page_text: 'Print This Page',
 			some_other_plugins_key: 'kept',
 		} );
 
@@ -275,13 +300,18 @@ test.describe( 'The settings screen', () => {
 		// an older version put in the row, on the first save, silently.
 		expect( stored.some_other_plugins_key ).toBe( 'kept' );
 
-		// Except a key the plugin has deliberately retired. print_icon chose
-		// between two bundled GIFs and there is one inline glyph now, so letting
-		// it survive the merge would resurrect a setting with nothing to choose.
+		// Except the keys the plugin has deliberately retired. print_icon chose
+		// between two bundled GIFs and there is one inline glyph now; print_style,
+		// post_text and page_text were the link's four settings and there is one
+		// template. Letting any of them survive the merge would resurrect a setting
+		// with nothing to set.
 		expect( stored.print_icon ).toBeUndefined();
+		expect( stored.print_style ).toBeUndefined();
+		expect( stored.post_text ).toBeUndefined();
+		expect( stored.page_text ).toBeUndefined();
 	} );
 
-	test( 'the success notice is printed once, not twice', async ( { page } ) => {
+	test( 'the success notice is printed once on either tab, not twice', async ( { page } ) => {
 		await openSettings( page );
 		await saveSettings( page );
 
@@ -290,6 +320,14 @@ test.describe( 'The settings screen', () => {
 		// it again renders every queued notice a second time, one under the other,
 		// in what looks like the plugin's own markup. This screen deliberately does
 		// not call it -- this is the guard on that.
+		await expect( page.locator( '#setting-error-settings_updated' ) ).toHaveCount( 1 );
+
+		// And the notice is not a casualty of the tab that was saved: the second
+		// tab is the same screen with a query argument, so options-head.php runs
+		// for it too.
+		await openSettings( page, TAB.templates );
+		await saveSettings( page );
+
 		await expect( page.locator( '#setting-error-settings_updated' ) ).toHaveCount( 1 );
 	} );
 
@@ -301,7 +339,7 @@ test.describe( 'The settings screen', () => {
 		await expect( row ).toHaveCount( 1 );
 		await row.getByRole( 'link', { name: 'Settings' } ).click();
 
-		await expect( page.getByRole( 'heading', { level: 1, name: 'Print Options' } ) ).toBeVisible();
+		await expect( page.getByRole( 'heading', { level: 1, name: 'Print Settings' } ) ).toBeVisible();
 	} );
 
 	test( 'a subscriber gets neither the menu item nor the screen, and an administrator gets both', async ( {
@@ -348,7 +386,13 @@ test.describe( 'The settings screen', () => {
 		await other.goto( '/wp-admin/index.php' );
 		await expect( other.locator( '#adminmenu' ).getByText( 'WP-Print' ) ).toHaveCount( 0 );
 
+		// Both tabs, because a capability check that only guards the default one
+		// would leave the template editable by anybody who guessed the query
+		// argument.
 		await other.goto( SETTINGS_URL );
+		await expect( other.locator( 'body' ) ).toContainText( /not allowed to access this page/ );
+
+		await other.goto( tabUrl( TAB.templates ) );
 		await expect( other.locator( 'body' ) ).toContainText( /not allowed to access this page/ );
 
 		await context.close();
@@ -398,11 +442,11 @@ test.describe( 'The settings screen', () => {
 			await expect( other.locator( '#adminmenu' ) ).toContainText( 'WP-Print' );
 
 			await other.goto( SETTINGS_URL );
-			await expect( other.getByRole( 'heading', { level: 1, name: 'Print Options' } ) ).toBeVisible();
+			await expect( other.getByRole( 'heading', { level: 1, name: 'Print Settings' } ) ).toBeVisible();
 
 			// The form itself, not just the wrapper: render_page() wp_die()s on a
 			// failed capability check, so the fields are what says it did not.
-			await expect( other.locator( field( 'post_text' ) ) ).toBeAttached();
+			await expect( other.locator( field( 'disclaimer' ) ) ).toBeAttached();
 		} finally {
 			// Inside a finally, because a filter left answering 'read' would hand
 			// this screen to a subscriber for the rest of the run and quietly

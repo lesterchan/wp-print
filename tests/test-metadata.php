@@ -421,7 +421,7 @@ class WP_Print_Metadata_Test extends WP_Print_TestCase {
 	public function test_settings_sanitizer_never_stores_version_markers() {
 		$clean = WP_Print_Settings::sanitize(
 			array(
-				'post_text'  => 'Print This',
+				'print_html' => '<a href="%PRINT_URL%">Print This</a>',
 				'comments'   => 1,
 				'version'    => '9.9.9',
 				'db_version' => '99',

@@ -6,14 +6,20 @@
  * also hangs off admin_init. That is the hook every real upgrade actually goes
  * through, and loading an admin page in a browser is the only way to reach it.
  *
- * Both tests then check the far end rather than the row alone: a setting that
+ * Every test then checks the far end rather than the row alone: a setting that
  * survived the migration but no longer reaches the page is a migration that
  * passed and a plugin that broke.
+ *
+ * The link settings are the interesting half. A 2.58.3 site had four of them --
+ * a style out of four, and two link labels -- and 3.0.0 has one HTML template,
+ * so the migration has to hand every one of those sites a template that renders
+ * what it was already rendering. Only a browser can say whether it did.
  */
 
 const { test, expect } = require( '@wordpress/e2e-test-utils-playwright' );
 const {
 	createPrintablePost,
+	defaultOptions,
 	deleteOptions,
 	effectiveOptions,
 	ensurePluginActive,
@@ -26,6 +32,7 @@ const {
 	reactivatePlugin,
 	runningVersions,
 	setOptions,
+	uniqueTitle,
 	wpEval,
 } = require( './helpers.js' );
 
@@ -76,10 +83,20 @@ test.describe( 'The pre-3.0.0 upgrade', () => {
 
 		const stored = getStoredOptions();
 
-		expect( stored.post_text ).toBe( "Print O'Brien's post" );
-		expect( stored.page_text ).toBe( "Print O'Brien's page" );
-		expect( stored.print_style ).toBe( 3 );
+		// The four link settings became one template, carrying this site's own
+		// wording -- unslashed, or every visitor would be shown the backslashes --
+		// and the text-only shape it chose, which is to say no glyph.
+		expect( stored.print_html ).toContain( "Print O'Brien's post" );
+		expect( stored.print_html ).not.toContain( '%PRINT_ICON%' );
+		expect( stored.print_html ).not.toContain( '\\' );
 		expect( stored.links ).toBe( 0 );
+
+		// And the settings the template replaced are off the row, not merely
+		// unread. A retired key left behind is one the next release has to keep
+		// thinking about.
+		expect( stored.print_style ).toBeUndefined();
+		expect( stored.post_text ).toBeUndefined();
+		expect( stored.page_text ).toBeUndefined();
 
 		// One write, both markers, matching the code that is running.
 		expect( getVersionRow() ).toEqual( runningVersions() );
@@ -96,6 +113,65 @@ test.describe( 'The pre-3.0.0 upgrade', () => {
 		await expect( page.locator( '.entry-content svg.WP-PrintIcon' ) ).toHaveCount( 0 );
 	} );
 
+	test( 'a site on the shipped settings gets the shipped template', async ( {
+		page,
+		requestUtils,
+	} ) => {
+		// The commonest install of all: never touched a link setting in twenty
+		// years. Its two labels said Post on posts and Page on pages, and one
+		// template with %POST_TYPE% in it says both -- which is the whole reason
+		// the four settings could become one.
+		installLegacyRows( {
+			post_text: 'Print This Post',
+			page_text: 'Print This Page',
+			print_style: 1,
+		} );
+
+		await openSettings( page );
+
+		expect( getStoredOptions().print_html ).toBe( defaultOptions().print_html );
+
+		const post = await createPrintablePost( requestUtils );
+		const pageFixture = await requestUtils.createPage( {
+			title: uniqueTitle( 'Printable page' ),
+			content: '[print_link]',
+			status: 'publish',
+		} );
+
+		await page.goto( post.link );
+		await expect( page.locator( '.entry-content' ) ).toContainText( 'Print This Post' );
+		await expect( page.locator( '.entry-content svg.WP-PrintIcon' ) ).toHaveCount( 1 );
+
+		// The half no unit test can reach: is_page() and the post type only mean
+		// anything inside a real request.
+		await page.goto( pageFixture.link );
+		await expect( page.locator( '.entry-content' ) ).toContainText( 'Print This Page' );
+	} );
+
+	test( 'an icon-only site stays icon-only', async ( { page, requestUtils } ) => {
+		installLegacyRows( {
+			post_text: 'Print This Post',
+			page_text: 'Print This Page',
+			print_style: 2,
+		} );
+
+		await openSettings( page );
+
+		const post = await createPrintablePost( requestUtils );
+
+		await page.goto( post.link );
+
+		const link = page.locator( '.entry-content a[rel="nofollow"]' );
+
+		// The glyph, no words, and an accessible name -- which is what style 2
+		// rendered, down to the aria-label it needed because the glyph is hidden
+		// from assistive technology.
+		await expect( link ).toHaveCount( 1 );
+		await expect( link.locator( 'svg.WP-PrintIcon' ) ).toHaveCount( 1 );
+		await expect( link ).toHaveText( '' );
+		await expect( link ).toHaveAttribute( 'aria-label', 'Print This Post' );
+	} );
+
 	test( 'a custom template built round the old icon URL keeps working', async ( {
 		page,
 		requestUtils,
@@ -105,10 +181,12 @@ test.describe( 'The pre-3.0.0 upgrade', () => {
 		// %PRINT_ICON_URL%. There is one inline SVG now and no URL to point at, so
 		// the whole <img> is replaced rather than left with a src of raw markup.
 		installLegacyRows( {
+			post_text: 'Print This Post',
+			page_text: 'Print This Page',
 			print_style: 4,
 			print_icon: 'printer.gif',
 			print_html:
-				'<a class="my-print" href="%PRINT_URL%" title="%PRINT_TEXT%"><img src="%PRINT_ICON_URL%" alt="Print" /></a>',
+				'<a class="my-print" href="%PRINT_URL%" title="Print it"><img src="%PRINT_ICON_URL%" alt="Print" /></a>',
 		} );
 
 		await openSettings( page );
@@ -119,9 +197,19 @@ test.describe( 'The pre-3.0.0 upgrade', () => {
 		expect( stored.print_html ).not.toContain( '%PRINT_ICON_URL%' );
 		expect( stored.print_html ).not.toContain( '<img' );
 
-		// And the setting the placeholder belonged to is retired with it: a
-		// choice between two files that no longer exist is not a choice.
+		// And the site's own template is otherwise untouched, wording and all: a
+		// row already on the custom style holds the only thing 3.0.0 stores, so
+		// rewriting it would be the migration overwriting what it exists to keep.
+		expect( stored.print_html ).toContain( 'title="Print it"' );
+		expect( stored.print_html ).toContain( 'class="my-print"' );
+
+		// And the settings the template replaced are retired with it: a choice
+		// between two GIFs that no longer exist is not a choice, and neither is a
+		// style when there is only the template.
 		expect( stored.print_icon ).toBeUndefined();
+		expect( stored.print_style ).toBeUndefined();
+		expect( stored.post_text ).toBeUndefined();
+		expect( stored.page_text ).toBeUndefined();
 
 		const post = await createPrintablePost( requestUtils );
 
@@ -160,8 +248,7 @@ test.describe( 'The pre-3.0.0 upgrade', () => {
 
 		const stored = getStoredOptions();
 
-		expect( stored.post_text ).toBe( 'Print it' );
-		expect( stored.print_style ).toBe( 3 );
+		expect( stored.print_html ).toBe( '<a href="%PRINT_URL%" rel="nofollow" title="Print it">Print it</a>' );
 
 		// And the row holds the migrated keys and only those. add_option() is
 		// called after the fold-in and finds the row already there, so it does
@@ -209,7 +296,7 @@ test.describe( 'The pre-3.0.0 upgrade', () => {
 		// the upgrade has already run. maybe_upgrade() returning early is what
 		// keeps every admin request from being an option write, and the proof it
 		// returned early is that this deliberately stale row survives.
-		const stale = { post_text: 'Untouched', print_icon: 'printer.gif' };
+		const stale = { print_html: '<a href="%PRINT_URL%">%PRINT_TEXT%</a>', print_icon: 'printer.gif' };
 
 		setOptions( stale );
 

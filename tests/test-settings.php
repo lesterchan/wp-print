@@ -31,15 +31,33 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	}
 
 	/**
-	 * Render the fields, which is what do_settings_sections() does on the screen.
+	 * Render one tab's fields, which is what do_settings_sections() does on the
+	 * screen.
+	 *
+	 * @param string $tab Tab slug.
+	 * @return string
+	 */
+	private function render_tab( $tab ) {
+		ob_start();
+		do_settings_sections( WP_Print_Settings::tab_page( $tab ) );
+
+		return ob_get_clean();
+	}
+
+	/**
+	 * Both tabs' fields, for the assertions that do not care which tab a control
+	 * is on.
 	 *
 	 * @return string
 	 */
 	private function render_fields() {
-		ob_start();
-		do_settings_sections( WP_Print_Admin::PAGE );
+		$html = '';
 
-		return ob_get_clean();
+		foreach ( array_keys( WP_Print_Settings::tabs() ) as $tab ) {
+			$html .= $this->render_tab( $tab );
+		}
+
+		return $html;
 	}
 
 	/**
@@ -73,20 +91,127 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	}
 
 	/**
-	 * Both sections are registered against the screen Admin owns.
+	 * Each section is registered against the tab that draws it.
 	 *
-	 * The two classes meet at this constant, so a section registered against the
-	 * wrong page renders nothing and says nothing about it.
+	 * A section registered against the wrong page renders nothing and says nothing
+	 * about it, and with two tabs there are now two wrong pages to choose from.
 	 */
-	public function test_both_sections_are_registered_against_the_admin_page() {
+	public function test_each_section_is_registered_against_its_own_tab() {
 		global $wp_settings_sections;
 
-		$this->assertArrayHasKey( WP_Print_Admin::PAGE, $wp_settings_sections );
+		$settings  = WP_Print_Settings::tab_page( 'settings' );
+		$templates = WP_Print_Settings::tab_page( 'templates' );
 
-		$sections = array_keys( $wp_settings_sections[ WP_Print_Admin::PAGE ] );
+		$this->assertArrayHasKey( $settings, $wp_settings_sections );
+		$this->assertArrayHasKey( $templates, $wp_settings_sections );
 
-		$this->assertContains( WP_Print_Settings::SECTION_STYLES, $sections );
-		$this->assertContains( WP_Print_Settings::SECTION_CONTENT, $sections );
+		$this->assertSame(
+			array( WP_Print_Settings::SECTION_CONTENT ),
+			array_keys( $wp_settings_sections[ $settings ] )
+		);
+		$this->assertSame(
+			array( WP_Print_Settings::SECTION_LINK ),
+			array_keys( $wp_settings_sections[ $templates ] )
+		);
+	}
+
+	/**
+	 * The tabs are the family's two, spelled the family's way.
+	 *
+	 * Not "Print Settings" and "Print Templates": the h1 above them has already
+	 * said which plugin this is, and a tab that repeats it is a tab that does not
+	 * fit beside the same two in the eighteen other plugins.
+	 */
+	public function test_the_screen_has_the_two_family_tabs() {
+		$this->assertSame(
+			array(
+				'settings'  => 'Settings',
+				'templates' => 'Templates',
+			),
+			WP_Print_Settings::tabs()
+		);
+	}
+
+	/**
+	 * An unknown, absent or hostile ?tab= draws the first tab rather than an empty
+	 * form.
+	 */
+	public function test_an_unknown_tab_falls_back_to_the_first() {
+		$this->assertSame( 'settings', WP_Print_Settings::current_tab() );
+
+		$_GET['tab'] = 'templates';
+		$this->assertSame( 'templates', WP_Print_Settings::current_tab() );
+
+		$_GET['tab'] = 'nonsense';
+		$this->assertSame( 'settings', WP_Print_Settings::current_tab() );
+
+		unset( $_GET['tab'] );
+	}
+
+	/**
+	 * Each tab draws its own controls and none of the other's.
+	 *
+	 * A tab drawing both would post both, which is the failure that makes the
+	 * split pointless; a tab drawing neither is a blank screen.
+	 */
+	public function test_each_tab_draws_only_its_own_fields() {
+		$settings  = $this->render_tab( 'settings' );
+		$templates = $this->render_tab( 'templates' );
+
+		$this->assertStringContainsString( WP_Print_Options::OPTION . '[print_html]', $templates );
+		$this->assertStringNotContainsString( WP_Print_Options::OPTION . '[print_html]', $settings );
+
+		foreach ( array( 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
+			$this->assertStringContainsString( WP_Print_Options::OPTION . '[' . $key . ']', $settings );
+			$this->assertStringNotContainsString( WP_Print_Options::OPTION . '[' . $key . ']', $templates );
+		}
+	}
+
+	/**
+	 * Saving one tab must not blank what the other tab owns.
+	 *
+	 * The Settings API hands the sanitize callback only the fields the submitting
+	 * form posted, so a sanitizer returning just what it was given would wipe a
+	 * site's link template the first time anybody saved a toggle -- silently, and
+	 * with no way back. Both directions, because only one of them destroys
+	 * something a site spent time on and it is not the obvious one.
+	 */
+	public function test_saving_one_tab_keeps_the_other_tabs_values() {
+		$this->set_options(
+			array(
+				'print_html' => '<a href="%PRINT_URL%">mine</a>',
+				'disclaimer' => 'MY DISCLAIMER',
+				'comments'   => 0,
+			)
+		);
+
+		// The Settings tab: every control it owns, and not print_html.
+		update_option(
+			WP_Print_Options::OPTION,
+			array(
+				'comments'   => 1,
+				'links'      => 0,
+				'images'     => 0,
+				'thumbnail'  => 1,
+				'videos'     => 1,
+				'disclaimer' => 'MY DISCLAIMER',
+			)
+		);
+
+		$this->assertSame( '<a href="%PRINT_URL%">mine</a>', WP_Print_Options::get( 'print_html' ) );
+		$this->assertSame( 1, WP_Print_Options::can( 'comments' ) );
+
+		// And the Templates tab: print_html, and nothing else.
+		update_option(
+			WP_Print_Options::OPTION,
+			array( 'print_html' => '<a href="%PRINT_URL%">%POST_TYPE%</a>' )
+		);
+
+		$this->assertSame( '<a href="%PRINT_URL%">%POST_TYPE%</a>', WP_Print_Options::get( 'print_html' ) );
+		$this->assertSame( 'MY DISCLAIMER', WP_Print_Options::get( 'disclaimer' ) );
+		$this->assertSame( 1, WP_Print_Options::can( 'comments' ) );
+		$this->assertSame( 0, WP_Print_Options::can( 'links' ) );
+		$this->assertSame( 1, WP_Print_Options::can( 'thumbnail' ) );
 	}
 
 	/**
@@ -99,12 +224,12 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 			WP_Print_Options::OPTION,
 			array(
 				'print_style' => '99',
-				'post_text'   => "Tom & Jerry's",
+				'comments'    => '1',
 			)
 		);
 
-		$this->assertSame( 1, (int) WP_Print_Options::get( 'print_style' ) );
-		$this->assertStringNotContainsString( '\\', WP_Print_Options::get( 'post_text' ) );
+		$this->assertSame( 1, WP_Print_Options::can( 'comments' ) );
+		$this->assertArrayNotHasKey( 'print_style', (array) get_option( WP_Print_Options::OPTION ) );
 	}
 
 	/**
@@ -113,7 +238,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_every_field_renders() {
 		$html = $this->render_fields();
 
-		foreach ( array( 'post_text', 'page_text', 'print_style', 'print_html', 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
+		foreach ( array( 'print_html', 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
 			$this->assertStringContainsString(
 				WP_Print_Options::OPTION . '[' . $key . ']',
 				$html,
@@ -131,7 +256,6 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 
 		$this->assertStringNotContainsString( 'onclick=', $html );
 		$this->assertStringNotContainsString( 'onchange=', $html );
-		$this->assertStringContainsString( 'data-print-toggle', $html );
 		$this->assertStringContainsString( 'data-print-restore', $html );
 	}
 
@@ -154,7 +278,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_stored_markup_is_escaped_into_the_form() {
 		$this->set_options(
 			array(
-				'post_text'  => 'Quote " and <b>bold</b>',
+				'print_html' => '</textarea><script>alert(1)</script>',
 				'disclaimer' => '</textarea><script>alert(1)</script>',
 			)
 		);
@@ -166,15 +290,19 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	}
 
 	/**
-	 * The custom template block is hidden unless the Custom style is selected, so
-	 * the screen looks the same as it did before the rewrite.
+	 * The link template is always on screen, and nothing hides it.
+	 *
+	 * It used to be revealed by the Custom entry of a four-way style dropdown, and
+	 * the other three entries were templates too -- written in PHP rather than in
+	 * the box. There is one template now and it is on a tab of its own, so there is
+	 * nothing left to reveal it from.
 	 */
-	public function test_the_custom_block_is_hidden_unless_selected() {
-		$this->assertStringContainsString( 'wp-print-custom hidden', $this->render_fields() );
+	public function test_the_template_is_not_hidden_behind_anything() {
+		$templates = $this->render_tab( 'templates' );
 
-		$this->set_options( array( 'print_style' => 4 ) );
-
-		$this->assertStringNotContainsString( 'wp-print-custom hidden', $this->render_fields() );
+		$this->assertStringContainsString( 'id="wp-print-html"', $templates );
+		$this->assertStringNotContainsString( 'hidden', $templates );
+		$this->assertStringNotContainsString( 'print_style', $templates );
 	}
 
 	/**
@@ -199,12 +327,16 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 		$html = $this->render_fields();
 
 		$this->assertStringContainsString( '<code>%PRINT_URL%</code>', $html );
-		$this->assertStringContainsString( '<code>%PRINT_TEXT%</code>', $html );
+		$this->assertStringContainsString( '<code>%POST_TYPE%</code>', $html );
 		$this->assertStringContainsString( '<code>%PRINT_ICON%</code>', $html );
 		$this->assertStringNotContainsString( '%1$PRINT', $html );
+		$this->assertStringNotContainsString( '%1$POST', $html );
 
-		// The retired one is not offered: it named a URL, and the glyph is inline.
+		// The retired two are not offered. %PRINT_ICON_URL% named a URL and the
+		// glyph is inline; %PRINT_TEXT% named a link label and there are no link
+		// labels, only the wording written into the template itself.
 		$this->assertStringNotContainsString( '%PRINT_ICON_URL%', $html );
+		$this->assertStringNotContainsString( '<code>%PRINT_TEXT%</code>', $html );
 	}
 
 	/**
@@ -226,57 +358,47 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	}
 
 	/**
-	 * The style is clamped to one the renderer knows, or nothing renders at all.
-	 */
-	public function test_sanitize_clamps_the_style() {
-		$this->assertSame( 4, WP_Print_Settings::sanitize( array( 'print_style' => '4' ) )['print_style'] );
-
-		// An unknown style renders nothing at all, so the last valid one is kept.
-		$this->set_options( array( 'print_style' => 3 ) );
-
-		$this->assertSame( 3, WP_Print_Settings::sanitize( array( 'print_style' => '99' ) )['print_style'] );
-		$this->assertSame( 3, WP_Print_Settings::sanitize( array( 'print_style' => 'abc' ) )['print_style'] );
-	}
-
-	/**
-	 * The retired print_icon key is dropped on any write, however it got there.
+	 * Every retired key is dropped on any write, however it got there.
 	 *
-	 * It chose between two bundled GIFs; there is one inline SVG now, so a row
-	 * carrying it would be storing a setting nothing reads. The "keep what this
-	 * screen does not render" merge would otherwise preserve it for ever.
+	 * `print_icon` chose between two bundled GIFs and there is one inline SVG;
+	 * `print_style`, `post_text` and `page_text` were the link's four settings and
+	 * there is one template. A row carrying any of them would be storing a setting
+	 * nothing reads, and the "keep what this screen does not render" merge would
+	 * otherwise preserve it for ever.
 	 */
-	public function test_sanitize_drops_the_retired_icon_key() {
-		$this->set_options( array( 'print_icon' => 'print.gif' ) );
-
-		$clean = WP_Print_Settings::sanitize( array( 'post_text' => 'Anything' ) );
-
-		$this->assertArrayNotHasKey( 'print_icon', $clean );
-	}
-
-	/**
-	 * Link text must not come back slashed.
-	 *
-	 * The kses helper meant for the legacy pipeline also runs addslashes(),
-	 * because it predates unslashed superglobals, and options.php has already
-	 * unslashed by the time the sanitize callback runs. Using it here stored
-	 * "Tom & Jerry\'s Post". A label without a quote in it does not catch this,
-	 * which is why this test uses one.
-	 */
-	public function test_sanitize_does_not_slash_link_text() {
-		$clean = WP_Print_Settings::sanitize(
+	public function test_sanitize_drops_every_retired_key() {
+		$this->set_options(
 			array(
-				'post_text' => "Tom & Jerry's \"Post\"",
-				'page_text' => "O'Brien & Co",
+				'print_icon'  => 'print.gif',
+				'print_style' => 3,
+				'post_text'   => 'Print This Post',
+				'page_text'   => 'Print This Page',
 			)
 		);
 
-		$this->assertStringNotContainsString( '\\', $clean['post_text'] );
-		$this->assertStringNotContainsString( '\\', $clean['page_text'] );
+		$clean = WP_Print_Settings::sanitize( array( 'comments' => 1 ) );
 
-		// kses normalizes a bare ampersand, which is right: the value is rendered
-		// as link text and inside a title attribute.
-		$this->assertSame( 'Tom &amp; Jerry\'s "Post"', $clean['post_text'] );
-		$this->assertSame( 'O\'Brien &amp; Co', $clean['page_text'] );
+		foreach ( WP_Print_Options::retired_keys() as $key ) {
+			$this->assertArrayNotHasKey( $key, $clean, "{$key} survived a save." );
+		}
+	}
+
+	/**
+	 * And a retired key posted at the sanitizer is not stored either, so a
+	 * hand-made POST cannot put one back.
+	 */
+	public function test_sanitize_does_not_store_a_posted_retired_key() {
+		$clean = WP_Print_Settings::sanitize(
+			array(
+				'print_style' => 3,
+				'post_text'   => 'Mine',
+				'page_text'   => 'Theirs',
+			)
+		);
+
+		foreach ( WP_Print_Options::retired_keys() as $key ) {
+			$this->assertArrayNotHasKey( $key, $clean );
+		}
 	}
 
 	/**
@@ -286,16 +408,6 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 		$clean = WP_Print_Settings::sanitize( array( 'disclaimer' => "O'Reilly & Sons <strong>2026</strong>" ) );
 
 		$this->assertSame( "O'Reilly & Sons <strong>2026</strong>", $clean['disclaimer'] );
-	}
-
-	/**
-	 * Empty link text falls back to the default rather than rendering an empty
-	 * link that a reader cannot see or click.
-	 */
-	public function test_sanitize_falls_back_for_empty_link_text() {
-		$clean = WP_Print_Settings::sanitize( array( 'post_text' => '   ' ) );
-
-		$this->assertSame( WP_Print_Options::get_defaults()['post_text'], $clean['post_text'] );
 	}
 
 	/**
@@ -346,7 +458,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 			'The fixture did not land, so the assertion below would prove nothing.'
 		);
 
-		$clean = WP_Print_Settings::sanitize( array( 'post_text' => 'Anything' ) );
+		$clean = WP_Print_Settings::sanitize( array( 'comments' => 1 ) );
 
 		$this->assertSame( 'keep me', $clean['third_party'], 'A save dropped a stored key the screen does not render.' );
 	}
@@ -358,7 +470,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_sanitize_drops_an_unexpected_posted_key() {
 		$clean = WP_Print_Settings::sanitize(
 			array(
-				'post_text'    => 'Anything',
+				'comments'     => 1,
 				'injected_key' => 'nope',
 			)
 		);
@@ -378,10 +490,9 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_a_partial_update_keeps_everything_else() {
 		$this->set_options(
 			array(
-				'disclaimer'  => 'MY DISCLAIMER',
-				'print_html'  => '<a href="%PRINT_URL%">mine</a>',
-				'post_text'   => 'My Post Text',
-				'print_style' => 4,
+				'disclaimer' => 'MY DISCLAIMER',
+				'print_html' => '<a href="%PRINT_URL%">mine</a>',
+				'thumbnail'  => 1,
 			)
 		);
 
@@ -389,8 +500,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 
 		$this->assertSame( 'MY DISCLAIMER', $clean['disclaimer'] );
 		$this->assertSame( '<a href="%PRINT_URL%">mine</a>', $clean['print_html'] );
-		$this->assertSame( 'My Post Text', $clean['post_text'] );
-		$this->assertSame( 4, $clean['print_style'] );
+		$this->assertSame( 1, $clean['thumbnail'] );
 		$this->assertSame( 1, $clean['comments'] );
 	}
 
