@@ -79,8 +79,11 @@ class WP_Print_Metadata_Test extends WP_Print_TestCase {
 		foreach ( $iterator as $file ) {
 			$path = $file->getPathname();
 
-			// vendor/ and node_modules/ are not ours and never ship.
-			if ( false !== strpos( $path, '/vendor/' ) || false !== strpos( $path, '/node_modules/' ) ) {
+			// vendor/ and node_modules/ are not ours and never ship, and
+			// artifacts/ is whatever the last failing Playwright run left behind.
+			if ( false !== strpos( $path, '/vendor/' )
+				|| false !== strpos( $path, '/node_modules/' )
+				|| false !== strpos( $path, '/artifacts/' ) ) {
 				continue;
 			}
 
@@ -507,7 +510,25 @@ class WP_Print_Metadata_Test extends WP_Print_TestCase {
 		}
 
 		$this->assertSame( array(), (array) glob( WP_PRINT_DIR . '*.css' ), 'Stylesheets live in css/.' );
-		$this->assertSame( array(), (array) glob( WP_PRINT_DIR . '*.js' ), 'Scripts live in js/.' );
+
+		/*
+		 * Tool configuration is not a script the plugin ships.
+		 *
+		 * The rule is about source scripts loose in the root, and playwright.config.js
+		 * has to be there -- Playwright resolves testDir and every other path relative
+		 * to it. bin/verify.py draws the same line, allowing *.config.js and
+		 * *.config.mjs at the root and nothing else.
+		 */
+		$scripts = array_values(
+			array_filter(
+				(array) glob( WP_PRINT_DIR . '*.js' ),
+				static function ( $file ) {
+					return ! preg_match( '/\.config\.js$/', basename( $file ) );
+				}
+			)
+		);
+
+		$this->assertSame( array(), $scripts, 'Scripts live in js/. Only *.config.js may sit at the root.' );
 	}
 
 	/**
