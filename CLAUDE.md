@@ -147,6 +147,17 @@ rather than moving the file.
 `tests/e2e/` (5 specs, 52 tests) is among the twelve suites
 `_standards/RESUME.md` lists as never run to green.
 
+**`printview.spec.js`'s password test quotes core's wording, and core has since
+changed it.** WordPress 7.0's `get_the_password_form()` reads *"This content is
+password-protected. To view it, please enter the password below."* — hyphenated,
+and not the sentence either the spec's comment or the sweep entry quotes. So
+`toContainText( 'password protected' )` cannot match, and that assertion sits
+directly after the comment-leak one that was the real bug. Both plugin bugs that
+test covers are fixed; if it is still red, read the failing line before
+concluding anything about the plugin. `.wp-env.json` pins `core: null`, which is
+whatever WordPress is current, so the wording is not stable and asserting on it
+was always going to age.
+
 ## Pending, not started
 
 `_standards/RESUME.md` task #17 renames the settings page and its identically
