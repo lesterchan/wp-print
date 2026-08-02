@@ -70,6 +70,19 @@ unchanged but the rewrite rules are only written when that screen is saved.
   still carrying `%PRINT_TEXT%` renders it visibly on the page, so an install
   that needs editing says so rather than silently losing its words. Same
   reasoning keeps `print_link()`'s first two arguments in the signature, ignored.
+* **The link template meets kses inside `WP_Print_Link::render()`, not at the
+  call sites.** It used to leave that to the caller the way `get_the_title()`
+  leaves it to `the_title()`: `print_link()` filtered on the way out and the
+  `[print_link]` shortcode returned `render()` straight to the shortcode engine,
+  which puts it in `the_content` untouched. One stored template was therefore
+  inert through the tag a theme calls and live through the shortcode the readme
+  documents — and the shortcode is the route every documented install uses. The
+  glyph, the URL and the post-type label are substituted first and filtered with
+  everything else, so the returned markup is escaped for every caller including
+  a theme that takes `print_link( '', '', false )` and echoes it.
+  `test_a_hostile_template_is_inert_through_the_tag_and_the_shortcode` pins both
+  routes to the same string; wp-useronline's `format_count()` had the identical
+  shape and carries the same fix.
 * **`WP_Print_Link::allowed_html()` is a closed list, not `wp_kses_post()`**,
   because the post list has never allowed `svg` and would strip the printer glyph
   the template substitutes in. `WP_Print_Content::allowed_html()` is the kses

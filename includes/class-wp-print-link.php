@@ -52,7 +52,7 @@ class WP_Print_Link {
 	 *
 	 * A closed list rather than wp_kses_post(): that one has never allowed
 	 * `svg`, so it would quietly strip the glyph the template substitutes in.
-	 * Used at the point the link is echoed.
+	 * Applied by render(), so every route out of the plugin gets it.
 	 *
 	 * @return array
 	 */
@@ -104,17 +104,31 @@ class WP_Print_Link {
 	/**
 	 * Build the print link for the current post or page.
 	 *
-	 * Returns the markup rather than printing it, and does not filter it: the
-	 * caller escapes at the point of output, exactly as get_the_title() leaves
-	 * that to the_title(). print_link() does it for you.
+	 * Filtered here, where the stored template becomes markup, rather than at the
+	 * two places that emit it. This used to leave escaping to the caller the way
+	 * get_the_title() leaves it to the_title(): print_link() duly ran the result
+	 * through wp_kses() with the list above, and the [print_link] shortcode
+	 * handed the same string straight to the shortcode engine, which inserts it
+	 * into the_content untouched. So one stored template was inert through the
+	 * template tag and live through the shortcode -- and the shortcode is the
+	 * route every documented install uses. Two callers each deciding this
+	 * separately is the defect, and a third wrapper would only have been a fourth
+	 * place to forget; wp-useronline's naming templates had the identical shape
+	 * and were fixed the same way.
+	 *
+	 * kses rather than esc_html() because the template is markup on purpose: the
+	 * shipped one is an anchor wrapped around the glyph.
 	 *
 	 * @return string
 	 */
 	public static function render() {
-		return str_replace(
-			array( '%PRINT_URL%', '%PRINT_ICON%', '%POST_TYPE%' ),
-			array( esc_url( self::url() ), self::icon(), self::post_type_label() ),
-			(string) WP_Print_Options::get( 'print_html' )
+		return wp_kses(
+			str_replace(
+				array( '%PRINT_URL%', '%PRINT_ICON%', '%POST_TYPE%' ),
+				array( esc_url( self::url() ), self::icon(), self::post_type_label() ),
+				(string) WP_Print_Options::get( 'print_html' )
+			),
+			self::allowed_html()
 		);
 	}
 
@@ -171,6 +185,9 @@ class WP_Print_Link {
 	 * Declares no parameters: the link is configured on the settings screen
 	 * rather than per shortcode, and PHP is happy to call a callback with more
 	 * arguments than it takes.
+	 *
+	 * What it returns goes into the_content as markup, which is why render() and
+	 * not this method is where the template meets kses.
 	 *
 	 * @return string
 	 */

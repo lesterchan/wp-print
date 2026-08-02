@@ -72,12 +72,22 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 	}
 
 	/**
-	 * The printer glyph, as the plugin builds it.
+	 * The printer glyph, as a reader receives it.
+	 *
+	 * Not WP_Print_Link::icon() as the plugin builds it. The stored template meets
+	 * wp_kses() inside render(), so every route out of the plugin gets the glyph
+	 * through the allow-list -- and kses is a normaliser rather than a
+	 * pass-through: among other things it lowercases every attribute name, so the
+	 * glyph's viewBox is printed as viewbox. An HTML parser maps the lowercase
+	 * spelling back for SVG attributes and nothing is lost by it. The byte-for-byte
+	 * assertions below are about the template substitution rather than about the
+	 * glyph, which test_the_icon_is_an_inline_svg_that_inherits_its_colour covers
+	 * on its own.
 	 *
 	 * @return string
 	 */
 	private function icon() {
-		return WP_Print_Link::icon();
+		return wp_kses( WP_Print_Link::icon(), WP_Print_Link::allowed_html() );
 	}
 
 	/**
@@ -312,28 +322,26 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 	}
 
 	/**
-	 * Echoing and returning produce the same markup, whatever the template holds.
+	 * Every route out of render() produces the same link, whatever the template
+	 * holds.
 	 *
-	 * The echoing half filters on the way out with a closed tag list, and that is
-	 * the only place the plugin prints markup it has built itself. Should the
-	 * list ever stop covering what the link contains -- the glyph is svg, and
-	 * wp_kses_post() has never allowed svg -- a template carrying the icon would
-	 * quietly lose it, and only in the half of the API that prints. That loss is
-	 * what this asserts against.
+	 * There are three: the tag printing, the tag returning, and the shortcode.
+	 * They did not always agree -- the template met the allow-list on the way out
+	 * of the tag and nowhere else, so the shortcode, which is the route every
+	 * documented install uses, emitted the stored template as markup. The
+	 * filtering moved into render(), and this is the pin that all three stay one
+	 * string.
 	 *
-	 * Compared element by element rather than byte for byte, because wp_kses() is
-	 * a normaliser and not a pass-through: among other things it lowercases every
-	 * attribute name, so the glyph's viewBox is printed as viewbox. Nothing is
-	 * lost by that -- an HTML parser maps the lowercase spelling back for SVG
-	 * attributes -- and it is not what this test is here to police. Every element
-	 * and every attribute still has to survive, so an allowlist that stops
-	 * covering svg, path or any attribute on either still fails here.
+	 * The second half is the other risk that move carries. The glyph is svg and
+	 * wp_kses_post() has never allowed svg, which is why the list is a closed one
+	 * of the plugin's own; a list that stopped covering svg or path would now
+	 * drop the icon from every route at once rather than from one of them.
 	 *
 	 * @dataProvider data_templates
 	 *
 	 * @param string $template The stored link template.
 	 */
-	public function test_the_echoed_link_matches_the_returned_one( $template ) {
+	public function test_every_route_out_of_render_produces_the_same_link( $template ) {
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
 
@@ -348,16 +356,17 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 		print_link();
 		$echoed = ob_get_clean();
 
+		$this->assertSame( $returned . "\n", $echoed, 'Printing the link is not returning it plus a newline.' );
 		$this->assertSame(
-			$this->elements( $returned ),
-			$this->elements( $echoed ),
-			'The template does not survive the output filter intact.'
+			$returned,
+			do_shortcode( '[print_link]' ),
+			'The shortcode and the template tag do not produce the same link.'
 		);
-		$this->assertSame(
-			trim( wp_strip_all_tags( $returned ) ),
-			trim( wp_strip_all_tags( $echoed ) ),
-			'The template loses text passing through the output filter.'
-		);
+
+		if ( false !== strpos( $template, '%PRINT_ICON%' ) ) {
+			$this->assertStringContainsString( 'WP-PrintIcon', $returned, 'The allow-list has dropped the glyph.' );
+			$this->assertSame( 3, substr_count( $returned, '<path' ), 'The allow-list has dropped part of the glyph.' );
+		}
 	}
 
 	/**
@@ -414,6 +423,116 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 			'icon only'       => array( '<a href="%PRINT_URL%" rel="nofollow" title="Print" aria-label="Print">%PRINT_ICON%</a>' ),
 			'text only'       => array( '<a href="%PRINT_URL%" rel="nofollow" title="Print">Print This %POST_TYPE%</a>' ),
 			'a site\'s own'   => array( '<span class="mine"><a href="%PRINT_URL%">%PRINT_ICON%</a> <em>Print</em></span>' ),
+		);
+	}
+
+	/**
+	 * A hostile stored template is text on the page, by every route out of render().
+	 *
+	 * The link template is the one thing WP-Print reads out of its own row and
+	 * puts on a public page as markup, so it is the plugin's stored-XSS surface
+	 * and §7.2.4 asks for exactly this. Both routes are asserted because for most
+	 * of 3.0.0's life they disagreed: the template tag filtered on the way out and
+	 * the shortcode did not, so one stored value was inert through the tag a theme
+	 * calls and live through the shortcode the readme documents.
+	 *
+	 * Written straight into the row rather than through the settings screen.
+	 * Sanitising on the way in is the assumption under test, not a step to
+	 * reproduce: this is the row a pre-3.0.0 release, a WP-CLI one-liner or a
+	 * compromised install has already left behind.
+	 *
+	 * Both halves are asserted. Nothing that runs may survive, and the wording
+	 * must -- escaping that swallowed the payload whole would satisfy the first
+	 * half while losing the site the words it wrote, and a print link whose text
+	 * silently vanished is its own bug.
+	 *
+	 * @dataProvider data_hostile_templates
+	 *
+	 * @param string $template The stored link template.
+	 * @param string $survives Text the reader must still be shown.
+	 */
+	public function test_a_hostile_template_is_inert_through_the_tag_and_the_shortcode( $template, $survives ) {
+		$this->go_to( get_permalink( self::$post_id ) );
+		the_post();
+
+		update_option(
+			WP_Print_Options::OPTION,
+			array_merge( WP_Print_Options::get_defaults(), array( 'print_html' => $template ) )
+		);
+
+		$routes = array(
+			'the template tag' => print_link( '', '', false ),
+			'the shortcode'    => do_shortcode( '[print_link]' ),
+		);
+
+		$this->assertSame(
+			$routes['the template tag'],
+			$routes['the shortcode'],
+			'The shortcode and the template tag do not escape the same stored value alike.'
+		);
+
+		foreach ( $routes as $route => $output ) {
+			$this->assertStringNotContainsString( '<script', $output, "A script element survived $route." );
+			$this->assertStringNotContainsString( 'javascript:', $output, "A javascript: URL survived $route." );
+
+			/*
+			 * The elements are parsed rather than searched for as text, because a
+			 * payload that is doing its job appears in the output twice over: once
+			 * as the inert words the reader sees, and once -- if the escaping
+			 * failed -- as an attribute. A substring search cannot tell those
+			 * apart, and would call the first one a failure.
+			 */
+			foreach ( $this->elements( $output ) as $element ) {
+				$this->assertNotSame( 'script', $element['tag'], "A script element survived $route." );
+
+				foreach ( array_keys( $element['attributes'] ) as $attribute ) {
+					$this->assertNotSame(
+						'on',
+						substr( $attribute, 0, 2 ),
+						"The $attribute handler survived $route."
+					);
+				}
+			}
+
+			$this->assertStringContainsString(
+				$survives,
+				wp_strip_all_tags( $output ),
+				"The escaping ate the link wording in $route."
+			);
+		}
+	}
+
+	/**
+	 * Data provider.
+	 *
+	 * The three canonical payloads of §7.2.4 -- a script element, an error-firing
+	 * image and an attribute breakout -- plus the breakout again in the place a
+	 * template most plausibly puts it, inside an attribute of its own.
+	 *
+	 * @return array
+	 */
+	public function data_hostile_templates() {
+		return array(
+			'a script element in the wording'  => array(
+				'<a href="%PRINT_URL%" rel="nofollow">Print <script>window.__pwned = 1;</script></a>',
+				'window.__pwned = 1;',
+			),
+			'an error-firing image'            => array(
+				'<a href="%PRINT_URL%" rel="nofollow">Print <img src=x onerror="window.__pwned = 1"></a>',
+				'Print',
+			),
+			'a breakout in the wording'        => array(
+				'<a href="%PRINT_URL%" rel="nofollow">Print " onmouseover="window.__pwned = 1</a>',
+				'Print " onmouseover="window.__pwned = 1',
+			),
+			'a breakout inside an attribute'   => array(
+				'<a href="%PRINT_URL%" rel="nofollow" title="Print " onmouseover="window.__pwned = 1">Print</a>',
+				'Print',
+			),
+			'a javascript URL in the template' => array(
+				'<a href="javascript:window.__pwned = 1" rel="nofollow">Print</a>',
+				'Print',
+			),
 		);
 	}
 

@@ -27,6 +27,10 @@ defined( 'ABSPATH' ) || exit;
  * every theme that has ever called this tag passes them, and dropping them would
  * turn a settings change into a fatal error on somebody else's site.
  *
+ * The markup arrives escaped either way: WP_Print_Link::render() filters the
+ * stored template, so a theme that takes the return value and echoes it is in
+ * the same position as one that lets this tag print.
+ *
  * @param string $print_post_text Unused. Formerly the link text on a post.
  * @param string $print_page_text Unused. Formerly the link text on a page.
  * @param bool   $display         Optional. Whether to print. Default true.
@@ -41,7 +45,7 @@ function print_link( $print_post_text = '', $print_page_text = '', $display = tr
 		return $output;
 	}
 
-	echo wp_kses( $output, WP_Print_Link::allowed_html() ) . "\n";
+	echo $output . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Filtered through WP_Print_Link::allowed_html() by render(), which is where the [print_link] shortcode gets it too.
 }
 
 /**
