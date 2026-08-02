@@ -394,9 +394,45 @@ class WP_Print_Options {
 		// files are loaded. A retired key must go on both paths.
 		$merged = array_diff_key( $merged, array_flip( self::retired_keys() ) );
 
-		update_option( self::OPTION, $merged );
+		self::write( $merged );
 
 		delete_option( self::LEGACY_OPTION );
+	}
+
+	/**
+	 * Write the settings row from inside the migration.
+	 *
+	 * `update_option()` declines to write a value equal to the one `get_option()`
+	 * would return, and `register_setting()` is passed a `default`, which installs
+	 * a `default_option_wp_print_options` filter answering with the shipped
+	 * defaults for a row that does not exist. So on an admin request -- the path
+	 * every real update takes, because activation hooks do not fire on an update
+	 * -- a migration whose result happens to equal the defaults writes nothing at
+	 * all, and the row is never created.
+	 *
+	 * That is silent, and it does not stop there: migrate_legacy_rows() and
+	 * migrate_link_template() are two writes that have to compose, the second
+	 * re-reading what the first stored. When the first vanishes the second builds
+	 * its template on an empty row, and the markers are stamped complete either
+	 * way, so the upgrade can never run again.
+	 *
+	 * Passing an explicit default to `get_option()` defeats the registered one --
+	 * `filter_default_option()` returns early when a default was passed -- which
+	 * is what lets an absent row be told apart from a defaulted one and added
+	 * outright. `add_option()` runs the sanitize callback exactly as
+	 * `update_option()` does, so a retired key is dropped on both paths.
+	 *
+	 * @param array $options The settings to store.
+	 * @return void
+	 */
+	private static function write( array $options ) {
+		if ( false === get_option( self::OPTION, false ) ) {
+			add_option( self::OPTION, $options );
+
+			return;
+		}
+
+		update_option( self::OPTION, $options );
 	}
 
 	/**
@@ -487,7 +523,7 @@ class WP_Print_Options {
 
 		$stored['print_html'] = self::link_template( $style, self::migrated_link_text( $source ) );
 
-		update_option( self::OPTION, $stored );
+		self::write( $stored );
 	}
 
 	/**
@@ -560,7 +596,7 @@ class WP_Print_Options {
 		}
 
 		if ( $stored !== $before ) {
-			update_option( self::OPTION, $stored );
+			self::write( $stored );
 		}
 	}
 }

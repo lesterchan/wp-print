@@ -349,6 +349,54 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 	}
 
 	/**
+	 * The commonest install of all, on the path every real update takes.
+	 *
+	 * A site that never touched a link setting migrates to exactly the shipped
+	 * defaults, and that is the one shape the admin path used to lose.
+	 * register_setting() is passed a `default`, which answers get_option() with
+	 * those defaults for a row that does not exist; update_option() compared the
+	 * migrated value against them, found it equal and declined to write. The
+	 * legacy row had already been deleted and the markers are stamped either way,
+	 * so the upgrade could never run again.
+	 *
+	 * The test above passes on that bug because its fixture is customised, so its
+	 * template differs from the default and the write lands. A fixture that
+	 * differs from the defaults cannot see a defect that only shows when it does
+	 * not.
+	 *
+	 * The assertions read the raw row for the same reason: through the registered
+	 * default, a row that was never written is indistinguishable from one holding
+	 * the defaults.
+	 */
+	public function test_the_shipped_settings_survive_the_admin_path() {
+		wp_set_current_user( $this->create_admin() );
+
+		$this->install_legacy(
+			array(
+				'post_text'   => self::STOCK_POST,
+				'page_text'   => self::STOCK_PAGE,
+				'print_style' => WP_Print_Options::LEGACY_STYLE_ICON_TEXT,
+			)
+		);
+
+		WP_Print_Settings::register();
+		WP_Print_Options::maybe_upgrade();
+
+		$raw = get_option( WP_Print_Options::OPTION, false );
+
+		$this->assertIsArray( $raw, 'The migration wrote no settings row at all.' );
+		$this->assertSame(
+			WP_Print_Options::default_template(),
+			isset( $raw['print_html'] ) ? $raw['print_html'] : null,
+			'The shipped template is not on the row the migration left behind.'
+		);
+		$this->assertFalse(
+			get_option( WP_Print_Options::LEGACY_OPTION ),
+			'The legacy row is gone, so whatever the migration failed to carry across is gone with it.'
+		);
+	}
+
+	/**
 	 * The other entry point: activation, which is what reactivating runs and what
 	 * an update through the Plugins screen never fires.
 	 */

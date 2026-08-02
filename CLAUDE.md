@@ -47,6 +47,23 @@ unchanged but the rewrite rules are only written when that screen is saved.
   `update_option()` the migration makes during an admin request. Read first, or
   the template is synthesised from a row the values have already been removed
   from (commit `49861b9`).
+* **Every migration write goes through `WP_Print_Options::write()`, never
+  `update_option()` directly.** `update_option()` declines to write a value equal
+  to the one `get_option()` would return, and `register_setting()` is passed a
+  `default`, which answers `get_option()` with the shipped defaults for a row
+  that does not exist. So the one install shape whose migration *result* is the
+  defaults — never touched a link setting in twenty years, which is the commonest
+  one — wrote no row at all, while the legacy row was deleted and the markers
+  stamped complete. `write()` tells an absent row from a defaulted one by passing
+  an explicit default to `get_option()` and `add_option()`s it.
+
+  `test_the_migration_survives_its_own_sanitize_callback` covers the same admin
+  path and passed throughout, because its fixture is *customised* and so differs
+  from the defaults. **A fixture that differs from the defaults cannot see a
+  defect that only shows when it does not.**
+  `test_the_shipped_settings_survive_the_admin_path` is the one that fails, and
+  it reads the raw row — through the registered default a row that was never
+  written is indistinguishable from one holding the defaults.
 * **Migration is gated on the stored markers, never on whether the old shape is
   still detectable.** Gating on detection re-migrates on every request.
 * **A retired placeholder is left in the template, not blanked.** A template
