@@ -353,6 +353,77 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	}
 
 	/**
+	 * The printed password form still has somewhere to type the password.
+	 *
+	 * The form is the one thing in the printed document that survives the trip to
+	 * the page as a form. It is built by core, returned by post_content() and then
+	 * filtered like everything else -- and the list that filtering is built on,
+	 * wp_kses_allowed_html( 'post' ), has never allowed `form` or `input`. So the
+	 * sentence and the Password label arrived and the field they point at did not,
+	 * and the reader was told to enter a password into nothing at all.
+	 *
+	 * Asserted against the echoed output rather than the returned one, because the
+	 * filtering is what print_content() does on the way to the page and the return
+	 * value never sees it.
+	 */
+	public function test_a_protected_post_prints_a_field_to_type_the_password_into() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_content'  => 'CLASSIFIED',
+				'post_password' => 'letmein',
+			)
+		);
+
+		$this->go_to( get_permalink( $post_id ) );
+		the_post();
+
+		ob_start();
+		print_content();
+		$html = ob_get_clean();
+
+		$this->assertStringNotContainsString( 'CLASSIFIED', $html );
+		$this->assertStringContainsString( '<form', $html );
+		$this->assertStringContainsString( 'name="post_password"', $html );
+		$this->assertStringContainsString( 'type="password"', $html );
+
+		// The label is only worth having if it still points at something.
+		preg_match( '#<label for="([^"]+)"#', $html, $label );
+
+		$this->assertNotEmpty( $label, 'The password form printed without its label.' );
+		$this->assertStringContainsString( 'id="' . $label[1] . '"', $html );
+	}
+
+	/**
+	 * A form stored in a post body is still printed as text.
+	 *
+	 * The widening above is scoped to the locked-post path, and this is the reason
+	 * it has to be. Everything else the print view prints is somebody's stored
+	 * content; a list that allowed a form everywhere would let one be stored in a
+	 * post and printed as a working form on a page whose whole appeal is that it
+	 * looks like plain paper.
+	 */
+	public function test_a_form_in_a_post_body_is_not_printed_as_a_form() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_content' => '<form action="https://example.com/collect" method="post">'
+					. '<input type="password" name="post_password" /></form>Body text.',
+			)
+		);
+
+		$this->go_to( get_permalink( $post_id ) );
+		the_post();
+
+		ob_start();
+		print_content();
+		$html = ob_get_clean();
+
+		$this->assertStringNotContainsString( '<form', $html );
+		$this->assertStringNotContainsString( '<input', $html );
+		$this->assertStringNotContainsString( 'example.com/collect', $html );
+		$this->assertStringContainsString( 'Body text.', $html );
+	}
+
+	/**
 	 * Comment links continue the post's numbering rather than restarting, so a
 	 * footnote number means one thing across the whole printed document.
 	 */

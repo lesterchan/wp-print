@@ -70,6 +70,17 @@ unchanged but the rewrite rules are only written when that screen is saved.
   still carrying `%PRINT_TEXT%` renders it visibly on the page, so an install
   that needs editing says so rather than silently losing its words. Same
   reasoning keeps `print_link()`'s first two arguments in the signature, ignored.
+* **`WP_Print_Content::allowed_html( 'password-form' )` is the only context that
+  adds tags, and widening it globally would be a bug.** `post_content()` answers
+  a locked post with `get_the_password_form()`, and
+  `wp_kses_allowed_html( 'post' )` has never allowed `form` or `input` — so the
+  prompt and the Password label printed and the field they point at was stripped,
+  leaving the reader told to type a password into nothing. `print_content()`
+  picks the context from `post_password_required()`, the same question
+  `post_content()` asked, so the widened list only ever sees markup core built
+  and never a stored post body. `test_a_form_in_a_post_body_is_not_printed_as_a_form`
+  is what stops somebody widening it for convenience later. The context reaches
+  the `wp_print_allowed_html` filter too.
 * **A locked post is guarded twice, and both are wanted.**
   `includes/print-comments.php` opens with `post_password_required()` and
   `WP_Print_Template::render()` also hangs `hide_protected_comments()` on

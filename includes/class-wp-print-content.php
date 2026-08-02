@@ -83,7 +83,11 @@ class WP_Print_Content {
 	 * filter below rather than going without: none of this is a security
 	 * boundary the theme does not already cross when it echoes the same content.
 	 *
-	 * @param string $context Where the content came from: 'post' or 'comment'.
+	 * The password form is the exception, and the one context that adds tags
+	 * rather than only listing them. See below.
+	 *
+	 * @param string $context Where the content came from: 'post', 'comment' or
+	 *                        'password-form'.
 	 * @return array
 	 */
 	public static function allowed_html( $context = 'post' ) {
@@ -148,6 +152,46 @@ class WP_Print_Content {
 			'fill' => true,
 		);
 
+		/*
+		 * The password form, and nothing else, may be a form.
+		 *
+		 * post_content() answers a locked post with get_the_password_form(), and
+		 * the post list this is built on has never allowed `form` or `input`. So
+		 * the sentence and the label survived and the field they point at did not:
+		 * the reader was told to enter a password beside a Password label with
+		 * nowhere to type it, which is worse than no prompt at all.
+		 *
+		 * Scoped to this one context on purpose. Everything else printed here is
+		 * somebody's stored content, and a list that allowed a form everywhere
+		 * would let one be stored in a post and printed as a working form on a
+		 * page whose whole appeal is that it looks like plain paper.
+		 */
+		if ( 'password-form' === $context ) {
+			$allowed['form']  = array(
+				'action' => true,
+				'class'  => true,
+				'id'     => true,
+				'method' => true,
+			);
+			$allowed['input'] = array(
+				// Core points the field at its own error message with
+				// aria-describedby when a password has just been rejected, and an
+				// attribute the list does not carry is dropped without the tag.
+				'aria-describedby' => true,
+				'autocomplete'     => true,
+				'class'            => true,
+				'id'               => true,
+				'maxlength'        => true,
+				'name'             => true,
+				'placeholder'      => true,
+				'required'         => true,
+				'size'             => true,
+				'spellcheck'       => true,
+				'type'             => true,
+				'value'            => true,
+			);
+		}
+
 		/**
 		 * Filters the tags and attributes the printed document may carry.
 		 *
@@ -158,7 +202,8 @@ class WP_Print_Content {
 		 * @since 3.0.0
 		 *
 		 * @param array  $allowed Allowed tags, in wp_kses() form.
-		 * @param string $context Where the content came from: 'post' or 'comment'.
+		 * @param string $context Where the content came from: 'post', 'comment'
+		 *                        or 'password-form'.
 		 */
 		return (array) apply_filters( 'wp_print_allowed_html', $allowed, $context );
 	}

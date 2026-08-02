@@ -51,6 +51,13 @@ function print_link( $print_post_text = '', $print_page_text = '', $display = tr
 /**
  * Display or return the post content, prepared for printing.
  *
+ * On a locked post WP_Print_Content::post_content() returns core's password form
+ * instead of the body, and that form is filtered with a list of its own: the post
+ * list has never allowed `form` or `input`, so the prompt printed with no field
+ * to type into. The context is decided from the same question post_content() asks
+ * rather than by looking at what came back, and the widened list therefore never
+ * sees a stored post body.
+ *
  * @param bool $display Optional. Whether to print. Default true.
  * @return string|void The content when $display is false.
  */
@@ -61,7 +68,9 @@ function print_content( $display = true ) {
 		return $content;
 	}
 
-	echo wp_kses( $content, WP_Print_Content::allowed_html( 'post' ) );
+	$context = post_password_required() ? 'password-form' : 'post';
+
+	echo wp_kses( $content, WP_Print_Content::allowed_html( $context ) );
 }
 
 /**

@@ -153,7 +153,7 @@ Nothing, because there is nothing left for it to stand for: it inserted whicheve
 * NEW: The options screen now uses the WordPress Settings API. Its address changes from `options-general.php?page=wp-print/print-options.php` to `options-general.php?page=wp-print` — the Settings -> Print menu item is unaffected, and there is now a Settings link on the Plugins screen. Update any bookmark.
 * NEW: No more jQuery. The settings screen and the print view use plain JavaScript, and every inline `onclick` attribute is gone.
 * NEW: Print options are stored unslashed. An existing install is migrated once, automatically, on the first admin page load after upgrading.
-* CHANGED: The printed document is filtered through `wp_kses()` on its way out, keeping every tag a post body plausibly contains plus the ones embeds arrive in. `wp_print_allowed_html` covers anything it misses.
+* CHANGED: The printed document is filtered through `wp_kses()` on its way out, keeping every tag a post body plausibly contains plus the ones embeds arrive in, and the field of the password form on a protected post. `wp_print_allowed_html` covers anything it misses.
 * CHANGED: The print link is filtered through the plugin's allow-list wherever it is emitted — the `[print_link]` shortcode as well as the `print_link()` template tag. A link template carrying a tag outside that list, or an inline event handler, loses it.
 * CHANGED: The print view no longer fetches a webfont from fonts.googleapis.com when the site is right-to-left.
 * CHANGED: The third argument to `print_link()` is named `$display`, matching the other template tags. Only a caller passing it by name is affected.
