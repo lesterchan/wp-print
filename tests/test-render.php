@@ -57,6 +57,7 @@ class WP_Print_Render_Test extends WP_Print_TestCase {
 
 		add_filter( 'wp_title', array( 'WP_Print_Template', 'page_title' ) );
 		add_filter( 'comments_template', array( 'WP_Print_Template', 'comments_template' ) );
+		add_filter( 'comments_array', array( 'WP_Print_Template', 'hide_protected_comments' ), 10, 2 );
 
 		// The template reads $print_options directly for the disclaimer, so it has
 		// to be in scope for the require - exactly as WP_Print_Template::render() does.
@@ -68,6 +69,7 @@ class WP_Print_Render_Test extends WP_Print_TestCase {
 
 		remove_filter( 'wp_title', array( 'WP_Print_Template', 'page_title' ) );
 		remove_filter( 'comments_template', array( 'WP_Print_Template', 'comments_template' ) );
+		remove_filter( 'comments_array', array( 'WP_Print_Template', 'hide_protected_comments' ), 10 );
 
 		return $html;
 	}
@@ -244,6 +246,106 @@ class WP_Print_Render_Test extends WP_Print_TestCase {
 		$html = $this->render_document( $post_id );
 
 		$this->assertStringContainsString( 'awaiting moderation', $html );
+	}
+
+	/**
+	 * A password-protected post prints neither its body nor its thread.
+	 *
+	 * The print view is a second route to the same post, and for the plugin's whole
+	 * life it was the route that did not lock: the body was withheld and the count
+	 * said "Comments Hidden", so the plugin knew the state perfectly well, and then
+	 * printed every comment behind the lock underneath the notice. Anyone who could
+	 * guess a URL could read the discussion of a post they could not read.
+	 */
+	public function test_a_locked_post_prints_neither_its_body_nor_its_thread() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_name'     => 'locked-post',
+				'post_content'  => 'The secret body.',
+				'post_password' => 'letmein',
+			)
+		);
+
+		self::factory()->comment->create(
+			array(
+				'comment_post_ID' => $post_id,
+				'comment_author'  => 'Ada',
+				'comment_content' => 'A secret comment.',
+			)
+		);
+
+		$html = $this->render_document( $post_id );
+
+		$this->assertStringNotContainsString( 'The secret body', $html );
+		$this->assertStringNotContainsString( 'A secret comment', $html );
+		$this->assertStringNotContainsString( 'Ada', $html, 'The thread leaked who is talking behind the lock.' );
+
+		// The count is a sentence rather than a number for the same reason: a
+		// number would itself say how much discussion there is.
+		$this->assertStringContainsString( 'Comments Hidden', $html );
+		$this->assertStringNotContainsString( 'comments_box', $html );
+	}
+
+	/**
+	 * The bundled comments template withholds a locked thread on its own.
+	 *
+	 * Separate from the test above because the comments_array filter empties the
+	 * array before any template runs, so that test cannot tell whether the guard
+	 * inside the file works. The file is one of the two a theme customises by
+	 * copying, and a theme's copy is exactly where the filter is the only thing
+	 * left -- so both have to be asserted, and this is the half a copy carries.
+	 */
+	public function test_the_comments_template_withholds_a_locked_thread_on_its_own() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_name'     => 'locked-thread',
+				'post_password' => 'letmein',
+			)
+		);
+
+		self::factory()->comment->create(
+			array(
+				'comment_post_ID' => $post_id,
+				'comment_author'  => 'Ada',
+				'comment_content' => 'A secret comment.',
+			)
+		);
+
+		$this->go_to( get_permalink( $post_id ) );
+		the_post();
+
+		// The comment loop primed the way comments_template() primes it, with the
+		// filter deliberately not in the way.
+		global $wp_query;
+
+		$wp_query->comments      = get_comments( array( 'post_id' => $post_id ) );
+		$wp_query->comment_count = count( $wp_query->comments );
+
+		ob_start();
+		require WP_PRINT_DIR . 'includes/print-comments.php';
+		$html = ob_get_clean();
+
+		$this->assertSame( '', trim( $html ) );
+	}
+
+	/**
+	 * The filter answers for the post it was asked about, and leaves every other
+	 * thread alone.
+	 */
+	public function test_only_a_locked_thread_is_withheld() {
+		$open_id = self::factory()->post->create( array( 'post_name' => 'open-post' ) );
+
+		$locked_id = self::factory()->post->create(
+			array(
+				'post_name'     => 'locked-filter',
+				'post_password' => 'letmein',
+			)
+		);
+
+		$comments = array( (object) array( 'comment_ID' => 1 ) );
+
+		$this->assertSame( $comments, WP_Print_Template::hide_protected_comments( $comments, $open_id ) );
+		$this->assertSame( array(), WP_Print_Template::hide_protected_comments( $comments, $locked_id ) );
 	}
 
 	/**

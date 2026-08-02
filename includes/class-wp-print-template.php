@@ -107,6 +107,7 @@ class WP_Print_Template {
 
 		add_filter( 'wp_title', array( __CLASS__, 'page_title' ) );
 		add_filter( 'comments_template', array( __CLASS__, 'comments_template' ) );
+		add_filter( 'comments_array', array( __CLASS__, 'hide_protected_comments' ), 10, 2 );
 
 		// The bundled print-posts.php reads $print_options directly for the
 		// disclaimer, and a theme's copy of it may do the same, so the variable has
@@ -162,6 +163,29 @@ class WP_Print_Template {
 	 */
 	public static function comments_template() {
 		return self::locate( 'print-comments.php' );
+	}
+
+	/**
+	 * Withhold the thread on a post whose password has not been entered.
+	 *
+	 * The bundled print-comments.php guards itself, and this is the same guard in
+	 * the one place a theme cannot take a copy of. Both are wanted: the templates
+	 * exist to be copied into a theme, and a copy taken before the guard existed
+	 * would go on printing a locked post's discussion for as long as the theme
+	 * lives. Emptying the array core is about to hand the template settles it for
+	 * every copy at once -- have_comments() is false, whatever file runs.
+	 *
+	 * comments_array rather than the query arguments, because the count core
+	 * derives is not what the document prints: WP_Print_Content::comments_number()
+	 * answers "Comments Hidden" from the same check, so a number is never shown
+	 * that would itself say how much discussion is behind the lock.
+	 *
+	 * @param array $comments Comments core is about to hand the template.
+	 * @param int   $post_id  The post they belong to.
+	 * @return array
+	 */
+	public static function hide_protected_comments( $comments, $post_id ) {
+		return post_password_required( $post_id ) ? array() : (array) $comments;
 	}
 
 	/**

@@ -11,6 +11,22 @@
 
 defined( 'ABSPATH' ) || exit;
 
+/*
+ * The print view is a second route to the same post, so it honours the same
+ * lock. Core's comments_template() makes no password check of its own -- the
+ * convention is that the theme's comments template makes it, and the bundled
+ * themes do -- and this file is what replaces the theme's. Without this the body
+ * was withheld, the count said "Comments Hidden", and every comment behind the
+ * lock printed in full underneath.
+ *
+ * WP_Print_Template::render() empties the comment array as well, so a theme
+ * whose copy of this file predates the guard is covered too. This is the copy a
+ * theme takes tomorrow, and it carries the check on its own.
+ */
+if ( post_password_required() ) {
+	return;
+}
+
 if ( have_comments() ) :
 	$print_comment_count = 1;
 	?>

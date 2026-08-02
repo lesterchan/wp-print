@@ -70,6 +70,17 @@ unchanged but the rewrite rules are only written when that screen is saved.
   still carrying `%PRINT_TEXT%` renders it visibly on the page, so an install
   that needs editing says so rather than silently losing its words. Same
   reasoning keeps `print_link()`'s first two arguments in the signature, ignored.
+* **A locked post is guarded twice, and both are wanted.**
+  `includes/print-comments.php` opens with `post_password_required()` and
+  `WP_Print_Template::render()` also hangs `hide_protected_comments()` on
+  `comments_array`. Core's `comments_template()` makes no password check — the
+  convention is that the theme's comments template makes it — and this plugin
+  replaces the theme's, so for the plugin's whole life a locked post withheld its
+  body, said "Comments Hidden" over the count, and printed the whole thread
+  underneath. The guard belongs in the template because that is the copy a theme
+  takes; the filter exists because a theme's copy taken before the guard existed
+  would leak forever otherwise. The same reasoning applies to any future fix in
+  either overridable file: ask whether a stale copy can still do the damage.
 * **The link template meets kses inside `WP_Print_Link::render()`, not at the
   call sites.** It used to leave that to the caller the way `get_the_title()`
   leaves it to `the_title()`: `print_link()` filtered on the way out and the

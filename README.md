@@ -157,6 +157,7 @@ Nothing, because there is nothing left for it to stand for: it inserted whicheve
 * CHANGED: The print link is filtered through the plugin's allow-list wherever it is emitted — the `[print_link]` shortcode as well as the `print_link()` template tag. A link template carrying a tag outside that list, or an inline event handler, loses it.
 * CHANGED: The print view no longer fetches a webfont from fonts.googleapis.com when the site is right-to-left.
 * CHANGED: The third argument to `print_link()` is named `$display`, matching the other template tags. Only a caller passing it by name is affected.
+* FIXED: A password-protected post printed its comments to anyone who visited its `/print/` URL. The body was withheld and the comment count said Comments Hidden, and the thread printed in full underneath both.
 * FIXED: Numbered and bulleted lists in a post kept their indentation but lost their markers on the printed page.
 * FIXED: Print options set before a key existed no longer produce "Undefined array key" warnings or a print link with no text and no icon.
 * FIXED: The first link in a post was left unnumbered on themes that turn `wpautop` off.
@@ -177,6 +178,8 @@ Nothing, because there is nothing left for it to stand for: it inserted whicheve
 Requires WordPress 6.8 and PHP 8.2.
 
 **Re-save your permalinks after updating**, at `WP-Admin -> Settings -> Permalinks -> Save Changes`. The `/print/` endpoint is unchanged, but the rewrite rules are only written out when that screen is saved.
+
+**A password-protected post no longer prints its comments to everybody.** The print view withheld the body and put "Comments Hidden" over the count, then printed every comment behind the lock underneath both — so anybody who could guess the `/print/` URL could read the discussion of a post they could not read, with no password and no login. If you use post passwords, assume those threads have been readable and check what is in them. The thread is now withheld along with the body, and a theme carrying its own copy of `print-comments.php` gets the fix as well: the comments are withheld before any template runs.
 
 **Settings migrate on the first admin page load.** `print_options` becomes `wp_print_options` and `print_db_version` becomes `wp_print_version`. Deleting the plugin removes all four rows.
 
