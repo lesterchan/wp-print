@@ -221,9 +221,9 @@ class WP_Print_Metadata_Test extends Plugin_Metadata_TestCase {
 	 * them, and this is here so it does not become one.
 	 */
 	public function test_the_licence_block_is_the_or_later_variant() {
-		$this->assertSame( 'GPLv2 or later', $this->header_field( 'License' ) );
-		$this->assertStringContainsString( 'either version 2 of the License, or', $this->plugin_file() );
-		$this->assertStringContainsString( '(at your option) any later version.', $this->plugin_file() );
+		$this->assertSame( 'GPLv2 or later', $this->header_field( 'License' ), 'The header offers the later-version option.' );
+		$this->assertStringContainsString( 'either version 2 of the License, or', $this->plugin_file(), 'And the licence comment offers it.' );
+		$this->assertStringContainsString( '(at your option) any later version.', $this->plugin_file(), 'In full, so the two cannot disagree.' );
 	}
 
 	/**
@@ -235,8 +235,9 @@ class WP_Print_Metadata_Test extends Plugin_Metadata_TestCase {
 				. ' these plugins, if you really love my plugins and could spare me a couple of'
 				. ' bucks, I will really appreciate it. If not feel free to use it without any'
 				. ' obligations.',
-			$this->readme()
+			$this->readme(),
+			'The readme carries the collection Donations wording, word for word.'
 		);
-		$this->assertStringNotContainsString( 'as my school allowance', $this->readme() );
+		$this->assertStringNotContainsString( 'as my school allowance', $this->readme(), 'Without the older wording it replaced.' );
 	}
 }

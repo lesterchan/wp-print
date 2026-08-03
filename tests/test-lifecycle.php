@@ -34,13 +34,14 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 		$stored = get_option( WP_Print_Options::OPTION );
 
 		$this->assertIsArray( $stored, 'Activation seeds a settings row rather than leaving the option absent.' );
-		$this->assertSame( WP_Print_Options::default_template(), $stored['print_html'] );
+		$this->assertSame( WP_Print_Options::default_template(), $stored['print_html'], 'Activation seeds the shipped template.' );
 		$this->assertSame(
 			array(
 				'plugin' => WP_PRINT_VERSION,
 				'db'     => WP_PRINT_DB_VERSION,
 			),
-			get_option( WP_Print_Options::VERSION )
+			get_option( WP_Print_Options::VERSION ),
+			'And stamps both markers.'
 		);
 	}
 
@@ -62,8 +63,8 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 
 		WP_Print::activate();
 
-		$this->assertSame( 'Mine', WP_Print_Options::get( 'disclaimer' ) );
-		$this->assertSame( 0, WP_Print_Options::can( 'links' ) );
+		$this->assertSame( 'Mine', WP_Print_Options::get( 'disclaimer' ), 'Activation on a configured site leaves its settings alone.' );
+		$this->assertSame( 0, WP_Print_Options::can( 'links' ), 'Including its toggles, which a defaults seed would reset.' );
 	}
 
 	/**
@@ -75,9 +76,9 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 
 		WP_Print::activate();
 
-		$this->assertSame( "Tom & Jerry's Post", WP_Print_Options::get( 'disclaimer' ) );
+		$this->assertSame( "Tom & Jerry's Post", WP_Print_Options::get( 'disclaimer' ), 'Activation runs the migration, so a legacy row is folded in.' );
 		$this->assertFalse( get_option( WP_Print_Options::LEGACY_OPTION ), 'Activation runs the migration, which deletes the legacy row.' );
-		$this->assertSame( WP_PRINT_DB_VERSION, WP_Print_Options::markers()['db'] );
+		$this->assertSame( WP_PRINT_DB_VERSION, WP_Print_Options::markers()['db'], 'And the db marker is stamped, so it does not run again.' );
 	}
 
 	/**
@@ -114,7 +115,7 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 
 		$this->assertFalse( get_option( WP_Print_Options::OPTION ), 'Uninstall deletes the settings row.' );
 		$this->assertFalse( get_option( WP_Print_Options::VERSION ), 'Uninstall deletes the version row.' );
-		$this->assertSame( 'keep me', get_option( 'an_unrelated_option' ) );
+		$this->assertSame( 'keep me', get_option( 'an_unrelated_option' ), 'Uninstall leaves rows this plugin does not own.' );
 	}
 
 	/**

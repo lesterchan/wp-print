@@ -41,7 +41,7 @@ class WP_Print_Source_Test extends WP_Print_TestCase {
 	 * uninstalls a larger network in part and still reports success.
 	 */
 	public function test_uninstall_does_not_call_wp_get_sites() {
-		$this->assertStringNotContainsString( 'wp_get_sites', wp_print_test_code( 'uninstall.php' ) );
+		$this->assertStringNotContainsString( 'wp_get_sites', wp_print_test_code( 'uninstall.php' ), 'uninstall.php does not call the removed wp_get_sites(), which capped a network at 100 sites.' );
 	}
 
 	/**
@@ -64,7 +64,7 @@ class WP_Print_Source_Test extends WP_Print_TestCase {
 
 		$this->assertMatchesRegularExpression( "/'number'\s*=>\s*0/", $code, 'Activation lifts the same site query cap uninstall does.' );
 		$this->assertMatchesRegularExpression( "/'fields'\s*=>\s*'ids'/", $code, 'Activation asks for ids only, as uninstall does.' );
-		$this->assertStringNotContainsString( 'wp_get_sites', $code );
+		$this->assertStringNotContainsString( 'wp_get_sites', $code, 'Nor does activation, so the two agree on how a network is walked.' );
 		$this->assertMatchesRegularExpression(
 			'/switch_to_blog\([^;]*;.*?restore_current_blog\(\);.*?\}/s',
 			$code,
@@ -76,7 +76,7 @@ class WP_Print_Source_Test extends WP_Print_TestCase {
 	 * The uninstaller refuses to run unless WordPress invoked it.
 	 */
 	public function test_uninstall_guards_on_the_constant() {
-		$this->assertStringContainsString( 'WP_UNINSTALL_PLUGIN', wp_print_test_code( 'uninstall.php' ) );
+		$this->assertStringContainsString( 'WP_UNINSTALL_PLUGIN', wp_print_test_code( 'uninstall.php' ), 'uninstall.php refuses to run outside the uninstall context.' );
 	}
 
 	/**

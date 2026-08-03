@@ -47,7 +47,7 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 			WP_Print_Admin::add_page();
 
 			$this->assertArrayHasKey( 'options-general.php', $submenu, 'The screen belongs under Settings.' );
-			$this->assertContains( WP_Print_Admin::PAGE, wp_list_pluck( $submenu['options-general.php'], 2 ) );
+			$this->assertContains( WP_Print_Admin::PAGE, wp_list_pluck( $submenu['options-general.php'], 2 ), 'The screen is registered under Settings, per the menu rule.' );
 			$this->assertSame( array(), $menu, 'WP-Print claims no top-level menu.' );
 		} finally {
 			$submenu = $was_submenu;
@@ -59,8 +59,8 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 	 * The screen requires manage_options, which is what a settings screen takes.
 	 */
 	public function test_the_screen_requires_manage_options_by_default() {
-		$this->assertSame( 'manage_options', WP_Print_Admin::CAPABILITY );
-		$this->assertSame( 'manage_options', WP_Print_Admin::capability( 'settings' ) );
+		$this->assertSame( 'manage_options', WP_Print_Admin::CAPABILITY, 'The capability constant is manage_options.' );
+		$this->assertSame( 'manage_options', WP_Print_Admin::capability( 'settings' ), 'And the accessor answers with it, so the two cannot drift.' );
 	}
 
 	/**
@@ -78,8 +78,8 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 
 		add_filter( 'wp_print_capability', $filter, 10, 2 );
 
-		$this->assertSame( 'edit_pages', WP_Print_Admin::capability( 'menu' ) );
-		$this->assertSame( 'edit_pages', WP_Print_Admin::capability( 'settings' ) );
+		$this->assertSame( 'edit_pages', WP_Print_Admin::capability( 'menu' ), 'A filter can replace the menu capability.' );
+		$this->assertSame( 'edit_pages', WP_Print_Admin::capability( 'settings' ), 'And the settings capability, which is asked for separately.' );
 
 		remove_filter( 'wp_print_capability', $filter, 10 );
 
@@ -97,10 +97,10 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 		WP_Print_Admin::render_page();
 		$html = ob_get_clean();
 
-		$this->assertStringContainsString( 'action="options.php"', $html );
-		$this->assertStringContainsString( WP_Print_Settings::GROUP, $html );
+		$this->assertStringContainsString( 'action="options.php"', $html, 'The form posts to options.php, so core handles the save.' );
+		$this->assertStringContainsString( WP_Print_Settings::GROUP, $html, 'Naming the settings group the setting is registered in.' );
 		$this->assertSame( 1, substr_count( $html, '<h1>' ), 'One h1 per screen.' );
-		$this->assertStringContainsString( 'class="wrap"', $html );
+		$this->assertStringContainsString( 'class="wrap"', $html, 'And it uses the core page wrapper.' );
 	}
 
 	/**
@@ -145,7 +145,7 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 		$data = wp_scripts()->get_data( 'wp-print-admin', 'data' );
 
 		$this->assertIsString( $data, 'The localised defaults arrive as a string rather than being dropped.' );
-		$this->assertStringContainsString( 'wpPrintL10n', $data );
+		$this->assertStringContainsString( 'wpPrintL10n', $data, 'The localised object is attached under the name the script reads.' );
 		$this->assertStringContainsString( '&copy;', $data, 'The entity must survive localisation.' );
 		$this->assertStringNotContainsString( 'wpPrintDefaults', $data, 'The old object name is retired.' );
 	}
@@ -158,7 +158,7 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 
 		WP_Print_Admin::enqueue( 'settings_page_' . WP_Print_Admin::PAGE );
 
-		$this->assertSame( array(), wp_scripts()->registered['wp-print-admin']->deps );
+		$this->assertSame( array(), wp_scripts()->registered['wp-print-admin']->deps, 'The admin script declares no dependencies, so nothing is pulled in behind it.' );
 	}
 
 	/**
@@ -167,9 +167,9 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 	public function test_a_settings_action_link_is_added() {
 		$links = WP_Print_Admin::action_links( array( 'Deactivate' ) );
 
-		$this->assertStringContainsString( 'page=' . WP_Print_Admin::PAGE, $links[0] );
-		$this->assertStringContainsString( 'Settings', $links[0] );
-		$this->assertContains( 'Deactivate', $links );
+		$this->assertStringContainsString( 'page=' . WP_Print_Admin::PAGE, $links[0], 'The Settings action link points at this plugin screen.' );
+		$this->assertStringContainsString( 'Settings', $links[0], 'And is labelled.' );
+		$this->assertContains( 'Deactivate', $links, 'While the links already there survive.' );
 	}
 
 	/**
@@ -180,7 +180,7 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 		$links = WP_Print_Admin::action_links( null );
 
 		$this->assertCount( 1, $links, 'A non-array links list still yields the plugin one link.' );
-		$this->assertStringContainsString( 'page=' . WP_Print_Admin::PAGE, $links[0] );
+		$this->assertStringContainsString( 'page=' . WP_Print_Admin::PAGE, $links[0], 'A non-array links list still yields the Settings link.' );
 	}
 
 	/**

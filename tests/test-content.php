@@ -75,8 +75,8 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 			'<a href="https://example.com/one">One</a> <a href="https://example.com/two">Two</a>'
 		);
 
-		$this->assertStringContainsString( 'One</a> <sup>[1]</sup>', $out );
-		$this->assertStringContainsString( 'Two</a> <sup>[2]</sup>', $out );
+		$this->assertStringContainsString( 'One</a> <sup>[1]</sup>', $out, 'The first link takes footnote one.' );
+		$this->assertStringContainsString( 'Two</a> <sup>[2]</sup>', $out, 'And the second takes two, so they number in document order.' );
 	}
 
 	/**
@@ -88,9 +88,9 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 			'<a href="https://example.com/one">First</a> <a href="https://example.com/one">Again</a>'
 		);
 
-		$this->assertStringContainsString( 'First</a> <sup>[1]</sup>', $out );
-		$this->assertStringContainsString( 'Again</a> <sup>[1]</sup>', $out );
-		$this->assertSame( 1, substr_count( WP_Print_Content::links_text(), 'https://example.com/one<' ) );
+		$this->assertStringContainsString( 'First</a> <sup>[1]</sup>', $out, 'The first use of a URL takes a number.' );
+		$this->assertStringContainsString( 'Again</a> <sup>[1]</sup>', $out, 'And a repeat reuses it rather than taking a second.' );
+		$this->assertSame( 1, substr_count( WP_Print_Content::links_text(), 'https://example.com/one<' ), 'So the footnote list carries the URL once.' );
 	}
 
 	/**
@@ -99,7 +99,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	public function test_a_relative_url_is_expanded() {
 		$out = $this->render( '<a href="/relative/path">Relative</a>' );
 
-		$this->assertStringContainsString( 'href="' . get_option( 'home' ) . '/relative/path"', $out );
+		$this->assertStringContainsString( 'href="' . get_option( 'home' ) . '/relative/path"', $out, 'A relative URL is expanded against the site, since a printout has no base.' );
 	}
 
 	/**
@@ -108,7 +108,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	public function test_a_protocol_relative_url_gets_a_scheme() {
 		$out = $this->render( '<a href="//example.com/x">Proto</a>' );
 
-		$this->assertStringContainsString( 'href="http://example.com/x"', $out );
+		$this->assertStringContainsString( 'href="http://example.com/x"', $out, 'A protocol-relative URL gets a scheme, for the same reason.' );
 	}
 
 	/**
@@ -121,7 +121,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	public function test_an_absolute_url_is_left_alone( $url ) {
 		$out = $this->render( '<a href="' . $url . '">Link</a>' );
 
-		$this->assertStringContainsString( 'href="' . esc_url( $url ) . '"', $out );
+		$this->assertStringContainsString( 'href="' . esc_url( $url ) . '"', $out, 'While an absolute URL is left as it was.' );
 	}
 
 	/**
@@ -150,7 +150,8 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 		// tested here - that the path was expanded rather than treated as absolute.
 		$this->assertStringContainsString(
 			esc_html( get_option( 'home' ) . '/go?to=https://example.com' ),
-			WP_Print_Content::links_text()
+			WP_Print_Content::links_text(),
+			'A scheme inside a query string is part of the URL, not a second URL.'
 		);
 	}
 
@@ -160,7 +161,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	public function test_an_anchor_is_not_expanded() {
 		$out = $this->render( '<a href="#section">Section</a>' );
 
-		$this->assertStringContainsString( 'href="#section"', $out );
+		$this->assertStringContainsString( 'href="#section"', $out, 'An anchor is not expanded; it points within the document.' );
 	}
 
 	/**
@@ -178,7 +179,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 		add_filter( 'the_content', 'shortcode_unautop' );
 
 		$this->assertSame( 0, strpos( trim( $out ), '<a' ), 'Fixture did not reproduce the offset-0 case: ' . $out );
-		$this->assertStringContainsString( '<sup>[1]</sup>', $out );
+		$this->assertStringContainsString( '<sup>[1]</sup>', $out, 'A link at the very start is still numbered, rather than skipped by an offset test.' );
 	}
 
 	/**
@@ -187,7 +188,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	public function test_an_image_link_is_labelled() {
 		$this->render( '<a href="https://example.com/img"><img src="https://example.com/p.png" /></a>' );
 
-		$this->assertStringContainsString( 'Image: <strong>', WP_Print_Content::links_text() );
+		$this->assertStringContainsString( 'Image: <strong>', WP_Print_Content::links_text(), 'A link whose content is an image is labelled, since there is no text to quote.' );
 	}
 
 	/**
@@ -196,7 +197,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	public function test_a_javascript_url_does_not_survive() {
 		$out = $this->render( '<a href="javascript:alert(1)">X</a>' );
 
-		$this->assertStringNotContainsString( 'href="javascript:', $out );
+		$this->assertStringNotContainsString( 'href="javascript:', $out, 'A javascript URL does not survive into the printout.' );
 	}
 
 	/**
@@ -207,7 +208,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 
 		// The rewritten anchor is rebuilt from the URL and the link text alone, so
 		// the original attributes - including the handler - are dropped entirely.
-		$this->assertStringNotContainsString( 'onmouseover', $out );
+		$this->assertStringNotContainsString( 'onmouseover', $out, 'And a URL cannot break out of its attribute to add a handler.' );
 	}
 
 	/**
@@ -216,7 +217,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	public function test_images_are_stripped_when_switched_off() {
 		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'images' => 0 ) ) );
 
-		$this->assertStringNotContainsString( '<img', $this->render( '<img src="https://example.com/p.png" alt="x" />' ) );
+		$this->assertStringNotContainsString( '<img', $this->render( '<img src="https://example.com/p.png" alt="x" />' ), 'With images switched off, none is printed.' );
 	}
 
 	/**
@@ -230,7 +231,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	public function test_video_is_stripped_when_switched_off( $markup, $tag ) {
 		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'videos' => 0 ) ) );
 
-		$this->assertStringNotContainsString( $tag, $this->render( $markup ) );
+		$this->assertStringNotContainsString( $tag, $this->render( $markup ), 'With video switched off, no ' . $tag . ' element is printed.' );
 	}
 
 	/**
@@ -254,17 +255,17 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 
 		$out = $this->render( '<a href="https://example.com/one">One</a>' );
 
-		$this->assertStringNotContainsString( '<sup>[', $out );
-		$this->assertSame( '', WP_Print_Content::links_text() );
+		$this->assertStringNotContainsString( '<sup>[', $out, 'With link numbering switched off, no footnote marker is printed.' );
+		$this->assertSame( '', WP_Print_Content::links_text(), 'And the footnote list is empty rather than built and hidden.' );
 	}
 
 	/**
 	 * [donotprint] content is dropped in the print view but kept everywhere else.
 	 */
 	public function test_donotprint_is_dropped_in_the_print_view_only() {
-		$this->assertSame( 'kept', do_shortcode( '[donotprint]kept[/donotprint]' ) );
+		$this->assertSame( 'kept', do_shortcode( '[donotprint]kept[/donotprint]' ), 'Outside the print view the shortcode leaves its content alone.' );
 
-		$this->assertStringNotContainsString( 'SECRET', $this->render( 'before [donotprint]SECRET[/donotprint] after' ) );
+		$this->assertStringNotContainsString( 'SECRET', $this->render( 'before [donotprint]SECRET[/donotprint] after' ), 'While inside it the content is dropped, which is what the shortcode is for.' );
 	}
 
 	/**
@@ -272,7 +273,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	 * page being printed is noise on paper.
 	 */
 	public function test_embedded_print_link_renders_nothing() {
-		$this->assertStringNotContainsString( 'WP-PrintIcon', $this->render( 'body [print_link]' ) );
+		$this->assertStringNotContainsString( 'WP-PrintIcon', $this->render( 'body [print_link]' ), 'A print link inside a post renders nothing in the printout itself.' );
 	}
 
 	/**
@@ -283,9 +284,9 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	public function test_a_multipage_post_prints_every_page() {
 		$out = $this->render( 'Page one.<!--nextpage-->Page two.<!--nextpage-->Page three.' );
 
-		$this->assertStringContainsString( 'Page one.', $out );
-		$this->assertStringContainsString( 'Page two.', $out );
-		$this->assertStringContainsString( 'Page three.', $out );
+		$this->assertStringContainsString( 'Page one.', $out, 'A multipage post prints its first page.' );
+		$this->assertStringContainsString( 'Page two.', $out, 'Its second.' );
+		$this->assertStringContainsString( 'Page three.', $out, 'And its third, so the printout is the whole post.' );
 	}
 
 	/**
@@ -296,8 +297,8 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 			'<a href="https://example.com/one">One</a><!--nextpage--><a href="https://example.com/two">Two</a>'
 		);
 
-		$this->assertStringContainsString( 'One</a> <sup>[1]</sup>', $out );
-		$this->assertStringContainsString( 'Two</a> <sup>[2]</sup>', $out );
+		$this->assertStringContainsString( 'One</a> <sup>[1]</sup>', $out, 'Numbering starts on the first page.' );
+		$this->assertStringContainsString( 'Two</a> <sup>[2]</sup>', $out, 'And continues across the page break rather than restarting.' );
 	}
 
 	/**
@@ -311,7 +312,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 
 		WP_Print_Content::reset();
 
-		$this->assertSame( '', print_content( false ) );
+		$this->assertSame( '', print_content( false ), 'Outside the loop the content is empty rather than fatal.' );
 	}
 
 	/**
@@ -326,8 +327,8 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 			}
 		);
 
-		$this->assertStringContainsString( 'INNERTEXT', do_shortcode( '[donotprint][harness_inner][/donotprint]' ) );
-		$this->assertStringNotContainsString( 'INNERTEXT', $this->render( 'a [donotprint][harness_inner][/donotprint] b' ) );
+		$this->assertStringContainsString( 'INNERTEXT', do_shortcode( '[donotprint][harness_inner][/donotprint]' ), 'Outside the print view a nested shortcode still runs.' );
+		$this->assertStringNotContainsString( 'INNERTEXT', $this->render( 'a [donotprint][harness_inner][/donotprint] b' ), 'While inside it the whole block goes, nested shortcode and all.' );
 
 		remove_shortcode( 'harness_inner' );
 	}
@@ -348,8 +349,8 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 
 		$out = print_content( false );
 
-		$this->assertStringNotContainsString( 'CLASSIFIED', $out );
-		$this->assertStringContainsString( 'post_password', $out );
+		$this->assertStringNotContainsString( 'CLASSIFIED', $out, 'A password-protected post withholds its body.' );
+		$this->assertStringContainsString( 'post_password', $out, 'And offers the field to unlock it instead.' );
 	}
 
 	/**
@@ -381,16 +382,16 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 		print_content();
 		$html = ob_get_clean();
 
-		$this->assertStringNotContainsString( 'CLASSIFIED', $html );
-		$this->assertStringContainsString( '<form', $html );
-		$this->assertStringContainsString( 'name="post_password"', $html );
-		$this->assertStringContainsString( 'type="password"', $html );
+		$this->assertStringNotContainsString( 'CLASSIFIED', $html, 'The body stays withheld.' );
+		$this->assertStringContainsString( '<form', $html, 'While a form is printed.' );
+		$this->assertStringContainsString( 'name="post_password"', $html, 'Carrying the password field.' );
+		$this->assertStringContainsString( 'type="password"', $html, 'As a password input.' );
 
 		// The label is only worth having if it still points at something.
 		preg_match( '#<label for="([^"]+)"#', $html, $label );
 
 		$this->assertNotEmpty( $label, 'The password form printed without its label.' );
-		$this->assertStringContainsString( 'id="' . $label[1] . '"', $html );
+		$this->assertStringContainsString( 'id="' . $label[1] . '"', $html, 'With a label pointing at it, so the field is operable.' );
 	}
 
 	/**
@@ -417,10 +418,10 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 		print_content();
 		$html = ob_get_clean();
 
-		$this->assertStringNotContainsString( '<form', $html );
-		$this->assertStringNotContainsString( '<input', $html );
-		$this->assertStringNotContainsString( 'example.com/collect', $html );
-		$this->assertStringContainsString( 'Body text.', $html );
+		$this->assertStringNotContainsString( '<form', $html, 'A form in the post body is not printed as a form.' );
+		$this->assertStringNotContainsString( '<input', $html, 'Nor its inputs.' );
+		$this->assertStringNotContainsString( 'example.com/collect', $html, 'Nor its action, so a printout cannot be made to submit anywhere.' );
+		$this->assertStringContainsString( 'Body text.', $html, 'While the text around it survives.' );
 	}
 
 	/**
@@ -447,9 +448,9 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 		$GLOBALS['comment'] = get_comment( $comment_id );
 		$out                = print_comments_content( false );
 
-		$this->assertStringContainsString( '<sup>[2]</sup>', $out );
-		$this->assertStringNotContainsString( '<sup>[1]</sup>', $out );
-		$this->assertStringContainsString( 'https://example.com/two', WP_Print_Content::links_text() );
+		$this->assertStringContainsString( '<sup>[2]</sup>', $out, 'A link in a comment continues the numbering from the body.' );
+		$this->assertStringNotContainsString( '<sup>[1]</sup>', $out, 'Rather than starting again at one.' );
+		$this->assertStringContainsString( 'https://example.com/two', WP_Print_Content::links_text(), 'And it is added to the same footnote list.' );
 	}
 
 	/**
@@ -460,7 +461,7 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 		$this->render( '<a href="https://example.com/one">One</a>' );
 		$out = $this->render( '<a href="https://example.com/other">Other</a>' );
 
-		$this->assertStringContainsString( '<sup>[1]</sup>', $out );
-		$this->assertSame( 1, substr_count( WP_Print_Content::links_text(), '<p class="wp-print-url">' ) );
+		$this->assertStringContainsString( '<sup>[1]</sup>', $out, 'After a reset the numbering starts at one again.' );
+		$this->assertSame( 1, substr_count( WP_Print_Content::links_text(), '<p class="wp-print-url">' ), 'And the footnote list holds only the new entry.' );
 	}
 }

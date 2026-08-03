@@ -101,7 +101,8 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 
 		$this->assertSame(
 			'<a href="' . $url . '" rel="nofollow" title="Print This Post">' . $this->icon() . ' Print This Post</a>',
-			print_link( '', '', false )
+			print_link( '', '', false ),
+			'The shipped template renders the icon and the words, in one anchor.'
 		);
 	}
 
@@ -122,7 +123,8 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 
 		$this->assertSame(
 			'[' . esc_url( get_permalink( self::$post_id ) . 'print/' ) . '][Post][' . $this->icon() . ']',
-			print_link( '', '', false )
+			print_link( '', '', false ),
+			'Every placeholder is substituted, and only the placeholders.'
 		);
 	}
 
@@ -148,8 +150,8 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 
 		$output = print_link( '', '', false );
 
-		$this->assertStringContainsString( '%PRINT_TEXT%', $output );
-		$this->assertStringContainsString( '%WHATEVER%', $output );
+		$this->assertStringContainsString( '%PRINT_TEXT%', $output, 'A placeholder the plugin retired is left as written rather than emptied.' );
+		$this->assertStringContainsString( '%WHATEVER%', $output, 'And one it never had.' );
 	}
 
 	/**
@@ -167,11 +169,11 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
-		$this->assertStringContainsString( '>Print This Post</a>', print_link( '', '', false ) );
+		$this->assertStringContainsString( '>Print This Post</a>', print_link( '', '', false ), 'On a post the type resolves to the post label.' );
 
 		$this->go_to( get_permalink( self::$page_id ) );
 		the_post();
-		$this->assertStringContainsString( '>Print This Page</a>', print_link( '', '', false ) );
+		$this->assertStringContainsString( '>Print This Page</a>', print_link( '', '', false ), 'And on a page, to the page label.' );
 	}
 
 	/**
@@ -213,7 +215,7 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 		$this->go_to( get_permalink( $recipe_id ) );
 		the_post();
 
-		$this->assertStringContainsString( '>Print This Recipe</a>', print_link( '', '', false ) );
+		$this->assertStringContainsString( '>Print This Recipe</a>', print_link( '', '', false ), 'And on a custom type, to whatever that type calls itself.' );
 
 		unregister_post_type( 'print_test_recipe' );
 	}
@@ -223,7 +225,7 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 	 * shipped since its first release is what it falls back to.
 	 */
 	public function test_post_type_falls_back_outside_the_loop() {
-		$this->assertSame( 'Post', WP_Print_Link::post_type_label() );
+		$this->assertSame( 'Post', WP_Print_Link::post_type_label(), 'Outside the loop it falls back to Post rather than to an empty string.' );
 	}
 
 	/**
@@ -240,7 +242,8 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 
 		$this->assertSame(
 			print_link( '', '', false ),
-			print_link( 'Mine', 'Theirs', false )
+			print_link( 'Mine', 'Theirs', false ),
+			'The retired text arguments are ignored, so an old call renders the configured template.'
 		);
 	}
 
@@ -268,9 +271,9 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 
 		$output = print_link( '', '', false );
 
-		$this->assertStringContainsString( 'aria-label="Print This Post"', $output );
-		$this->assertStringContainsString( 'WP-PrintIcon', $output );
-		$this->assertSame( 1, substr_count( $output, '<a href=' ) );
+		$this->assertStringContainsString( 'aria-label="Print This Post"', $output, 'An icon-only template carries an accessible name.' );
+		$this->assertStringContainsString( 'WP-PrintIcon', $output, 'With the icon itself.' );
+		$this->assertSame( 1, substr_count( $output, '<a href=' ), 'In one anchor, not two.' );
 	}
 
 	/**
@@ -302,7 +305,7 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 		$echoed   = ob_get_clean();
 
 		$this->assertNull( $returned, 'With echo on, nothing is returned; the markup went to the output buffer.' );
-		$this->assertSame( $expected . "\n", $echoed );
+		$this->assertSame( $expected . "\n", $echoed, 'Echo mode appends exactly one newline, which is what the released version did.' );
 	}
 
 	/**
@@ -315,9 +318,9 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 	public function test_the_icon_is_an_inline_svg_that_inherits_its_colour() {
 		$icon = WP_Print_Link::icon();
 
-		$this->assertStringStartsWith( '<svg', $icon );
-		$this->assertStringContainsString( 'fill="currentColor"', $icon );
-		$this->assertStringContainsString( 'aria-hidden="true"', $icon );
+		$this->assertStringStartsWith( '<svg', $icon, 'The icon is an inline SVG rather than an image request.' );
+		$this->assertStringContainsString( 'fill="currentColor"', $icon, 'Inheriting the theme colour.' );
+		$this->assertStringContainsString( 'aria-hidden="true"', $icon, 'And hidden from assistive technology, since the link is already named.' );
 		$this->assertStringNotContainsString( '.gif', $icon, 'The glyph must not reference a raster file.' );
 	}
 
@@ -545,7 +548,7 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
 
-		$this->assertStringContainsString( 'print=1', WP_Print_Link::url() );
+		$this->assertStringContainsString( 'print=1', WP_Print_Link::url(), 'Without rewrites the URL falls back to a query argument rather than breaking.' );
 	}
 
 	/**
@@ -558,8 +561,8 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 
 		$url = WP_Print_Link::url();
 
-		$this->assertStringEndsWith( '/print/', $url );
-		$this->assertStringNotContainsString( '//print/', str_replace( array( 'http://', 'https://' ), '', $url ) );
+		$this->assertStringEndsWith( '/print/', $url, 'The endpoint is appended once.' );
+		$this->assertStringNotContainsString( '//print/', str_replace( array( 'http://', 'https://' ), '', $url ), 'With no doubled slash, which a naive concatenation leaves.' );
 	}
 
 	/**
@@ -586,8 +589,8 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 		update_option( 'show_on_front', 'posts' );
 		update_option( 'page_on_front', 0 );
 
-		$this->assertStringContainsString( 'front', $url );
-		$this->assertStringEndsWith( '/print/', $url );
+		$this->assertStringContainsString( 'front', $url, 'A static front page uses its own URL.' );
+		$this->assertStringEndsWith( '/print/', $url, 'With the endpoint on it.' );
 	}
 
 	/**
@@ -602,8 +605,8 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 
 		$output = print_link( '', '', false );
 
-		$this->assertStringContainsString( 'Print This Post', $output );
-		$this->assertStringContainsString( 'WP-PrintIcon', $output );
+		$this->assertStringContainsString( 'Print This Post', $output, 'A row missing keys still renders the link.' );
+		$this->assertStringContainsString( 'WP-PrintIcon', $output, 'Icon and all, by falling back to the defaults.' );
 	}
 
 	/**
@@ -614,11 +617,11 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 		$this->go_to( get_permalink( self::$post_id ) );
 		the_post();
 
-		$this->assertStringContainsString( 'WP-PrintIcon', do_shortcode( '[print_link]' ) );
+		$this->assertStringContainsString( 'WP-PrintIcon', do_shortcode( '[print_link]' ), 'In a feed the shortcode still renders something.' );
 
 		global $wp_query;
 		$wp_query->is_feed = true;
 
-		$this->assertStringContainsString( 'please visit this post', do_shortcode( '[print_link]' ) );
+		$this->assertStringContainsString( 'please visit this post', do_shortcode( '[print_link]' ), 'With wording explaining why the link cannot work there.' );
 	}
 }

@@ -71,8 +71,8 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 
 		$registered = $wp_registered_settings[ WP_Print_Options::OPTION ];
 
-		$this->assertSame( WP_Print_Settings::GROUP, $registered['group'] );
-		$this->assertSame( array( 'WP_Print_Settings', 'sanitize' ), $registered['sanitize_callback'] );
+		$this->assertSame( WP_Print_Settings::GROUP, $registered['group'], 'The setting is registered in the group the form posts.' );
+		$this->assertSame( array( 'WP_Print_Settings', 'sanitize' ), $registered['sanitize_callback'], 'Naming the sanitiser, so a save cannot bypass it.' );
 	}
 
 	/**
@@ -85,9 +85,9 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 		$fields = ob_get_clean();
 
 		// settings_fields() emits single-quoted attributes, so match the value alone.
-		$this->assertStringContainsString( WP_Print_Settings::GROUP, $fields );
-		$this->assertStringContainsString( "name='option_page'", $fields );
-		$this->assertStringContainsString( '_wpnonce', $fields );
+		$this->assertStringContainsString( WP_Print_Settings::GROUP, $fields, 'The form posts the registered group.' );
+		$this->assertStringContainsString( "name='option_page'", $fields, 'With the option_page field core checks it against.' );
+		$this->assertStringContainsString( '_wpnonce', $fields, 'And a nonce.' );
 	}
 
 	/**
@@ -107,11 +107,13 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 
 		$this->assertSame(
 			array( WP_Print_Settings::SECTION_CONTENT ),
-			array_keys( $wp_settings_sections[ $settings ] )
+			array_keys( $wp_settings_sections[ $settings ] ),
+			'The settings tab carries the content section and no other.'
 		);
 		$this->assertSame(
 			array( WP_Print_Settings::SECTION_LINK ),
-			array_keys( $wp_settings_sections[ $templates ] )
+			array_keys( $wp_settings_sections[ $templates ] ),
+			'And the templates tab carries the link section.'
 		);
 	}
 
@@ -128,7 +130,8 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 				'settings'  => 'Settings',
 				'templates' => 'Templates',
 			),
-			WP_Print_Settings::tabs()
+			WP_Print_Settings::tabs(),
+			'The screen has the two family tabs, in order and labelled.'
 		);
 	}
 
@@ -137,13 +140,13 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	 * form.
 	 */
 	public function test_an_unknown_tab_falls_back_to_the_first() {
-		$this->assertSame( 'settings', WP_Print_Settings::current_tab() );
+		$this->assertSame( 'settings', WP_Print_Settings::current_tab(), 'With no tab asked for, the first opens.' );
 
 		$_GET['tab'] = 'templates';
-		$this->assertSame( 'templates', WP_Print_Settings::current_tab() );
+		$this->assertSame( 'templates', WP_Print_Settings::current_tab(), 'A tab asked for by name opens.' );
 
 		$_GET['tab'] = 'nonsense';
-		$this->assertSame( 'settings', WP_Print_Settings::current_tab() );
+		$this->assertSame( 'settings', WP_Print_Settings::current_tab(), 'And an unknown one falls back rather than drawing an empty screen.' );
 
 		unset( $_GET['tab'] );
 	}
@@ -158,8 +161,8 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 		$settings  = $this->render_tab( 'settings' );
 		$templates = $this->render_tab( 'templates' );
 
-		$this->assertStringContainsString( WP_Print_Options::OPTION . '[print_html]', $templates );
-		$this->assertStringNotContainsString( WP_Print_Options::OPTION . '[print_html]', $settings );
+		$this->assertStringContainsString( WP_Print_Options::OPTION . '[print_html]', $templates, 'The template field is on the templates tab.' );
+		$this->assertStringNotContainsString( WP_Print_Options::OPTION . '[print_html]', $settings, 'And not on the settings tab, so neither carries the other fields.' );
 
 		foreach ( array( 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
 			$this->assertStringContainsString( WP_Print_Options::OPTION . '[' . $key . ']', $settings, 'The ' . $key . ' field is missing from the settings tab it belongs to.' );
@@ -198,8 +201,8 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 			)
 		);
 
-		$this->assertSame( '<a href="%PRINT_URL%">mine</a>', WP_Print_Options::get( 'print_html' ) );
-		$this->assertSame( 1, WP_Print_Options::can( 'comments' ) );
+		$this->assertSame( '<a href="%PRINT_URL%">mine</a>', WP_Print_Options::get( 'print_html' ), 'Saving the settings tab leaves the template alone.' );
+		$this->assertSame( 1, WP_Print_Options::can( 'comments' ), 'And its own toggle is written.' );
 
 		// And the Templates tab: print_html, and nothing else.
 		update_option(
@@ -207,11 +210,11 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 			array( 'print_html' => '<a href="%PRINT_URL%">%POST_TYPE%</a>' )
 		);
 
-		$this->assertSame( '<a href="%PRINT_URL%">%POST_TYPE%</a>', WP_Print_Options::get( 'print_html' ) );
-		$this->assertSame( 'MY DISCLAIMER', WP_Print_Options::get( 'disclaimer' ) );
-		$this->assertSame( 1, WP_Print_Options::can( 'comments' ) );
-		$this->assertSame( 0, WP_Print_Options::can( 'links' ) );
-		$this->assertSame( 1, WP_Print_Options::can( 'thumbnail' ) );
+		$this->assertSame( '<a href="%PRINT_URL%">%POST_TYPE%</a>', WP_Print_Options::get( 'print_html' ), 'Saving the templates tab writes the template.' );
+		$this->assertSame( 'MY DISCLAIMER', WP_Print_Options::get( 'disclaimer' ), 'While the settings tab disclaimer survives.' );
+		$this->assertSame( 1, WP_Print_Options::can( 'comments' ), 'And its toggles.' );
+		$this->assertSame( 0, WP_Print_Options::can( 'links' ), 'Including the ones that were off.' );
+		$this->assertSame( 1, WP_Print_Options::can( 'thumbnail' ), 'So one tab cannot blank another.' );
 	}
 
 	/**
@@ -228,7 +231,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 			)
 		);
 
-		$this->assertSame( 1, WP_Print_Options::can( 'comments' ) );
+		$this->assertSame( 1, WP_Print_Options::can( 'comments' ), 'Writing the option runs the sanitiser, which normalises the toggle.' );
 		$this->assertArrayNotHasKey( 'print_style', (array) get_option( WP_Print_Options::OPTION ), 'Writing the option runs the sanitiser, which drops the retired print_style key.' );
 	}
 
@@ -254,9 +257,9 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_the_fields_have_no_inline_handlers() {
 		$html = $this->render_fields();
 
-		$this->assertStringNotContainsString( 'onclick=', $html );
-		$this->assertStringNotContainsString( 'onchange=', $html );
-		$this->assertStringContainsString( 'data-print-restore', $html );
+		$this->assertStringNotContainsString( 'onclick=', $html, 'The fields carry no inline click handler.' );
+		$this->assertStringNotContainsString( 'onchange=', $html, 'And no change handler.' );
+		$this->assertStringContainsString( 'data-print-restore', $html, 'The restore control is bound by data attribute instead.' );
 	}
 
 	/**
@@ -285,8 +288,8 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 
 		$html = $this->render_fields();
 
-		$this->assertStringNotContainsString( '<script>alert(1)</script>', $html );
-		$this->assertStringNotContainsString( '</textarea><script', $html );
+		$this->assertStringNotContainsString( '<script>alert(1)</script>', $html, 'Stored markup is escaped into the form.' );
+		$this->assertStringNotContainsString( '</textarea><script', $html, 'And cannot close the textarea early to escape it.' );
 	}
 
 	/**
@@ -300,9 +303,9 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_the_template_is_not_hidden_behind_anything() {
 		$templates = $this->render_tab( 'templates' );
 
-		$this->assertStringContainsString( 'id="wp-print-html"', $templates );
-		$this->assertStringNotContainsString( 'hidden', $templates );
-		$this->assertStringNotContainsString( 'print_style', $templates );
+		$this->assertStringContainsString( 'id="wp-print-html"', $templates, 'The template field is on the screen.' );
+		$this->assertStringNotContainsString( 'hidden', $templates, 'Not hidden behind anything.' );
+		$this->assertStringNotContainsString( 'print_style', $templates, 'And with no style selector left to gate it.' );
 	}
 
 	/**
@@ -314,8 +317,8 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_the_screen_offers_no_icon_setting() {
 		$html = $this->render_fields();
 
-		$this->assertStringNotContainsString( 'print_icon', $html );
-		$this->assertStringNotContainsString( 'images/', $html );
+		$this->assertStringNotContainsString( 'print_icon', $html, 'The withdrawn icon setting is gone from the screen.' );
+		$this->assertStringNotContainsString( 'images/', $html, 'Along with the image path it used to point at.' );
 	}
 
 	/**
@@ -326,17 +329,17 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_placeholders_are_documented_outside_translatable_strings() {
 		$html = $this->render_fields();
 
-		$this->assertStringContainsString( '<code>%PRINT_URL%</code>', $html );
-		$this->assertStringContainsString( '<code>%POST_TYPE%</code>', $html );
-		$this->assertStringContainsString( '<code>%PRINT_ICON%</code>', $html );
-		$this->assertStringNotContainsString( '%1$PRINT', $html );
-		$this->assertStringNotContainsString( '%1$POST', $html );
+		$this->assertStringContainsString( '<code>%PRINT_URL%</code>', $html, 'The URL placeholder is documented as code.' );
+		$this->assertStringContainsString( '<code>%POST_TYPE%</code>', $html, 'The post type placeholder.' );
+		$this->assertStringContainsString( '<code>%PRINT_ICON%</code>', $html, 'And the icon placeholder.' );
+		$this->assertStringNotContainsString( '%1$PRINT', $html, 'With no printf specifier left in the documentation.' );
+		$this->assertStringNotContainsString( '%1$POST', $html, 'In either placeholder.' );
 
 		// The retired two are not offered. %PRINT_ICON_URL% named a URL and the
 		// glyph is inline; %PRINT_TEXT% named a link label and there are no link
 		// labels, only the wording written into the template itself.
-		$this->assertStringNotContainsString( '%PRINT_ICON_URL%', $html );
-		$this->assertStringNotContainsString( '<code>%PRINT_TEXT%</code>', $html );
+		$this->assertStringNotContainsString( '%PRINT_ICON_URL%', $html, 'The withdrawn icon URL placeholder is not documented.' );
+		$this->assertStringNotContainsString( '<code>%PRINT_TEXT%</code>', $html, 'Nor the withdrawn text one.' );
 	}
 
 	/**
@@ -353,8 +356,8 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 			)
 		);
 
-		$this->assertSame( 1, $clean['comments'] );
-		$this->assertSame( 0, $clean['images'] );
+		$this->assertSame( 1, $clean['comments'], 'A ticked toggle normalises to one.' );
+		$this->assertSame( 0, $clean['images'], 'And an unticked one to zero.' );
 	}
 
 	/**
@@ -407,7 +410,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_sanitize_does_not_slash_html_values() {
 		$clean = WP_Print_Settings::sanitize( array( 'disclaimer' => "O'Reilly & Sons <strong>2026</strong>" ) );
 
-		$this->assertSame( "O'Reilly & Sons <strong>2026</strong>", $clean['disclaimer'] );
+		$this->assertSame( "O'Reilly & Sons <strong>2026</strong>", $clean['disclaimer'], 'The sanitiser does not slash an HTML value, so an apostrophe survives as typed.' );
 	}
 
 	/**
@@ -424,9 +427,9 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 			)
 		);
 
-		$this->assertStringNotContainsString( '<script', $clean['disclaimer'] );
-		$this->assertStringContainsString( '<strong>ok</strong>', $clean['disclaimer'] );
-		$this->assertStringNotContainsString( 'onclick', $clean['print_html'] );
+		$this->assertStringNotContainsString( '<script', $clean['disclaimer'], 'Without unfiltered_html a script is stripped from the disclaimer.' );
+		$this->assertStringContainsString( '<strong>ok</strong>', $clean['disclaimer'], 'While the markup a site may use survives.' );
+		$this->assertStringNotContainsString( 'onclick', $clean['print_html'], 'And a handler is stripped from the template.' );
 	}
 
 	/**
@@ -498,10 +501,10 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 
 		$clean = WP_Print_Settings::sanitize( array( 'comments' => 1 ) );
 
-		$this->assertSame( 'MY DISCLAIMER', $clean['disclaimer'] );
-		$this->assertSame( '<a href="%PRINT_URL%">mine</a>', $clean['print_html'] );
-		$this->assertSame( 1, $clean['thumbnail'] );
-		$this->assertSame( 1, $clean['comments'] );
+		$this->assertSame( 'MY DISCLAIMER', $clean['disclaimer'], 'A partial update keeps the disclaimer.' );
+		$this->assertSame( '<a href="%PRINT_URL%">mine</a>', $clean['print_html'], 'The template.' );
+		$this->assertSame( 1, $clean['thumbnail'], 'And every toggle.' );
+		$this->assertSame( 1, $clean['comments'], 'Not only the ones the submission named.' );
 	}
 
 	/**
@@ -511,6 +514,6 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_an_html_field_can_be_emptied_deliberately() {
 		$this->set_options( array( 'disclaimer' => 'MY DISCLAIMER' ) );
 
-		$this->assertSame( '', WP_Print_Settings::sanitize( array( 'disclaimer' => '' ) )['disclaimer'] );
+		$this->assertSame( '', WP_Print_Settings::sanitize( array( 'disclaimer' => '' ) )['disclaimer'], 'While an HTML field can still be emptied deliberately, rather than taking its default back.' );
 	}
 }

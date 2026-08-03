@@ -48,7 +48,7 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 		$path = WP_Print_Template::locate( 'print-posts.php' );
 
 		$this->assertFileExists( $path, 'The plugin ships the template that locate falls back to.' );
-		$this->assertStringContainsString( plugin_dir_path( WP_PRINT_MAIN_FILE ), $path );
+		$this->assertStringContainsString( plugin_dir_path( WP_PRINT_MAIN_FILE ), $path, 'With no theme copy, locate falls back inside the plugin.' );
 	}
 
 	/**
@@ -58,7 +58,7 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 		$path = print_template_comments();
 
 		$this->assertFileExists( $path, 'The plugin ships the comments template it loads.' );
-		$this->assertStringEndsWith( 'print-comments.php', $path );
+		$this->assertStringEndsWith( 'print-comments.php', $path, 'And finds the comments template by name.' );
 	}
 
 	/**
@@ -80,10 +80,11 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 		file_put_contents( $theme_css, '/* fixture */' );
 
 		try {
-			$this->assertSame( $theme_file, WP_Print_Template::locate( 'print-posts.php' ) );
+			$this->assertSame( $theme_file, WP_Print_Template::locate( 'print-posts.php' ), 'A theme copy takes precedence over the plugin one.' );
 			$this->assertSame(
 				get_stylesheet_directory_uri() . '/print-css.css',
-				WP_Print_Template::asset_url( 'print-css.css' )
+				WP_Print_Template::asset_url( 'print-css.css' ),
+				'And a theme asset URL resolves into the theme.'
 			);
 		} finally {
 			wp_delete_file( $theme_file );
@@ -97,7 +98,8 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 	public function test_asset_url_falls_back_to_the_plugin() {
 		$this->assertSame(
 			plugins_url( 'css/wp-print.css', WP_PRINT_MAIN_FILE ),
-			WP_Print_Template::asset_url( 'print-css.css' )
+			WP_Print_Template::asset_url( 'print-css.css' ),
+			'With no theme copy, an asset URL falls back into the plugin.'
 		);
 	}
 
@@ -107,7 +109,8 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 	public function test_plugin_url_resolves_inside_the_plugin() {
 		$this->assertSame(
 			plugins_url( 'js/wp-print.js', WP_PRINT_MAIN_FILE ),
-			WP_Print_Template::plugin_url( 'js/wp-print.js' )
+			WP_Print_Template::plugin_url( 'js/wp-print.js' ),
+			'And a plugin URL always resolves inside the plugin.'
 		);
 	}
 
@@ -116,8 +119,8 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 	 * template that also appends it by hand produced "... &raquo; Print &raquo; Print".
 	 */
 	public function test_page_title_appends_the_suffix_once() {
-		$this->assertSame( 'Title &raquo; Print', print_pagetitle( 'Title' ) );
-		$this->assertSame( 1, substr_count( print_pagetitle( 'Title' ), 'Print' ) );
+		$this->assertSame( 'Title &raquo; Print', print_pagetitle( 'Title' ), 'The suffix is appended to the title.' );
+		$this->assertSame( 1, substr_count( print_pagetitle( 'Title' ), 'Print' ), 'Once, not once per call.' );
 	}
 
 	/**
@@ -137,14 +140,14 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 		print_categories();
 		$plain = ob_get_clean();
 
-		$this->assertStringContainsString( 'Alpha, Beta', $plain );
-		$this->assertStringNotContainsString( '<', $plain );
+		$this->assertStringContainsString( 'Alpha, Beta', $plain, 'Categories are separated by a comma.' );
+		$this->assertStringNotContainsString( '<', $plain, 'With no markup when none was asked for.' );
 
 		ob_start();
 		print_categories( '<span>', '</span>' );
 		$wrapped = ob_get_clean();
 
-		$this->assertSame( '<span>Alpha</span>, <span>Beta</span>', $wrapped );
+		$this->assertSame( '<span>Alpha</span>, <span>Beta</span>', $wrapped, 'And each wrapped individually when it was, rather than the list as a whole.' );
 	}
 
 	/**
@@ -154,28 +157,28 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 		$post_id = self::factory()->post->create();
 		$this->go_to( get_permalink( $post_id ) );
 		the_post();
-		$this->assertSame( 'No Comments', $this->comments_number() );
+		$this->assertSame( 'No Comments', $this->comments_number(), 'No comments reads as none.' );
 
 		self::factory()->comment->create_many( 2, array( 'comment_post_ID' => $post_id ) );
 		$this->go_to( get_permalink( $post_id ) );
 		the_post();
-		$this->assertSame( '2 Comments', $this->comments_number() );
+		$this->assertSame( '2 Comments', $this->comments_number(), 'More than one takes the plural.' );
 
 		$one_id = self::factory()->post->create();
 		self::factory()->comment->create( array( 'comment_post_ID' => $one_id ) );
 		$this->go_to( get_permalink( $one_id ) );
 		the_post();
-		$this->assertSame( '1 Comment', $this->comments_number() );
+		$this->assertSame( '1 Comment', $this->comments_number(), 'One takes the singular.' );
 
 		$closed_id = self::factory()->post->create( array( 'comment_status' => 'closed' ) );
 		$this->go_to( get_permalink( $closed_id ) );
 		the_post();
-		$this->assertSame( 'Comments Disabled', $this->comments_number() );
+		$this->assertSame( 'Comments Disabled', $this->comments_number(), 'A closed thread says so.' );
 
 		$pw_id = self::factory()->post->create( array( 'post_password' => 'x' ) );
 		$this->go_to( get_permalink( $pw_id ) );
 		the_post();
-		$this->assertSame( 'Comments Hidden', $this->comments_number() );
+		$this->assertSame( 'Comments Hidden', $this->comments_number(), 'And a withheld one says something different, so the two are distinguishable.' );
 	}
 
 	/**
@@ -198,17 +201,17 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 
 		ob_start();
 		print_links();
-		$this->assertSame( '', ob_get_clean() );
+		$this->assertSame( '', ob_get_clean(), 'With no links collected, the list prints nothing at all.' );
 
 		$GLOBALS['links_text'] = '<p>entry</p>';
 
 		ob_start();
 		print_links();
-		$this->assertSame( 'URLs in this post:<p>entry</p>', ob_get_clean() );
+		$this->assertSame( 'URLs in this post:<p>entry</p>', ob_get_clean(), 'With links, it prints under the default heading.' );
 
 		ob_start();
 		print_links( 'Mine:' );
-		$this->assertSame( 'Mine:<p>entry</p>', ob_get_clean() );
+		$this->assertSame( 'Mine:<p>entry</p>', ob_get_clean(), 'Or a heading the caller gave.' );
 	}
 
 	/**
@@ -224,8 +227,8 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 		print_disclaimer();
 		$out = ob_get_clean();
 
-		$this->assertStringContainsString( '<strong>Mine</strong>', $out );
-		$this->assertStringNotContainsString( '<script', $out );
+		$this->assertStringContainsString( '<strong>Mine</strong>', $out, 'The disclaimer keeps the markup a site may use.' );
+		$this->assertStringNotContainsString( '<script', $out, 'While a script is stripped from it.' );
 	}
 
 	/**
@@ -240,8 +243,8 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 			$names[] = $endpoint[1];
 		}
 
-		$this->assertContains( 'print', $names );
-		$this->assertContains( 'print', $wp->public_query_vars );
+		$this->assertContains( 'print', $names, 'The print endpoint is registered as a rewrite endpoint.' );
+		$this->assertContains( 'print', $wp->public_query_vars, 'And as a public query variable, without which the endpoint never resolves.' );
 
 		$print_rules = array_filter(
 			array_keys( $wp_rewrite->wp_rewrite_rules() ),

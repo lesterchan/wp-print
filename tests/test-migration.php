@@ -89,7 +89,7 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( WP_Print_Options::default_template(), $this->stored_template() );
+		$this->assertSame( WP_Print_Options::default_template(), $this->stored_template(), 'A site on the shipped settings migrates to the shipped template.' );
 	}
 
 	/**
@@ -110,7 +110,8 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 		$this->assertSame(
 			'<a href="%PRINT_URL%" rel="nofollow" title="Print This %POST_TYPE%"'
 				. ' aria-label="Print This %POST_TYPE%">%PRINT_ICON%</a>',
-			$this->stored_template()
+			$this->stored_template(),
+			'An icon-only site keeps an icon-only template.'
 		);
 	}
 
@@ -130,9 +131,10 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 
 		$this->assertSame(
 			'<a href="%PRINT_URL%" rel="nofollow" title="Print This %POST_TYPE%">Print This %POST_TYPE%</a>',
-			$this->stored_template()
+			$this->stored_template(),
+			'A text-only site keeps a text-only one.'
 		);
-		$this->assertStringNotContainsString( '%PRINT_ICON%', (string) $this->stored_template() );
+		$this->assertStringNotContainsString( '%PRINT_ICON%', (string) $this->stored_template(), 'With no icon placeholder added to it.' );
 	}
 
 	/**
@@ -144,7 +146,7 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( WP_Print_Options::default_template(), $this->stored_template() );
+		$this->assertSame( WP_Print_Options::default_template(), $this->stored_template(), 'A row that never named a style reads as the shipped one.' );
 	}
 
 	/**
@@ -164,9 +166,10 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 
 		$this->assertSame(
 			'<a href="%PRINT_URL%" rel="nofollow" title="Take this away with you">Take this away with you</a>',
-			$this->stored_template()
+			$this->stored_template(),
+			'Customised wording is carried over exactly.'
 		);
-		$this->assertStringNotContainsString( '%POST_TYPE%', (string) $this->stored_template() );
+		$this->assertStringNotContainsString( '%POST_TYPE%', (string) $this->stored_template(), 'Rather than being collapsed into the token, which would lose it.' );
 	}
 
 	/**
@@ -188,8 +191,8 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertStringContainsString( 'Print this article', (string) $this->stored_template() );
-		$this->assertStringNotContainsString( 'Print this document', (string) $this->stored_template() );
+		$this->assertStringContainsString( 'Print this article', (string) $this->stored_template(), 'Where the post and page wordings differ, the post half is kept.' );
+		$this->assertStringNotContainsString( 'Print this document', (string) $this->stored_template(), 'And the page half is lost, which one template cannot express.' );
 	}
 
 	/**
@@ -209,7 +212,8 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 
 		$this->assertSame(
 			'<a href="%PRINT_URL%" rel="nofollow" title="Print This Post">Print This Post</a>',
-			$this->stored_template()
+			$this->stored_template(),
+			'A customised page label alone stops the collapse, so the post wording survives.'
 		);
 	}
 
@@ -232,7 +236,8 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 		$this->assertSame(
 			'<a href="%PRINT_URL%" rel="nofollow" title="Tom &amp; Jerry&#039;s &quot;Post&quot;">'
 				. 'Tom &amp; Jerry\'s "Post"</a>',
-			$this->stored_template()
+			$this->stored_template(),
+			'Customised wording is escaped into the title attribute and left as text in the body.'
 		);
 	}
 
@@ -251,8 +256,8 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertStringContainsString( ">Print O'Brien's post</a>", (string) $this->stored_template() );
-		$this->assertStringNotContainsString( '\\', (string) $this->stored_template() );
+		$this->assertStringContainsString( ">Print O'Brien's post</a>", (string) $this->stored_template(), 'A slashed label is unslashed into the template.' );
+		$this->assertStringNotContainsString( '\\', (string) $this->stored_template(), 'Leaving no backslash behind.' );
 	}
 
 	/**
@@ -278,7 +283,7 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( $template, $this->stored_template() );
+		$this->assertSame( $template, $this->stored_template(), 'A template already customised is left alone.' );
 	}
 
 	/**
@@ -307,7 +312,7 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 		}
 
 		// And the settings that were not retired came through it.
-		$this->assertSame( 0, WP_Print_Options::can( 'links' ) );
+		$this->assertSame( 0, WP_Print_Options::can( 'links' ), 'The retired settings are taken off the row rather than left unreachable.' );
 	}
 
 	/**
@@ -338,7 +343,8 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 		$this->assertSame(
 			'<a href="%PRINT_URL%" rel="nofollow" title="Take this away with you"'
 				. ' aria-label="Take this away with you">%PRINT_ICON%</a>',
-			$this->stored_template()
+			$this->stored_template(),
+			'The migration survives its own sanitise callback, which activation does not run.'
 		);
 
 		$stored = (array) get_option( WP_Print_Options::OPTION );
@@ -413,7 +419,8 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 
 		$this->assertSame(
 			'<a href="%PRINT_URL%" rel="nofollow" title="Take this away with you">Take this away with you</a>',
-			$this->stored_template()
+			$this->stored_template(),
+			'Activation migrates the link settings too, not only the content ones.'
 		);
 		$this->assertFalse( get_option( WP_Print_Options::LEGACY_OPTION ), 'Activation migrates the link settings and deletes the legacy row.' );
 	}
@@ -440,7 +447,7 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 		WP_Print::activate();
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( $once, get_option( WP_Print_Options::OPTION ) );
+		$this->assertSame( $once, get_option( WP_Print_Options::OPTION ), 'Running the migration twice leaves the row as it was.' );
 	}
 
 	/**
@@ -465,7 +472,7 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 		delete_option( WP_Print_Options::VERSION );
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( $first, $this->stored_template() );
+		$this->assertSame( $first, $this->stored_template(), 'And a forced second pass does not rewrite the template it already wrote.' );
 	}
 
 	/**
@@ -477,7 +484,7 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 		WP_Print_Options::maybe_upgrade();
 
 		$this->assertNull( $this->stored_template(), 'A fresh install synthesises no template; there was nothing to migrate from.' );
-		$this->assertSame( WP_Print_Options::default_template(), WP_Print_Options::get( 'print_html' ) );
+		$this->assertSame( WP_Print_Options::default_template(), WP_Print_Options::get( 'print_html' ), 'A fresh install gets the shipped template rather than one synthesised from nothing.' );
 	}
 
 	/**
@@ -502,6 +509,6 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( $stale, get_option( WP_Print_Options::OPTION ) );
+		$this->assertSame( $stale, get_option( WP_Print_Options::OPTION ), 'An install already on this version is untouched, stale row and all.' );
 	}
 }

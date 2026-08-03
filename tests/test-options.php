@@ -57,9 +57,10 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 	public function test_the_default_template_is_the_icon_and_text_link() {
 		$this->assertSame(
 			'<a href="%PRINT_URL%" rel="nofollow" title="Print This %POST_TYPE%">%PRINT_ICON% Print This %POST_TYPE%</a>',
-			WP_Print_Options::default_template()
+			WP_Print_Options::default_template(),
+			'The shipped template is the icon and the words.'
 		);
-		$this->assertSame( WP_Print_Options::default_template(), WP_Print_Options::get_defaults()['print_html'] );
+		$this->assertSame( WP_Print_Options::default_template(), WP_Print_Options::get_defaults()['print_html'], 'And it is what the defaults carry, so the two cannot drift.' );
 	}
 
 	/**
@@ -71,9 +72,9 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 	public function test_missing_keys_fall_back_to_defaults() {
 		update_option( WP_Print_Options::OPTION, array( 'links' => 0 ) );
 
-		$this->assertSame( 0, WP_Print_Options::can( 'links' ) );
-		$this->assertSame( WP_Print_Options::default_template(), WP_Print_Options::get( 'print_html' ) );
-		$this->assertSame( 0, WP_Print_Options::can( 'thumbnail' ) );
+		$this->assertSame( 0, WP_Print_Options::can( 'links' ), 'A key absent from the row falls back to its default.' );
+		$this->assertSame( WP_Print_Options::default_template(), WP_Print_Options::get( 'print_html' ), 'Including the template.' );
+		$this->assertSame( 0, WP_Print_Options::can( 'thumbnail' ), 'And every toggle, not only the first.' );
 	}
 
 	/**
@@ -82,7 +83,7 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 	public function test_a_non_array_row_reads_as_defaults() {
 		update_option( WP_Print_Options::OPTION, 'not an array' );
 
-		$this->assertSame( WP_Print_Options::get_defaults(), WP_Print_Options::get() );
+		$this->assertSame( WP_Print_Options::get_defaults(), WP_Print_Options::get(), 'A row that is not an array reads as the defaults rather than propagating.' );
 	}
 
 	/**
@@ -92,8 +93,8 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 	public function test_can_returns_an_int() {
 		update_option( WP_Print_Options::OPTION, array( 'links' => '0' ) );
 
-		$this->assertSame( 0, WP_Print_Options::can( 'links' ) );
-		$this->assertSame( 0, WP_Print_Options::can( 'no_such_key' ) );
+		$this->assertSame( 0, WP_Print_Options::can( 'links' ), 'can() answers with an integer, which is what the templates compare against.' );
+		$this->assertSame( 0, WP_Print_Options::can( 'no_such_key' ), 'And with zero for a key that does not exist, rather than raising.' );
 	}
 
 	/**
@@ -112,8 +113,8 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( '<a href="%PRINT_URL%">Tom & Jerry\'s Post</a>', WP_Print_Options::get( 'print_html' ) );
-		$this->assertSame( "Copyright '26", WP_Print_Options::get( 'disclaimer' ) );
+		$this->assertSame( '<a href="%PRINT_URL%">Tom & Jerry\'s Post</a>', WP_Print_Options::get( 'print_html' ), 'The legacy template is folded into the prefixed row.' );
+		$this->assertSame( "Copyright '26", WP_Print_Options::get( 'disclaimer' ), 'And the legacy disclaimer with it.' );
 	}
 
 	/**
@@ -141,7 +142,8 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 				'plugin' => WP_PRINT_VERSION,
 				'db'     => WP_PRINT_DB_VERSION,
 			),
-			get_option( WP_Print_Options::VERSION )
+			get_option( WP_Print_Options::VERSION ),
+			'The markers are written to their own row, never into the settings array.'
 		);
 	}
 
@@ -162,7 +164,8 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 
 		$this->assertSame(
 			'<a href="%PRINT_URL%">%PRINT_ICON% %PRINT_TEXT%</a>',
-			WP_Print_Options::get( 'print_html' )
+			WP_Print_Options::get( 'print_html' ),
+			'An icon placeholder inside an image tag is rewritten to the bare placeholder.'
 		);
 	}
 
@@ -177,7 +180,7 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( '<a href="%PRINT_URL%">%PRINT_ICON%</a>', WP_Print_Options::get( 'print_html' ) );
+		$this->assertSame( '<a href="%PRINT_URL%">%PRINT_ICON%</a>', WP_Print_Options::get( 'print_html' ), 'And a bare icon placeholder is renamed rather than dropped.' );
 	}
 
 	/**
@@ -201,7 +204,7 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( 'New', WP_Print_Options::get( 'disclaimer' ) );
+		$this->assertSame( 'New', WP_Print_Options::get( 'disclaimer' ), 'A value already migrated is not overwritten by the legacy one.' );
 	}
 
 	/**
@@ -220,7 +223,7 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 		WP_Print_Options::maybe_upgrade();
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( $once, WP_Print_Options::get( 'disclaimer' ) );
+		$this->assertSame( $once, WP_Print_Options::get( 'disclaimer' ), 'Running the migration twice leaves the value as it was.' );
 	}
 
 	/**
@@ -238,7 +241,7 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertSame( 'Mine', WP_Print_Options::get( 'disclaimer' ) );
-		$this->assertSame( 0, WP_Print_Options::can( 'links' ) );
+		$this->assertSame( 'Mine', WP_Print_Options::get( 'disclaimer' ), 'The migration does not overwrite a configured value with a default.' );
+		$this->assertSame( 0, WP_Print_Options::can( 'links' ), 'Nor a configured toggle.' );
 	}
 }
