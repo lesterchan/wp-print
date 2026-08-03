@@ -19,8 +19,8 @@ Every link in the printed article is numbered and its URL listed at the end, bec
 
 Once installed take the following steps to set it up:
 
-1. The settings screen is at WP-Admin -> Settings -> Print
-1. Re-save your permalinks at WP-Admin -> Settings -> Permalinks, so the /print/ endpoint is registered
+1. The settings screen is at `WP-Admin -> Settings -> WP-Print`
+1. Re-save your permalinks at `WP-Admin -> Settings -> Permalinks`, so the /print/ endpoint is registered
 1. Refer to Usage below for the template tag
 
 ### Features
@@ -67,7 +67,7 @@ If you would rather not have the link on every post, leave your theme alone and 
 
 ### The Print Link
 
-The print link is one HTML template, at WP-Admin -> Settings -> WP-Print -> Templates. Three placeholders are replaced when it is rendered:
+The print link is one HTML template, at `WP-Admin -> Settings -> WP-Print -> Templates`. Three placeholders are replaced when it is rendered:
 
 * `%PRINT_URL%` — the URL of the printable version.
 * `%POST_TYPE%` — what is being printed, in the singular: Post, Page, or the name of a custom post type.
@@ -100,7 +100,7 @@ if ( function_exists( 'wp_print' ) ) {
 
 ### The print link 404s
 
-Re-save your permalinks at WP-Admin -> Settings -> Permalinks. WP-Print adds a `/print/` endpoint, and WordPress only writes the rewrite rules out when that screen is saved.
+Re-save your permalinks at `WP-Admin -> Settings -> Permalinks`. WP-Print adds a `/print/` endpoint, and WordPress only writes the rewrite rules out when that screen is saved.
 
 ### How do I keep part of a post off the printed page?
 
