@@ -24,8 +24,19 @@ const {
 	uniqueTitle,
 } = require( './helpers.js' );
 
-/** The permalink structure the environment started with, put back afterwards. */
-let originalPermalinks;
+/**
+ * The structure every test here runs against, unless it says otherwise.
+ *
+ * Pinned to a literal rather than read off the site, because reading it is what
+ * made the /print/ endpoint invisible for weeks. A fresh install turns pretty
+ * permalinks on at install time, so CI got the endpoint; a long-lived local
+ * wp-env drifts to plain, so a suite that restored "whatever it found" got the
+ * query var there and never the endpoint -- and the drift outlived every run,
+ * because nothing ever set the structure back to something a real site has.
+ * The two code paths are the subject of this file, so which one a run exercises
+ * cannot be left to the container's history.
+ */
+const PERMALINKS = '/%postname%/';
 
 test.describe( 'The print link', () => {
 	test.beforeAll( async ( { requestUtils } ) => {
@@ -33,7 +44,9 @@ test.describe( 'The print link', () => {
 
 		deleteOptions();
 
-		originalPermalinks = permalinkStructure();
+		if ( permalinkStructure() !== PERMALINKS ) {
+			setPermalinkStructure( PERMALINKS );
+		}
 	} );
 
 	test.afterEach( async () => {
@@ -42,8 +55,8 @@ test.describe( 'The print link', () => {
 		// as a test found convenient.
 		deleteOptions();
 
-		if ( permalinkStructure() !== originalPermalinks ) {
-			setPermalinkStructure( originalPermalinks );
+		if ( permalinkStructure() !== PERMALINKS ) {
+			setPermalinkStructure( PERMALINKS );
 		}
 	} );
 
