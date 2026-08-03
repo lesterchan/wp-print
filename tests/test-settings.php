@@ -67,7 +67,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 	public function test_the_setting_is_registered_in_the_right_group() {
 		global $wp_registered_settings;
 
-		$this->assertArrayHasKey( WP_Print_Options::OPTION, $wp_registered_settings );
+		$this->assertArrayHasKey( WP_Print_Options::OPTION, $wp_registered_settings, 'The settings row is registered, so its sanitise callback is attached.' );
 
 		$registered = $wp_registered_settings[ WP_Print_Options::OPTION ];
 
@@ -102,8 +102,8 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 		$settings  = WP_Print_Settings::tab_page( 'settings' );
 		$templates = WP_Print_Settings::tab_page( 'templates' );
 
-		$this->assertArrayHasKey( $settings, $wp_settings_sections );
-		$this->assertArrayHasKey( $templates, $wp_settings_sections );
+		$this->assertArrayHasKey( $settings, $wp_settings_sections, 'The settings tab has its own registered section page.' );
+		$this->assertArrayHasKey( $templates, $wp_settings_sections, 'The templates tab has its own registered section page.' );
 
 		$this->assertSame(
 			array( WP_Print_Settings::SECTION_CONTENT ),
@@ -162,8 +162,8 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 		$this->assertStringNotContainsString( WP_Print_Options::OPTION . '[print_html]', $settings );
 
 		foreach ( array( 'comments', 'links', 'images', 'thumbnail', 'videos', 'disclaimer' ) as $key ) {
-			$this->assertStringContainsString( WP_Print_Options::OPTION . '[' . $key . ']', $settings );
-			$this->assertStringNotContainsString( WP_Print_Options::OPTION . '[' . $key . ']', $templates );
+			$this->assertStringContainsString( WP_Print_Options::OPTION . '[' . $key . ']', $settings, 'The ' . $key . ' field is missing from the settings tab it belongs to.' );
+			$this->assertStringNotContainsString( WP_Print_Options::OPTION . '[' . $key . ']', $templates, 'The ' . $key . ' field leaked onto the templates tab.' );
 		}
 	}
 
@@ -229,7 +229,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 		);
 
 		$this->assertSame( 1, WP_Print_Options::can( 'comments' ) );
-		$this->assertArrayNotHasKey( 'print_style', (array) get_option( WP_Print_Options::OPTION ) );
+		$this->assertArrayNotHasKey( 'print_style', (array) get_option( WP_Print_Options::OPTION ), 'Writing the option runs the sanitiser, which drops the retired print_style key.' );
 	}
 
 	/**
@@ -397,7 +397,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 		);
 
 		foreach ( WP_Print_Options::retired_keys() as $key ) {
-			$this->assertArrayNotHasKey( $key, $clean );
+			$this->assertArrayNotHasKey( $key, $clean, 'The sanitiser stored the retired key ' . $key . ' back out of the post.' );
 		}
 	}
 
@@ -475,7 +475,7 @@ class WP_Print_Settings_Test extends WP_Print_TestCase {
 			)
 		);
 
-		$this->assertArrayNotHasKey( 'injected_key', $clean );
+		$this->assertArrayNotHasKey( 'injected_key', $clean, 'A key the sanitiser does not know is dropped rather than stored.' );
 	}
 
 	/**

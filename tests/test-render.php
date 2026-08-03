@@ -138,7 +138,7 @@ class WP_Print_Render_Test extends WP_Print_TestCase {
 		$html = $this->render_document( $this->make_post() );
 
 		foreach ( array( 'Warning:', 'Notice:', 'Deprecated:', 'Fatal error', 'Undefined' ) as $noise ) {
-			$this->assertStringNotContainsString( $noise, $html );
+			$this->assertStringNotContainsString( $noise, $html, 'The rendered document carries a PHP ' . $noise . ' diagnostic.' );
 		}
 
 		// A /* translators: */ comment that drifts into HTML context gets printed.

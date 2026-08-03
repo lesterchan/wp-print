@@ -173,7 +173,7 @@ class WP_Print_Metadata_Test extends Plugin_Metadata_TestCase {
 		}
 
 		$this->assertSame( array(), array_filter( $found ), 'Raster images are replaced by inline SVG.' );
-		$this->assertDirectoryDoesNotExist( $this->metadata_root() . '/images' );
+		$this->assertDirectoryDoesNotExist( $this->metadata_root() . '/images', 'No raster images ship; the icons are inline SVG.' );
 	}
 
 	/**
@@ -209,7 +209,7 @@ class WP_Print_Metadata_Test extends Plugin_Metadata_TestCase {
 	 * Five tags, which is what the listing shows.
 	 */
 	public function test_the_readme_lists_five_tags() {
-		$this->assertCount( 5, explode( ',', $this->readme_field( 'Tags' ) ) );
+		$this->assertCount( 5, explode( ',', $this->readme_field( 'Tags' ) ), 'wordpress.org reads at most five tags, so a sixth is silently dropped.' );
 	}
 
 	/**

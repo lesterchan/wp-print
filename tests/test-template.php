@@ -47,7 +47,7 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 	public function test_locate_falls_back_to_the_plugin_copy() {
 		$path = WP_Print_Template::locate( 'print-posts.php' );
 
-		$this->assertFileExists( $path );
+		$this->assertFileExists( $path, 'The plugin ships the template that locate falls back to.' );
 		$this->assertStringContainsString( plugin_dir_path( WP_PRINT_MAIN_FILE ), $path );
 	}
 
@@ -57,7 +57,7 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 	public function test_comments_template_is_readable() {
 		$path = print_template_comments();
 
-		$this->assertFileExists( $path );
+		$this->assertFileExists( $path, 'The plugin ships the comments template it loads.' );
 		$this->assertStringEndsWith( 'print-comments.php', $path );
 	}
 
@@ -250,7 +250,7 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 			}
 		);
 
-		$this->assertNotEmpty( $print_rules );
+		$this->assertNotEmpty( $print_rules, 'The print endpoint is in the rewrite rules.' );
 	}
 
 	/**
@@ -268,8 +268,8 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 
 		$this->go_to( trailingslashit( get_permalink( $post_id ) ) . 'print/' );
 
-		$this->assertArrayHasKey( 'print', $GLOBALS['wp_query']->query_vars );
-		$this->assertFalse( is_404() );
+		$this->assertArrayHasKey( 'print', $GLOBALS['wp_query']->query_vars, 'A print URL parses into the print query variable.' );
+		$this->assertFalse( is_404(), 'A print URL resolves rather than 404ing.' );
 	}
 
 	/**
@@ -299,8 +299,8 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 
 		$this->go_to( trailingslashit( get_permalink( $page_id ) ) . 'print/' );
 
-		$this->assertArrayHasKey( 'print', $GLOBALS['wp_query']->query_vars );
-		$this->assertFalse( is_404() );
+		$this->assertArrayHasKey( 'print', $GLOBALS['wp_query']->query_vars, 'A page print URL parses into the print query variable too.' );
+		$this->assertFalse( is_404(), 'A page print URL resolves rather than 404ing.' );
 	}
 
 	/**
@@ -312,6 +312,6 @@ class WP_Print_Template_Test extends WP_Print_TestCase {
 
 		$this->go_to( get_permalink( $post_id ) );
 
-		$this->assertArrayNotHasKey( 'print', $GLOBALS['wp_query']->query_vars );
+		$this->assertArrayNotHasKey( 'print', $GLOBALS['wp_query']->query_vars, 'An ordinary URL sets no print query variable.' );
 	}
 }

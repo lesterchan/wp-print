@@ -188,7 +188,7 @@ class WP_Print_Options_Test extends WP_Print_TestCase {
 
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertArrayNotHasKey( 'print_icon', (array) get_option( WP_Print_Options::OPTION ) );
+		$this->assertArrayNotHasKey( 'print_icon', (array) get_option( WP_Print_Options::OPTION ), 'The migration drops the stored icon setting rather than carrying it forward.' );
 	}
 
 	/**

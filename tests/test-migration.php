@@ -344,7 +344,7 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 		$stored = (array) get_option( WP_Print_Options::OPTION );
 
 		foreach ( WP_Print_Options::retired_keys() as $key ) {
-			$this->assertArrayNotHasKey( $key, $stored );
+			$this->assertArrayNotHasKey( $key, $stored, 'The retired key ' . $key . ' survived the migration into the stored row.' );
 		}
 	}
 
@@ -415,7 +415,7 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 			'<a href="%PRINT_URL%" rel="nofollow" title="Take this away with you">Take this away with you</a>',
 			$this->stored_template()
 		);
-		$this->assertFalse( get_option( WP_Print_Options::LEGACY_OPTION ) );
+		$this->assertFalse( get_option( WP_Print_Options::LEGACY_OPTION ), 'Activation migrates the link settings and deletes the legacy row.' );
 	}
 
 	/**
@@ -476,7 +476,7 @@ class WP_Print_Migration_Test extends WP_Print_TestCase {
 	public function test_a_fresh_install_gets_no_synthesised_template() {
 		WP_Print_Options::maybe_upgrade();
 
-		$this->assertNull( $this->stored_template() );
+		$this->assertNull( $this->stored_template(), 'A fresh install synthesises no template; there was nothing to migrate from.' );
 		$this->assertSame( WP_Print_Options::default_template(), WP_Print_Options::get( 'print_html' ) );
 	}
 

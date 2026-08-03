@@ -126,7 +126,7 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 		$this->assertFalse( wp_script_is( 'wp-print-admin', 'enqueued' ), 'Not on the dashboard.' );
 
 		WP_Print_Admin::enqueue( 'settings_page_' . WP_Print_Admin::PAGE );
-		$this->assertTrue( wp_script_is( 'wp-print-admin', 'enqueued' ) );
+		$this->assertTrue( wp_script_is( 'wp-print-admin', 'enqueued' ), 'The admin script is enqueued on its own screen.' );
 	}
 
 	/**
@@ -144,7 +144,7 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 
 		$data = wp_scripts()->get_data( 'wp-print-admin', 'data' );
 
-		$this->assertIsString( $data );
+		$this->assertIsString( $data, 'The localised defaults arrive as a string rather than being dropped.' );
 		$this->assertStringContainsString( 'wpPrintL10n', $data );
 		$this->assertStringContainsString( '&copy;', $data, 'The entity must survive localisation.' );
 		$this->assertStringNotContainsString( 'wpPrintDefaults', $data, 'The old object name is retired.' );
@@ -179,7 +179,7 @@ class WP_Print_Admin_Test extends WP_Print_TestCase {
 	public function test_the_action_links_survive_a_non_array() {
 		$links = WP_Print_Admin::action_links( null );
 
-		$this->assertCount( 1, $links );
+		$this->assertCount( 1, $links, 'A non-array links list still yields the plugin one link.' );
 		$this->assertStringContainsString( 'page=' . WP_Print_Admin::PAGE, $links[0] );
 	}
 

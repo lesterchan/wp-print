@@ -24,14 +24,14 @@ class WP_Print_Source_Test extends WP_Print_TestCase {
 	 * Source-level on purpose: see the class docblock.
 	 */
 	public function test_uninstall_lifts_the_site_query_cap() {
-		$this->assertMatchesRegularExpression( "/'number'\s*=>\s*0/", wp_print_test_code( 'uninstall.php' ) );
+		$this->assertMatchesRegularExpression( "/'number'\s*=>\s*0/", wp_print_test_code( 'uninstall.php' ), 'uninstall.php lifts the site query cap, or a network past the default is half-uninstalled.' );
 	}
 
 	/**
 	 * The uninstaller asks only for the IDs the loop actually uses.
 	 */
 	public function test_uninstall_queries_ids_only() {
-		$this->assertMatchesRegularExpression( "/'fields'\s*=>\s*'ids'/", wp_print_test_code( 'uninstall.php' ) );
+		$this->assertMatchesRegularExpression( "/'fields'\s*=>\s*'ids'/", wp_print_test_code( 'uninstall.php' ), 'uninstall.php asks for ids only, which is what makes the unlimited query affordable.' );
 	}
 
 	/**
@@ -51,7 +51,8 @@ class WP_Print_Source_Test extends WP_Print_TestCase {
 	public function test_uninstall_restores_the_blog_inside_the_loop() {
 		$this->assertMatchesRegularExpression(
 			'/switch_to_blog\([^;]*;.*?restore_current_blog\(\);.*?\}/s',
-			wp_print_test_code( 'uninstall.php' )
+			wp_print_test_code( 'uninstall.php' ),
+			'The restore sits inside the loop; once after it leaves the stack unwound by one.'
 		);
 	}
 
@@ -61,12 +62,13 @@ class WP_Print_Source_Test extends WP_Print_TestCase {
 	public function test_activation_fan_out_matches_uninstall() {
 		$code = wp_print_test_code( 'includes/class-wp-print.php' );
 
-		$this->assertMatchesRegularExpression( "/'number'\s*=>\s*0/", $code );
-		$this->assertMatchesRegularExpression( "/'fields'\s*=>\s*'ids'/", $code );
+		$this->assertMatchesRegularExpression( "/'number'\s*=>\s*0/", $code, 'Activation lifts the same site query cap uninstall does.' );
+		$this->assertMatchesRegularExpression( "/'fields'\s*=>\s*'ids'/", $code, 'Activation asks for ids only, as uninstall does.' );
 		$this->assertStringNotContainsString( 'wp_get_sites', $code );
 		$this->assertMatchesRegularExpression(
 			'/switch_to_blog\([^;]*;.*?restore_current_blog\(\);.*?\}/s',
-			$code
+			$code,
+			'Activation restores inside its loop, as uninstall does.'
 		);
 	}
 
@@ -87,7 +89,7 @@ class WP_Print_Source_Test extends WP_Print_TestCase {
 		$code = wp_print_test_code( 'uninstall.php' );
 
 		foreach ( array( 'wp_print_options', 'wp_print_version', 'print_options', 'print_db_version' ) as $row ) {
-			$this->assertStringContainsString( "delete_option( '{$row}' )", $code );
+			$this->assertStringContainsString( "delete_option( '{$row}' )", $code, 'uninstall.php never deletes the ' . $row . ' row it owns.' );
 		}
 	}
 

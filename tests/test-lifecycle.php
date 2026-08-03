@@ -33,7 +33,7 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 
 		$stored = get_option( WP_Print_Options::OPTION );
 
-		$this->assertIsArray( $stored );
+		$this->assertIsArray( $stored, 'Activation seeds a settings row rather than leaving the option absent.' );
 		$this->assertSame( WP_Print_Options::default_template(), $stored['print_html'] );
 		$this->assertSame(
 			array(
@@ -76,7 +76,7 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 		WP_Print::activate();
 
 		$this->assertSame( "Tom & Jerry's Post", WP_Print_Options::get( 'disclaimer' ) );
-		$this->assertFalse( get_option( WP_Print_Options::LEGACY_OPTION ) );
+		$this->assertFalse( get_option( WP_Print_Options::LEGACY_OPTION ), 'Activation runs the migration, which deletes the legacy row.' );
 		$this->assertSame( WP_PRINT_DB_VERSION, WP_Print_Options::markers()['db'] );
 	}
 
@@ -99,7 +99,7 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 			}
 		);
 
-		$this->assertNotEmpty( $print_rules );
+		$this->assertNotEmpty( $print_rules, 'Activation leaves the print endpoint in the rewrite rules.' );
 	}
 
 	/**
@@ -112,8 +112,8 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 
 		$this->run_uninstall();
 
-		$this->assertFalse( get_option( WP_Print_Options::OPTION ) );
-		$this->assertFalse( get_option( WP_Print_Options::VERSION ) );
+		$this->assertFalse( get_option( WP_Print_Options::OPTION ), 'Uninstall deletes the settings row.' );
+		$this->assertFalse( get_option( WP_Print_Options::VERSION ), 'Uninstall deletes the version row.' );
 		$this->assertSame( 'keep me', get_option( 'an_unrelated_option' ) );
 	}
 
@@ -126,6 +126,6 @@ class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
 		$this->run_uninstall();
 		$this->run_uninstall();
 
-		$this->assertFalse( get_option( WP_Print_Options::OPTION ) );
+		$this->assertFalse( get_option( WP_Print_Options::OPTION ), 'A second uninstall is harmless and leaves the row gone.' );
 	}
 }

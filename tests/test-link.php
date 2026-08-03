@@ -301,7 +301,7 @@ class WP_Print_Link_Test extends WP_Print_TestCase {
 		$returned = print_link( '', '', true );
 		$echoed   = ob_get_clean();
 
-		$this->assertNull( $returned );
+		$this->assertNull( $returned, 'With echo on, nothing is returned; the markup went to the output buffer.' );
 		$this->assertSame( $expected . "\n", $echoed );
 	}
 
