@@ -212,12 +212,31 @@ test.describe( 'The print link', () => {
 		page,
 		requestUtils,
 	} ) => {
-		setPermalinkStructure( '' );
-
+		// The post is created BEFORE the structure changes, and this ordering is
+		// the whole reason the test is written this way round.
+		//
+		// requestUtils talks to the REST API over the route the site had when
+		// the run started. Switch the structure out from under it and /wp-json/
+		// stops resolving, so the next REST call is answered with the HTML 404
+		// page and fails as "Unexpected token '<', "<!doctype "... is not valid
+		// JSON" -- a parse error that says nothing about permalinks and sends
+		// the reader looking in the wrong place entirely.
+		//
+		// It only survives the other ordering on a site that was already on
+		// plain permalinks, where the switch is a no-op. That is what a
+		// long-lived local wp-env drifts to, and it is why this passed here for
+		// weeks and failed on every CI run: a fresh install turns pretty
+		// permalinks on at install time (wp_install_maybe_enable_pretty_permalinks()
+		// in wp-admin/includes/upgrade.php), so CI is the environment telling
+		// the truth.
 		const title = uniqueTitle( 'Printable' );
 		const post = await createPrintablePost( requestUtils, { title } );
 
-		await page.goto( post.link );
+		setPermalinkStructure( '' );
+
+		// post.link was handed back under the old structure and is now stale.
+		// ?p= is the one form that works whatever the setting is.
+		await page.goto( `/?p=${ post.id }` );
 
 		const link = page.locator( '.entry-content a[rel="nofollow"]' ).first();
 		const href = await link.getAttribute( 'href' );
