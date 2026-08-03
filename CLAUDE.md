@@ -29,6 +29,12 @@ unchanged but the rewrite rules are only written when that screen is saved.
   filenames because a theme overrides them by copying them.** §1 carves out this
   exception explicitly: renaming either to `class-*.php` or `screen-*.php` would
   break every theme that has ever overridden one.
+* **`QUERY_VAR = 'print'` is deliberately unprefixed and must stay that way.**
+  It is a public query var from the last SVN release, so the value is part of
+  what shipped: prefixing it to `wp_print` would break every existing `?print=1`
+  link and every theme that builds one. The *constant* carries the plugin
+  prefix; the *value* it holds does not, and that asymmetry is the point. §2.3
+  prefixes constant names, not the strings inside them.
 * **Those templates deliberately do not call `wp_head()` or `wp_footer()`.** A
   print view that pulled in the theme's stylesheets and every other plugin's
   assets would not print cleanly. That is why the head prints assets by handle
