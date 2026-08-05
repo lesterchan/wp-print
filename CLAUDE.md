@@ -2,10 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-WP-Print follows `_standards/STANDARDS.md` in the parent folder, which is the
-contract for all nineteen plugins in the collection. Where this file and that
-one disagree, that one wins.
-
 ## What it is
 
 A `/print/` endpoint that renders any post, page or comment thread as a
@@ -16,9 +12,11 @@ shortcode, and a settings screen under Settings with **Settings** and
 
 ## Data
 
-`wp_print_options` (settings) and `wp_print_version` (markers, replacing
-`print_db_version`). The migration folds in the released 2.58.3's `print_options`
-— user-facing.
+`wp_print_options` (settings) and `wp_print_version` (the `plugin` and `db`
+upgrade markers, replacing `print_db_version`). The migration folds in the
+released 2.58.3's `print_options`, so it runs on real installs. Keep the markers
+out of the settings array: one in there has to be rescued from the stored value
+on every save, because the settings form never posts it.
 
 **Re-saving permalinks is required after upgrading.** The `/print/` endpoint is
 unchanged but the rewrite rules are only written when that screen is saved.
@@ -26,15 +24,15 @@ unchanged but the rewrite rules are only written when that screen is saved.
 ## Traps
 
 * **`includes/print-posts.php` and `includes/print-comments.php` keep those exact
-  filenames because a theme overrides them by copying them.** §1 carves out this
-  exception explicitly: renaming either to `class-*.php` or `screen-*.php` would
-  break every theme that has ever overridden one.
+  filenames because a theme overrides them by copying them.** Renaming either to
+  `class-*.php` or `screen-*.php` would break every theme that has ever
+  overridden one, which is why they are exempt from the usual file-naming.
 * **`QUERY_VAR = 'print'` is deliberately unprefixed and must stay that way.**
   It is a public query var from the last SVN release, so the value is part of
   what shipped: prefixing it to `wp_print` would break every existing `?print=1`
   link and every theme that builds one. The *constant* carries the plugin
-  prefix; the *value* it holds does not, and that asymmetry is the point. §2.3
-  prefixes constant names, not the strings inside them.
+  prefix; the *value* it holds does not, and that asymmetry is the point — the
+  prefixing rule is about constant names, not the strings inside them.
 * **Those templates deliberately do not call `wp_head()` or `wp_footer()`.** A
   print view that pulled in the theme's stylesheets and every other plugin's
   assets would not print cleanly. That is why the head prints assets by handle
@@ -122,8 +120,8 @@ unchanged but the rewrite rules are only written when that screen is saved.
   repeated URL reuses its first number.
 * **The `WP-PrintIcon` class survives the GIF→SVG change** — themes have styled
   it by that name for twenty years.
-* **`print-css-rtl.css` is gone, and deleting it was a privacy fix as well as
-  §5.1 compliance.** The mirrored sheet pulled a webfont from
+* **`print-css-rtl.css` is gone, and deleting it was a privacy fix as much as a
+  tidy-up.** The mirrored sheet pulled a webfont from
   `fonts.googleapis.com` on every print view, so every reader printing a page
   announced themselves to a third party.
 * **A theme's copied `print-posts.php` needs `<body class="wp-print">`.** Every
@@ -131,29 +129,29 @@ unchanged but the rewrite rules are only written when that screen is saved.
 * `$print_language` splits on the dash **only when there is one**:
   `get_bloginfo( 'language' )` returns `ca` as well as `en-US`, and
   `substr( $s, 0, false )` is `''`, which emitted `lang=""`.
-* **`unfiltered_html` is super-admins-only under multisite** (§7.2.2). Tests that
-  depend on it must grant it rather than the gate being weakened (commit
+* **`unfiltered_html` belongs to super admins only under multisite.** A test
+  that depends on it must grant it rather than the gate being weakened (commit
   `95fe5ee`).
 
 ## Tests
 
-wp-print produced 19 of the first sweep's errors from a single cause —
-`rtrim(): Passing null`, reached from `includes/print-posts.php:118` through
-core's `comments_template()`, because `WP_UnitTestCase_Base::tear_down()` nulls
-`$wp_stylesheet_path`. The fix is `wp_set_template_globals()` in `set_up()`, not
-a change to the plugin. §7.2.1 has the full account; wp-commentnavi shares it.
+`bin/test.sh` runs PHPUnit, `bin/test-multisite.sh` the network pass, and
+`bin/test-e2e.sh` the Playwright suite. **Run them rather than trusting a note
+about their last result** — CI is the authority, and this file cannot be.
 
-**`tests/test-metadata.php::test_the_plugin_root_holds_no_loose_files` is the
-plugin-root rule** and only wp-print carries it. It must exempt `*.config.js` —
-`playwright.config.js` has to live in the root because Playwright resolves every
-path relative to itself. §7.2.1 records this as a class of problem: a metadata
-rule written before e2e existed will fire on e2e scaffolding; widen the rule
-rather than moving the file.
+**`WP_UnitTestCase_Base::tear_down()` nulls `$wp_stylesheet_path`**, and
+`comments_template()` reads it straight into `trailingslashit()` instead of
+re-deriving it as `locate_template()` does — handing `null` to `rtrim()`, reached
+from `includes/print-posts.php:118`. That one cause produced most of the errors
+in this plugin's first full PHPUnit run. The fix is `wp_set_template_globals()`
+in `set_up()`: restore the precondition the harness broke, do not work around it
+in the plugin.
 
-`tests/e2e/` is 5 specs and 56 tests, and **none of them has been run to green
-in one go** — verify before trusting. This plugin's `upgrade.spec.js` is the
-reference the 2026-08-05 sweep copied, but it predates that sweep and was not
-re-run with the eleven.
+**`tests/test-metadata.php::test_the_plugin_root_holds_no_loose_files` must
+exempt `*.config.js`** — `playwright.config.js` has to live in the root because
+Playwright resolves every path relative to itself. It is a class of problem
+worth recognising: a metadata rule written before the browser suite existed will
+fire on that suite's scaffolding. Widen the rule rather than moving the file.
 
 **`printview.spec.js`'s password test quotes core's wording, and core has since
 changed it.** WordPress 7.0's `get_the_password_form()` reads *"This content is
@@ -168,7 +166,6 @@ was always going to age.
 
 ## Pending, not started
 
-`_standards/RESUME.md` task #17 renames the settings page and its identically
-named "Print Options" section; task #18 is the wp-print/wp-email link-settings
-collapse, most of which has already landed here (commit `49861b9`) — check
-before redoing it.
+The settings page and the section inside it are both called "Print Options";
+the page should be renamed. The link-settings collapse has largely landed
+already (commit `49861b9`) — check before redoing it.
