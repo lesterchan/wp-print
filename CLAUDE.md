@@ -150,8 +150,10 @@ path relative to itself. §7.2.1 records this as a class of problem: a metadata
 rule written before e2e existed will fire on e2e scaffolding; widen the rule
 rather than moving the file.
 
-`tests/e2e/` (5 specs, 52 tests) is among the twelve suites
-`_standards/RESUME.md` lists as never run to green.
+`tests/e2e/` is 5 specs and 56 tests, and **none of them has been run to green
+in one go** — verify before trusting. This plugin's `upgrade.spec.js` is the
+reference the 2026-08-05 sweep copied, but it predates that sweep and was not
+re-run with the eleven.
 
 **`printview.spec.js`'s password test quotes core's wording, and core has since
 changed it.** WordPress 7.0's `get_the_password_form()` reads *"This content is
