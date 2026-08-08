@@ -139,6 +139,8 @@ Nothing, because there is nothing left for it to stand for: it inserted whicheve
 ## Changelog
 
 ### 3.0.0
+* FIXED: A password-protected post printed its featured image. The body, the comments and the comment count were all withheld, but `get_the_post_thumbnail()` makes no password check of its own — which is why every classic core theme makes the test itself, and this template replaces the theme's, so nothing was making it
+* FIXED: "Print Images" and "Print Videos" were defeated by a newline. The patterns had no `s` modifier, so an `<img>` tag written across two lines, or an `<iframe>` with its closing tag on the next line — the ordinary shape of a hand-written or pretty-printed embed — survived being switched off, and the reader's browser fetched it anyway. A bare `<embed>` was never stripped at all, because a closing tag was required and it is a void element. An `<img>` carrying only a `srcset` is now stripped too
 * BREAKING: Requires WordPress 6.8 and PHP 8.2, up from 6.0 and 7.4.
 * BREAKING: The settings move from the `print_options` row to `wp_print_options`, and `print_db_version` is replaced by `wp_print_version`. Existing settings are migrated automatically on the first admin page load after upgrading.
 * BREAKING: The `Print_Admin`, `Print_Content`, `Print_Core`, `Print_Link`, `Print_Options` and `Print_Template` classes are renamed `WP_Print_Admin`, `WP_Print_Content`, `WP_Print`, `WP_Print_Link`, `WP_Print_Options` and `WP_Print_Template`.

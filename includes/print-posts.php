@@ -103,7 +103,18 @@ if ( false !== $print_dash ) {
 
 		</header>
 
-				<?php if ( print_can( 'thumbnail' ) && has_post_thumbnail() ) : ?>
+				<?php
+				/*
+				 * post_password_required() as well, because get_the_post_thumbnail()
+				 * has no password check of its own -- which is why every classic
+				 * core theme makes this test itself. This template replaces the
+				 * theme's, so nothing else was making it: the body, the comments
+				 * and the comment count were all withheld on a locked post and the
+				 * featured image was printed, which for a good many posts is the
+				 * content.
+				 */
+				?>
+				<?php if ( print_can( 'thumbnail' ) && ! post_password_required() && has_post_thumbnail() ) : ?>
 					<div class="thumbnail"><?php the_post_thumbnail( 'medium' ); ?></div>
 				<?php endif; ?>
 

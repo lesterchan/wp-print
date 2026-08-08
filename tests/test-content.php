@@ -241,9 +241,54 @@ class WP_Print_Content_Test extends WP_Print_TestCase {
 	 */
 	public function data_video_markup() {
 		return array(
-			'iframe' => array( '<iframe src="https://example.com/e"></iframe>', '<iframe' ),
-			'object' => array( '<object data="https://example.com/o"></object>', '<object' ),
-			'embed'  => array( '<embed src="https://example.com/e"></embed>', '<embed' ),
+			'iframe'             => array( '<iframe src="https://example.com/e"></iframe>', '<iframe' ),
+			'object'             => array( '<object data="https://example.com/o"></object>', '<object' ),
+			'embed'              => array( '<embed src="https://example.com/e"></embed>', '<embed' ),
+
+			/*
+			 * The patterns had no `s` modifier, so `.` stopped at a newline --
+			 * and an embed written over several lines is the ordinary shape
+			 * rather than an exotic one. The reader's browser fetched the frame
+			 * anyway, which is the one thing "Print Videos: No" exists to
+			 * prevent.
+			 */
+			'iframe over lines'  => array( "<iframe src=\"https://example.com/e\">\n</iframe>", '<iframe' ),
+			'iframe tag wrapped' => array( "<iframe\n src=\"https://example.com/e\"></iframe>", '<iframe' ),
+			'object over lines'  => array( "<object data=\"https://example.com/o\">\n  <param name=\"x\" />\n</object>", '<object' ),
+
+			// <embed> is void, so requiring a closing tag meant a bare one was
+			// never stripped at all.
+			'bare embed'         => array( '<embed src="https://example.com/e" />', '<embed' ),
+		);
+	}
+
+	/**
+	 * The same newline hole on the image side, where it is worse: `(.+?)` and
+	 * `(.*?)` meant *any* newline inside the tag defeated it, not only one in
+	 * the body.
+	 *
+	 * @dataProvider data_image_markup
+	 *
+	 * @param string $markup Image markup.
+	 */
+	public function test_images_are_stripped_however_the_tag_is_written( $markup ) {
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get_defaults(), array( 'images' => 0 ) ) );
+
+		$this->assertStringNotContainsString( '<img', $this->render( $markup ), 'With images switched off, none is printed.' );
+	}
+
+	/**
+	 * Data provider.
+	 *
+	 * @return array
+	 */
+	public function data_image_markup() {
+		return array(
+			'one line'       => array( '<img src="https://example.com/p.png" alt="x" />' ),
+			'src on its own' => array( "<img\n src=\"https://example.com/p.png\" alt=\"x\" />" ),
+			'attrs wrapped'  => array( "<img\n  class=\"wp-image-1\"\n  src=\"https://example.com/p.png\"\n  alt=\"x\"\n/>" ),
+			'srcset only'    => array( '<img srcset="https://example.com/p.png 1x" alt="x" />' ),
+			'src after alt'  => array( '<img alt="x" src="https://example.com/p.png" />' ),
 		);
 	}
 

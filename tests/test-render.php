@@ -468,6 +468,40 @@ class WP_Print_Render_Test extends WP_Print_TestCase {
 	}
 
 	/**
+	 * The body, the comments and the comment count are all withheld on a locked
+	 * post; the featured image was not. get_the_post_thumbnail() has no password
+	 * check of its own -- which is why every classic core theme makes the test
+	 * itself -- and this template replaces the theme's, so nothing was making
+	 * it. For a good many posts the hero image is the content.
+	 */
+	public function test_the_thumbnail_of_a_locked_post_is_withheld() {
+		$post_id = self::factory()->post->create(
+			array(
+				'post_title'    => 'Locked Post',
+				'post_content'  => 'Secret body.',
+				'post_password' => 'letmein',
+			)
+		);
+
+		$attachment_id = self::factory()->attachment->create_object(
+			array(
+				'file'           => 'thumb.jpg',
+				'post_parent'    => $post_id,
+				'post_mime_type' => 'image/jpeg',
+			)
+		);
+		set_post_thumbnail( $post_id, $attachment_id );
+
+		update_option( WP_Print_Options::OPTION, array_merge( WP_Print_Options::get(), array( 'thumbnail' => 1 ) ) );
+
+		$html = $this->render_document( $post_id );
+
+		$this->assertStringNotContainsString( 'class="thumbnail"', $html, 'A locked post prints no featured image.' );
+		$this->assertStringNotContainsString( 'thumb.jpg', $html, 'Nor its URL, which would disclose it just as well.' );
+		$this->assertStringNotContainsString( 'Secret body.', $html, 'And the body is still withheld, as it always was.' );
+	}
+
+	/**
 	 * With nothing to show, the document says so instead of rendering an empty
 	 * shell - and still closes its tags.
 	 */

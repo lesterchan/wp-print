@@ -418,7 +418,20 @@ class WP_Print_Content {
 	 * @return string
 	 */
 	private static function remove_images( $content ) {
-		return preg_replace( '/<img(.+?)src=["\'](.+?)["\'](.*?)>/', '', $content );
+		/*
+		 * The `s` modifier is what makes this work at all. Without it `.` does
+		 * not match a newline, so any <img> tag written across more than one
+		 * line -- which is what a pretty-printed or hand-written one looks
+		 * like -- survived "Print Images: No" and was fetched by the reader's
+		 * browser anyway. The setting is the one control a reader has over a
+		 * print view contacting third parties, so it failing quietly is the
+		 * whole of the problem.
+		 *
+		 * `src` is no longer required either: an <img> with only a srcset, or
+		 * one whose src follows an attribute the old pattern could not cross,
+		 * is still an image.
+		 */
+		return preg_replace( '/<img\b[^>]*+>/is', '', $content );
 	}
 
 	/**
@@ -428,9 +441,19 @@ class WP_Print_Content {
 	 * @return string
 	 */
 	private static function remove_videos( $content ) {
-		$content = preg_replace( '/<object[^>]*?>.*?<\/object>/', '', $content );
-		$content = preg_replace( '/<embed[^>]*?>.*?<\/embed>/', '', $content );
-		$content = preg_replace( '/<iframe[^>]*?>.*?<\/iframe>/', '', $content );
+		/*
+		 * The `s` modifier, for the reason given on remove_images(): the opening
+		 * tag was matched across newlines already, but `.*?` between it and the
+		 * closing tag was not -- and an embed block written over several lines
+		 * is the ordinary shape, not an exotic one. So "Print Videos: No" left
+		 * the iframe in and the reader's browser fetched it.
+		 *
+		 * <embed> is void, so it has no closing tag to look for; requiring one
+		 * meant a bare <embed> was never stripped.
+		 */
+		$content = preg_replace( '/<object\b[^>]*+>.*?<\/object>/is', '', $content );
+		$content = preg_replace( '/<iframe\b[^>]*+>.*?<\/iframe>/is', '', $content );
+		$content = preg_replace( '/<embed\b[^>]*+>(?:.*?<\/embed>)?/is', '', $content );
 
 		return $content;
 	}
