@@ -131,7 +131,7 @@ Nothing, because there is nothing left for it to stand for: it inserted whicheve
 ## Screenshots
 
 1. Settings -> WP-Print, choosing what the printable version carries
-2. The Templates tab, holding the link markup and the disclaimer
+2. The Templates tab, holding the markup of the print link
 3. The print link in a post, placed with the shortcode
 4. The printable version, without the theme around it
 
