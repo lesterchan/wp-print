@@ -17,12 +17,6 @@ WP-Print adds a print link to your posts and pages. Following it gives the reade
 
 Every link in the printed article is numbered and its URL listed at the end, because a reader holding a sheet of paper cannot click anything.
 
-Once installed take the following steps to set it up:
-
-1. The settings screen is at `WP-Admin -> Settings -> WP-Print`
-1. Re-save your permalinks at `WP-Admin -> Settings -> Permalinks`, so the /print/ endpoint is registered
-1. Refer to Usage below for the template tag
-
 ### Features
 
 * A printable version of any post, page or custom post type, at `/your-post/print/`
@@ -34,6 +28,13 @@ Once installed take the following steps to set it up:
 
 ### Donations
 I spent most of my free time creating, updating, maintaining and supporting these plugins, if you really love my plugins and could spare me a couple of bucks, I will really appreciate it. If not feel free to use it without any obligations.
+
+## Installation
+
+1. Install and activate the plugin.
+1. Re-save your permalinks at `WP-Admin -> Settings -> Permalinks -> Save Changes`, so the `/print/` endpoint is registered. **The printable page returns a 404 until you do this.**
+1. Add the print link: type `[print_link]` into a post, or call `print_link()` in your theme. Usage below covers both.
+1. Templates and options are at `WP-Admin -> Settings -> WP-Print`.
 
 ## Usage
 
