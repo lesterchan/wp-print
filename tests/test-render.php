@@ -226,6 +226,44 @@ class WP_Print_Render_Test extends WP_Print_TestCase {
 	}
 
 	/**
+	 * The comment attributions are whole sentences, not labels plus values.
+	 *
+	 * They used to be "By" concatenated with the author and "On" concatenated
+	 * with the date, and the thread heading was the comment count, then "To",
+	 * then the title in ASCII double quotes. All three left the word order --
+	 * and the choice of quotation mark, which is not the same in every
+	 * language -- as facts about English held in PHP. Reordering the
+	 * translation must reorder the output.
+	 */
+	public function test_the_comment_sentences_take_their_order_from_the_translation() {
+		$post_id = $this->make_post();
+
+		$reorder = static function ( $translation, $text, $domain ) {
+			if ( 'wp-print' !== $domain ) {
+				return $translation;
+			}
+
+			$swapped = array(
+				'By %1$s On %2$s' => 'On %2$s, by %1$s',
+				'%1$s To "%2$s"'  => '%2$s has %1$s',
+			);
+
+			return $swapped[ $text ] ?? $translation;
+		};
+
+		add_filter( 'gettext', $reorder, 10, 3 );
+		$html = $this->render_document( $post_id );
+		remove_filter( 'gettext', $reorder, 10 );
+
+		$this->assertMatchesRegularExpression(
+			'#On [^<]+, by <u>Ada</u>#',
+			$html,
+			'The translated attribution decides where the author and the date go.'
+		);
+		$this->assertStringNotContainsString( ' To "', $html, 'The heading follows its translation too.' );
+	}
+
+	/**
 	 * A comment awaiting moderation says so rather than being shown as approved.
 	 */
 	public function test_an_unapproved_comment_is_marked() {

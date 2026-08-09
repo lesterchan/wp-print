@@ -36,7 +36,16 @@ if ( have_comments() ) :
 		| <a href="#comments_box" data-print-action="close" data-print-target="comments_box"><?php esc_html_e( 'Close', 'wp-print' ); ?></a>)
 	</span>
 	<div id="comments_box">
-		<p id="CommentTitle"><?php print_comments_number(); ?> <?php esc_html_e( 'To', 'wp-print' ); ?> "<?php the_title(); ?>"</p>
+		<p id="CommentTitle">
+			<?php
+			printf(
+				/* translators: 1: the comment count, already a phrase such as "5 Comments". 2: the post title. */
+				esc_html__( '%1$s To "%2$s"', 'wp-print' ),
+				esc_html( WP_Print_Content::comments_number() ),
+				esc_html( get_the_title() )
+			);
+			?>
+		</p>
 		<?php
 		/*
 		 * comment_author(), comment_date() and comment_type() all read the
@@ -51,15 +60,20 @@ if ( have_comments() ) :
 			<p class="CommentDate">
 				<strong>#<?php echo esc_html( number_format_i18n( $print_comment_count ) ); ?>
 					<?php comment_type( __( 'Comment', 'wp-print' ), __( 'Trackback', 'wp-print' ), __( 'Pingback', 'wp-print' ) ); ?></strong>
-				<?php esc_html_e( 'By', 'wp-print' ); ?> <u><?php comment_author(); ?></u>
-				<?php esc_html_e( 'On', 'wp-print' ); ?>
 				<?php
-				comment_date(
-					sprintf(
-						/* translators: 1: date format, 2: time format */
-						__( '%1$s @ %2$s', 'wp-print' ),
-						get_option( 'date_format' ),
-						get_option( 'time_format' )
+				printf(
+					/* translators: 1: the comment author, wrapped in <u>. 2: the date and time the comment was posted. */
+					esc_html__( 'By %1$s On %2$s', 'wp-print' ),
+					'<u>' . esc_html( get_comment_author() ) . '</u>',
+					esc_html(
+						get_comment_date(
+							sprintf(
+								/* translators: 1: date format, 2: time format */
+								__( '%1$s @ %2$s', 'wp-print' ),
+								get_option( 'date_format' ),
+								get_option( 'time_format' )
+							)
+						)
 					)
 				);
 				?>

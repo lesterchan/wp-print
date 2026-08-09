@@ -174,6 +174,7 @@ Nothing, because there is nothing left for it to stand for: it inserted whicheve
 * NOTE: The `remove_image()`, `remove_video()` and `str_replace_one()` global functions are gone. They were undocumented and used names other plugins could collide with.
 * NOTE: Support for the Polyglot plugin is removed. It has not been available for over a decade.
 * NOTE: Every documented template tag — `print_link()`, `print_content()`, `print_categories()`, `print_comments_content()`, `print_comments_number()`, `print_links()`, `print_can()` — keeps its name, arguments and behaviour, and `[print_link]` and `[donotprint]` are unchanged. So is the `/print/` URL of every printable page.
+* NOTE: The comment attributions were assembled from separate translated words -- "By", the author, "On", the date -- and the thread heading from the comment count, "To", and the title in ASCII quotes. Each is now one string with numbered placeholders, so a translation decides the word order and the quotation marks. Those msgids changed, so existing translations of them fall back to English until they are retranslated
 
 ## Upgrade Notice
 

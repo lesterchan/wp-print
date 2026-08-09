@@ -93,8 +93,14 @@ if ( false !== $print_dash ) {
 					</time>
 
 					<span>
-						<?php esc_html_e( 'In', 'wp-print' ); ?>
-						<?php print_categories(); ?> |
+						<?php
+						printf(
+							/* translators: %s: the list of categories the post is filed under. */
+							esc_html__( 'In %s', 'wp-print' ),
+							wp_kses_post( WP_Print_Content::categories() )
+						);
+						?>
+						|
 					</span>
 
 					<a href="#comments_controls"><?php print_comments_number(); ?></a>
