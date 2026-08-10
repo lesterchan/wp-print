@@ -164,8 +164,8 @@ concluding anything about the plugin. `.wp-env.json` pins `core: null`, which is
 whatever WordPress is current, so the wording is not stable and asserting on it
 was always going to age.
 
-## Pending, not started
+## Pending
 
-The settings page and the section inside it are both called "Print Options";
-the page should be renamed. The link-settings collapse has largely landed
-already (commit `49861b9`) — check before redoing it.
+Nothing outstanding. The screen was renamed to "Print Settings" and the
+link-settings collapse landed in commit `49861b9` — check both before redoing
+either.
