@@ -30,7 +30,7 @@
  *
  * @covers WP_Print_Options
  */
-class WP_Print_Migration_Test extends WP_Print_TestCase {
+class WP_Print_Upgrade_Test extends WP_Print_TestCase {
 
 	/**
 	 * The wording every release up to 2.58.3 shipped.
