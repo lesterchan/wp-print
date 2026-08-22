@@ -156,7 +156,7 @@ fire on that suite's scaffolding. Widen the rule rather than moving the file.
 **`printview.spec.js`'s password test quotes core's wording, and core has since
 changed it.** WordPress 7.0's `get_the_password_form()` reads *"This content is
 password-protected. To view it, please enter the password below."* — hyphenated,
-and not the sentence either the spec's comment or the sweep entry quotes. So
+and not the sentence the spec's comment quotes. So
 `toContainText( 'password protected' )` cannot match, and that assertion sits
 directly after the comment-leak one that was the real bug. Both plugin bugs that
 test covers are fixed; if it is still red, read the failing line before
