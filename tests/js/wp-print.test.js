@@ -7,7 +7,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { loadScript, resetDocument } from './helper-load.js';
+import { loadScript, resetDocument } from './helpers.js';
 
 /**
  * The markup the print template emits, reduced to what the script touches.

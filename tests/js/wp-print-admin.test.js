@@ -12,7 +12,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { loadScript, resetDocument } from './helper-load.js';
+import { loadScript, resetDocument } from './helpers.js';
 
 const SHIPPED_TEMPLATE =
 	'<a href="%PRINT_URL%" rel="nofollow" title="Print This %POST_TYPE%">%PRINT_ICON% Print This %POST_TYPE%</a>';
