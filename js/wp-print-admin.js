@@ -11,6 +11,8 @@
  * three styles that were not the template.
  */
 ( function() {
+	'use strict';
+
 	function ready( callback ) {
 		if ( document.readyState === 'loading' ) {
 			document.addEventListener( 'DOMContentLoaded', callback );

@@ -10,6 +10,8 @@
  * printing a page does not pull in the theme's and every other plugin's assets.
  */
 ( function() {
+	'use strict';
+
 	document.addEventListener( 'click', function( event ) {
 		const trigger = event.target.closest( '[data-print-action]' );
 
