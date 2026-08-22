@@ -51,7 +51,7 @@ class WP_Print_Admin {
 	 */
 	public static function capability( $context = 'settings' ) {
 		/**
-		 * Filters the capability required to reach the WP-Print settings screen.
+		 * Filters the capability required to reach a WP-Print screen.
 		 *
 		 * @since 3.0.0
 		 *
@@ -62,7 +62,7 @@ class WP_Print_Admin {
 	}
 
 	/**
-	 * Hook the admin screen into WordPress.
+	 * Hook registration.
 	 *
 	 * @return void
 	 */

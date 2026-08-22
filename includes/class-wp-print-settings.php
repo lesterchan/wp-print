@@ -66,7 +66,7 @@ class WP_Print_Settings {
 	const SECTION_CONTENT = 'wp_print_content';
 
 	/**
-	 * Hook the registration into WordPress.
+	 * Hook registration.
 	 *
 	 * @return void
 	 */
