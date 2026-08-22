@@ -10,7 +10,7 @@
  *
  * @covers WP_Print
  */
-class WP_Print_Lifecycle_Test extends WP_Print_TestCase {
+class WP_Print_Uninstall_Test extends WP_Print_TestCase {
 
 	/**
 	 * Start from an install that has never seen the plugin.
