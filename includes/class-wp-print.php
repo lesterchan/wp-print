@@ -51,11 +51,9 @@ class WP_Print {
 
 	/**
 	 * Register hooks.
-	 *
-	 * The activation hook is registered here because the constructor runs at
-	 * file-load time, which is where WordPress requires it.
 	 */
 	private function __construct() {
+		// Must be registered at file-load time, which is when this runs.
 		register_activation_hook( WP_PRINT_MAIN_FILE, array( __CLASS__, 'activate' ) );
 
 		add_action( 'init', array( __CLASS__, 'add_endpoint' ) );
@@ -67,9 +65,10 @@ class WP_Print {
 		add_shortcode( 'print_link', array( 'WP_Print_Link', 'shortcode' ) );
 		add_shortcode( 'donotprint', array( 'WP_Print_Link', 'donotprint_shortcode' ) );
 
-		// Activation does not fire when a plugin is updated, so the migration also
-		// runs on the first admin request after an upgrade.
-		add_action( 'admin_init', array( 'WP_Print_Options', 'maybe_upgrade' ) );
+		// Activation does not fire on a plugin update, which is the single most
+		// common reason a migration never runs -- so the migration also runs on
+		// the first request after an upgrade.
+		add_action( 'init', array( 'WP_Print_Options', 'maybe_upgrade' ), 5 );
 	}
 
 	/**
@@ -118,10 +117,7 @@ class WP_Print {
 	 */
 	public static function activate( $network_wide = false ) {
 		if ( is_multisite() && $network_wide ) {
-			// 'number' => 0 is required: WP_Site_Query defaults to 100, so without
-			// it every site past the hundredth is left unconfigured while activation
-			// still reports success. 'fields' => 'ids' avoids hydrating WP_Site
-			// objects the loop does not use.
+			// 'number' => 0 lifts WP_Site_Query's default cap of 100, which would otherwise skip every site past the hundredth while reporting success.
 			$site_ids = get_sites(
 				array(
 					'fields' => 'ids',
@@ -130,17 +126,16 @@ class WP_Print {
 			);
 
 			foreach ( $site_ids as $site_id ) {
+				// Inside the loop: switch_to_blog() pushes onto a stack, so restoring once after the loop unwinds it by exactly one.
 				switch_to_blog( (int) $site_id );
-				self::activate_site();
-				// Inside the loop: switch_to_blog() pushes onto a stack, so
-				// restoring once afterwards would leave it unwound by all but one.
+				self::install();
 				restore_current_blog();
 			}
 
 			return;
 		}
 
-		self::activate_site();
+		self::install();
 	}
 
 	/**
@@ -148,7 +143,7 @@ class WP_Print {
 	 *
 	 * @return void
 	 */
-	private static function activate_site() {
+	private static function install() {
 		/*
 		 * Migrate before seeding, not after.
 		 *

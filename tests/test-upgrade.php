@@ -17,10 +17,10 @@
  * accepted loss that nobody wrote down is just a bug with a good excuse.
  *
  * Both entry points are exercised. Updating through the Plugins screen never
- * fires the activation hook and leaves admin_init -> maybe_upgrade() running
- * alone; reactivating fires the hook and never sees admin_init. They are not the
- * same code path and only one of them has the settings screen's sanitize
- * callback attached.
+ * fires the activation hook and leaves init -> maybe_upgrade() running alone;
+ * reactivating fires the hook itself. They are not the same code path, and the
+ * suite also pins the hostile shape where the settings screen's sanitize
+ * callback is attached before the migration writes.
  *
  * @package WP-Print
  */
@@ -316,8 +316,9 @@ class WP_Print_Upgrade_Test extends WP_Print_TestCase {
 	}
 
 	/**
-	 * The admin_init entry point, with the settings screen's sanitize callback
-	 * attached -- which is the shape of a real update through the Plugins screen.
+	 * The load-time entry point with the settings screen's sanitize callback
+	 * already attached -- the worst-case ordering, which registration reaching
+	 * the hook first would produce.
 	 *
 	 * Registration hangs that callback on sanitize_option_wp_print_options,
 	 * so every option write the migration makes goes through it, and it drops
@@ -427,7 +428,7 @@ class WP_Print_Upgrade_Test extends WP_Print_TestCase {
 
 	/**
 	 * Owners deactivate and reactivate to fix things, sometimes twice, and an
-	 * update lands an admin_init pass on top. Every pass after the first has to be
+	 * update lands an init pass on top. Every pass after the first has to be
 	 * a bystander.
 	 */
 	public function test_the_migration_is_idempotent() {

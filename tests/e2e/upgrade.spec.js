@@ -3,8 +3,8 @@
  *
  * Activation does not fire when a plugin is merely updated -- a site that
  * updates from the Plugins screen never calls activate() -- so the migration
- * also hangs off admin_init. That is the hook every real upgrade actually goes
- * through, and loading an admin page in a browser is the only way to reach it.
+ * also hangs off init. That is the hook every real upgrade actually goes
+ * through, and loading the site in a browser is the only way to reach it.
  *
  * Every test then checks the far end rather than the row alone: a setting that
  * survived the migration but no longer reaches the page is a migration that
@@ -235,7 +235,7 @@ test.describe( 'The pre-3.0.0 upgrade', () => {
 
 		// The other entry point, and the one that does more: activation migrates,
 		// then seeds the defaults with add_option(), then flushes the rewrite
-		// rules. The order matters and the comment in activate_site() says why --
+		// rules. The order matters and the comment in install() says why --
 		// seeding first would make every default look like a value already in the
 		// new row, and a 2.58.3 site's settings would be thrown away by the very
 		// routine that exists to rescue them.
@@ -254,7 +254,7 @@ test.describe( 'The pre-3.0.0 upgrade', () => {
 		// called after the fold-in and finds the row already there, so it does
 		// nothing -- the keys a 2.58.3 row never had are supplied by the merge
 		// every reader does rather than written in. That is the order the
-		// comment in activate_site() argues for, and reversing it is exactly how
+		// comment in install() argues for, and reversing it is exactly how
 		// a legacy site's settings would be thrown away by the routine that
 		// exists to rescue them.
 		expect( stored.thumbnail ).toBeUndefined();
@@ -279,7 +279,7 @@ test.describe( 'The pre-3.0.0 upgrade', () => {
 
 		// Owners deactivate and reactivate to fix things, sometimes twice. The
 		// second pass has to be a bystander: the rows it finds are the rows it
-		// leaves, and so is the admin_init pass that follows a real update.
+		// leaves, and so is the init pass that follows a real update.
 		reactivatePlugin();
 
 		expect( getStoredOptions() ).toEqual( once.options );

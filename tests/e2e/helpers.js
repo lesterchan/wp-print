@@ -279,7 +279,7 @@ function clearFixtureOption( name ) {
 /**
  * Deactivate and reactivate the plugin, which is the path that fires activate().
  *
- * Genuinely a different entry point from the admin_init one: updating through
+ * Genuinely a different entry point from the init one: updating through
  * the Plugins screen never fires the activation hook, and activation is the only
  * path that seeds the defaults and flushes the rewrite rules.
  *

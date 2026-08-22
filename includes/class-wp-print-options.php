@@ -313,8 +313,9 @@ class WP_Print_Options {
 	 * detected: gating on detection means an install that has already been
 	 * migrated gets migrated again on every request.
 	 *
-	 * Idempotent, and called from `admin_init` as well as from activation,
-	 * because activation does not fire when a plugin is merely updated.
+	 * Idempotent, and called from `init` as well as from activation. Activation
+	 * does not fire on a plugin update, which is the single most common reason a
+	 * migration never runs.
 	 *
 	 * @return void
 	 */

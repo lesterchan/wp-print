@@ -10,9 +10,9 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 /**
  * Delete the plugin's options for the current site.
  *
- * The two legacy rows go too. Deleting a plugin that was never opened in
- * wp-admin after the upgrade would otherwise leave them behind, because the
- * migration that folds them in runs on admin_init and would never have fired.
+ * The two legacy rows go too. Deleting a plugin whose site never served
+ * another request after the upgrade would otherwise leave them behind, because
+ * the migration that folds them in runs on init and would never have fired.
  *
  * The row names are spelled out rather than read from WP_Print_Options: this
  * file runs with the plugin inactive, so none of its classes are loaded.

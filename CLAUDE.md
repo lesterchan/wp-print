@@ -39,7 +39,7 @@ unchanged but the rewrite rules are only written when that screen is saved.
   with `wp_print_styles( array( 'wp-print' ) )` / `wp_print_scripts()`, and why
   the script is a plain tag. Do not "fix" this.
 * **Activation migrates *before* seeding defaults, and the order is a fixed
-  bug.** `WP_Print::activate_site()` used to `add_option()` the defaults first;
+  bug.** `WP_Print::install()` used to `add_option()` the defaults first;
   the migration lets an existing value win, so a site upgrading from 2.58.3 had
   its `print_options` row read, deleted and thrown away — the one case activation
   exists to handle. Pinned by `test_activation_runs_the_migration`. This was one
