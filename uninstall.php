@@ -27,10 +27,8 @@ function wp_print_uninstall_site() {
 }
 
 if ( is_multisite() ) {
-	// 'number' => 0 is required: WP_Site_Query defaults to 100, so without it the
-	// options are left behind on every site past the hundredth and uninstall still
-	// reports success. 'fields' => 'ids' avoids hydrating WP_Site objects the loop
-	// does not use.
+	// 'number' => 0 lifts WP_Site_Query's default cap of 100, which would
+	// otherwise skip every site past the hundredth while reporting success.
 	$site_ids = get_sites(
 		array(
 			'fields' => 'ids',
