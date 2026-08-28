@@ -1,15 +1,10 @@
-/*
+/**
  * WP-Print: the printable document.
  *
- * The print view is a standalone page that deliberately never calls wp_head(),
- * so this sheet is on its own -- there is no theme stylesheet underneath it to
- * inherit from, which is why it sets a type scale at all. Everything it does set
- * goes through a custom property, so a theme, or a child theme setting four
- * variables, can retune it without forking the file.
- *
- * Every rule is scoped to .wp-print on <body>, and every directional property is
- * a logical one. There is no print-css-rtl.css and no wp_style_add_data( 'rtl' ):
- * one sheet serves both directions, which is one fewer thing to keep in step.
+ * The print view never calls wp_head(), so this sheet stands alone with no
+ * theme stylesheet under it -- which is why it sets a type scale at all.
+ * Everything settable is a custom property, and every rule is logical, so one
+ * sheet serves both directions.
  */
 
 .wp-print {
@@ -28,11 +23,8 @@
 	line-height: var(--wp-print-line-height);
 }
 
-/*
- * Reading a printable page on screen before printing it is the common case, and
- * this document paints its own surface, so it owes a dark-mode reader a dark
- * one. The @media print block below puts it back to ink on paper either way.
- */
+/* Read on screen more often than printed, and this document paints its own
+   surface. The print block below returns it to ink on paper. */
 @media (prefers-color-scheme: dark) {
 	.wp-print {
 		--wp-print-text: #e6e6e6;
@@ -110,11 +102,7 @@
 	white-space: pre-wrap;
 }
 
-/*
- * The blanket reset above used to carry list-style-type: none, so a post built
- * around a numbered list printed as an unnumbered one. The article's own lists
- * get their markers back; the plugin's own chrome keeps none.
- */
+/* The article's lists keep their markers; the plugin's own chrome has none. */
 .wp-print .entry-content ul,
 .wp-print .CommentContent ul {
 	list-style-type: disc;

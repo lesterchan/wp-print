@@ -1,14 +1,7 @@
 /**
- * WP-Print settings screen.
- *
- * Vanilla, with no dependencies at all. Replaces the inline onchange/onclick
- * attributes and the framework the screen leaned on before 3.0.0. One delegated
- * listener handles both Restore Default buttons, so neither the default strings
- * nor the element ids have to be interpolated into an attribute.
- *
- * There is nothing to show or hide any more: the link template used to be
- * revealed by a four-way style dropdown, and the dropdown is gone along with the
- * three styles that were not the template.
+ * WP-Print settings screen. One delegated listener covers both Restore Default
+ * buttons, so neither the default strings nor the element ids are interpolated
+ * into an attribute.
  */
 ( function() {
 	'use strict';

@@ -1,13 +1,9 @@
 /**
- * WP-Print print view.
+ * WP-Print print view. One delegated listener covers the print prompt and the
+ * comment box's controls.
  *
- * Replaces the inline onclick attributes the print template carried before
- * 3.0.0, including two that used a javascript: label. One delegated listener
- * covers the print prompt and the comment box's Open and Close controls.
- *
- * Loaded with a plain script tag rather than wp_enqueue_script(): the print view
- * is a standalone document that deliberately does not call wp_head(), so that
- * printing a page does not pull in the theme's and every other plugin's assets.
+ * Loaded with a plain script tag: the print view does not call wp_head(), so
+ * printing pulls in no theme or plugin assets.
  */
 ( function() {
 	'use strict';
