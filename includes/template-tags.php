@@ -34,7 +34,7 @@ defined( 'ABSPATH' ) || exit;
  * @param string $print_post_text Unused. Formerly the link text on a post.
  * @param string $print_page_text Unused. Formerly the link text on a page.
  * @param bool   $display         Optional. Whether to print. Default true.
- * @return string|void The markup when $display is false.
+ * @return ($display is true ? void : string) The markup when $display is false.
  */
 function print_link( $print_post_text = '', $print_page_text = '', $display = true ) {
 	unset( $print_post_text, $print_page_text );
@@ -59,7 +59,7 @@ function print_link( $print_post_text = '', $print_page_text = '', $display = tr
  * sees a stored post body.
  *
  * @param bool $display Optional. Whether to print. Default true.
- * @return string|void The content when $display is false.
+ * @return ($display is true ? void : string) The content when $display is false.
  */
 function print_content( $display = true ) {
 	$content = WP_Print_Content::post_content();
@@ -77,7 +77,7 @@ function print_content( $display = true ) {
  * Display the current comment's content, prepared for printing.
  *
  * @param bool $display Optional. Whether to print. Default true.
- * @return string|void The content when $display is false.
+ * @return ($display is true ? void : string) The content when $display is false.
  */
 function print_comments_content( $display = true ) {
 	$content = WP_Print_Content::comment_content();
